@@ -21,27 +21,42 @@ type Props = {
 const Register = ({ onSwitchToLogin }: Props) => {
   const { signUp, loading } = useAuth();
   
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const handleChange = (name: string, value: string) => {
+    setForm({ ...form, [name]: value });
+  };
+
   const handleRegister = async () => {
-    if (!name.trim() || !phone.trim() || !password.trim()) {
-      Alert.alert('Validation Error', 'Username, phone, and password are required.');
+    const name = form.username.trim();
+    const email = form.email.trim();
+    const password = form.password.trim();
+
+    if (!name || !email || !password) {
+      Alert.alert('Validation Error', 'Name, email, and password are required.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address.');
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
       Alert.alert('Validation Error', 'Passwords do not match.');
       return;
     }
 
-    await signUp(name.trim(), email.trim(), phone.trim(), password.trim());
+    await signUp(name, email, password);
   };
 
   return (
@@ -61,8 +76,8 @@ const Register = ({ onSwitchToLogin }: Props) => {
               style={styles.input}
               placeholder="Username"
               placeholderTextColor="#9ca3af"
-              value={name}
-              onChangeText={setName}
+              value={form.username}
+              onChangeText={(val) => handleChange('username', val)}
             />
 
             <TextInput
@@ -70,18 +85,8 @@ const Register = ({ onSwitchToLogin }: Props) => {
               placeholder="Email Address"
               placeholderTextColor="#9ca3af"
               keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Phone Number"
-              placeholderTextColor="#9ca3af"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
+              value={form.email}
+              onChangeText={(val) => handleChange('email', val)}
               autoCapitalize="none"
             />
 
@@ -92,8 +97,8 @@ const Register = ({ onSwitchToLogin }: Props) => {
                   placeholder="Password"
                   placeholderTextColor="#9ca3af"
                   secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
+                  value={form.password}
+                  onChangeText={(val) => handleChange('password', val)}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity
@@ -114,8 +119,8 @@ const Register = ({ onSwitchToLogin }: Props) => {
                   placeholder="Confirm"
                   placeholderTextColor="#9ca3af"
                   secureTextEntry={!showConfirmPassword}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  value={form.confirmPassword}
+                  onChangeText={(val) => handleChange('confirmPassword', val)}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity

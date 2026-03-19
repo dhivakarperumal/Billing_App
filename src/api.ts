@@ -1,5 +1,5 @@
 
-const BASE_URL = 'https://billing.qtechx.com';
+const BASE_URL = 'https://billing.qtechx.com/api';
 
 export type ApiError = {
   message?: string;
@@ -61,7 +61,6 @@ export type LoginPayload = {
 export type RegisterPayload = {
   name: string;
   email?: string;
-  phone: string;
   password: string;
 };
 
@@ -89,28 +88,28 @@ export type BillPayload = {
 };
 
 export async function login(payload: LoginPayload) {
-  return request<{ token: string; user?: any }>(`/api/auth/login`, {
+  return request<{ token: string; user?: any }>(`/auth/login`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export async function register(payload: RegisterPayload) {
-  return request<{ token: string; user?: any }>(`/api/auth/register`, {
+  return request<{ token: string; user?: any }>(`/auth/register`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export async function fetchCustomers(token?: string | null) {
-  return request<Customer[]>(`/api/customers`, { method: 'GET' }, token);
+  return request<Customer[]>(`/customers`, { method: 'GET' }, token);
 }
 
 export async function createCustomer(
   data: Omit<Customer, 'id'>,
   token?: string | null,
 ) {
-  return request<Customer>(`/api/customers`, {
+  return request<Customer>(`/customers`, {
     method: 'POST',
     body: JSON.stringify(data),
   },
@@ -118,14 +117,14 @@ export async function createCustomer(
 }
 
 export async function fetchProducts(token?: string | null) {
-  return request<Product[]>(`/api/products`, { method: 'GET' }, token);
+  return request<Product[]>(`/products`, { method: 'GET' }, token);
 }
 
 export async function createProduct(
   data: Omit<Product, 'id'>,
   token?: string | null,
 ) {
-  return request<Product>(`/api/products`, {
+  return request<Product>(`/products`, {
     method: 'POST',
     body: JSON.stringify(data),
   },
@@ -133,7 +132,7 @@ export async function createProduct(
 }
 
 export async function createBill(payload: BillPayload, token?: string | null) {
-  return request<{ id: string | number }>(`/api/bills`, {
+  return request<{ id: string | number }>(`/bills`, {
     method: 'POST',
     body: JSON.stringify(payload),
   },

@@ -15,7 +15,7 @@ export type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   signIn: (identifier: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, phone: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
 };
 
@@ -41,27 +41,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(newToken);
       setUser(apiUser ?? null);
     } catch (error: any) {
-      Alert.alert('Login failed', error?.message ?? 'Unknown error');
-      throw error;
+      const message = error?.message ?? 'Unknown error';
+      const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
+      Alert.alert('Login failed', `${message}${details}`);
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const signUp = async (name: string, email: string, phone: string, password: string) => {
+  const signUp = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
       const { token: newToken, user: apiUser } = await apiRegister({
         name,
         email,
-        phone,
         password,
       });
       setToken(newToken);
       setUser(apiUser ?? null);
     } catch (error: any) {
-      Alert.alert('Registration failed', error?.message ?? 'Unknown error');
-      throw error;
+      const message = error?.message ?? 'Unknown error';
+      const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
+      Alert.alert('Registration failed', `${message}${details}`);
+      console.error('Registration error:', error);
     } finally {
       setLoading(false);
     }
