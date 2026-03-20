@@ -9,6 +9,11 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
+import Voice from '@react-native-voice/voice';
+import { useRoute } from "@react-navigation/native";
+import { NativeModules } from 'react-native';
+
+const VoiceModule = NativeModules.Voice;
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +38,76 @@ const CreateBilling = () => {
     // Form State
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
+    const route = useRoute<any>();
     const [cart, setCart] = useState<any[]>([]);
+    const [isListening, setIsListening] = useState(false);
+
+    // Handle incoming barcode
+    useEffect(() => {
+        if (route.params?.barcode) {
+            const barcode = route.params.barcode;
+            const product = products.find(p => p.product_code === barcode || String(p.id) === barcode);
+            if (product) {
+                handleProductPress(product);
+                // Clear the param after use
+                navigation.setParams({ barcode: null });
+            } else {
+                Alert.alert("Barcode Error", `Product with code ${barcode} not found in inventory.`);
+            }
+        }
+    }, [route.params?.barcode, products]);
+
+    // Voice Handlers
+    useEffect(() => {
+        if (!VoiceModule) {
+            console.warn("Speech recognition native module not found.");
+            return;
+        }
+
+        Voice.onSpeechResults = (e: any) => {
+            if (e.value && e.value.length > 0) {
+                setProductSearchTerm(e.value[0]);
+                stopListening();
+            }
+        };
+        Voice.onSpeechError = (e: any) => {
+            console.error("Speech Error:", e);
+            stopListening();
+        };
+        return () => {
+            if (VoiceModule && Voice) {
+                try {
+                    Voice.destroy().then(() => Voice.removeAllListeners()).catch(e => console.error(e));
+                } catch (e) {
+                    console.error("Failed to destroy Voice:", e);
+                }
+            }
+        };
+    }, []);
+
+    const startListening = async () => {
+        if (!VoiceModule) {
+            Alert.alert("Speech Unavailable", "The voice recognition module is not registered on this device. Please check app permissions and build configuration.");
+            return;
+        }
+        try {
+            await Voice.start('en-US');
+            setIsListening(true);
+        } catch (e) {
+            console.error(e);
+            Alert.alert("Speech Error", "Could not start voice recognition.");
+        }
+    };
+
+    const stopListening = async () => {
+        if (!Voice) return;
+        try {
+            await Voice.stop();
+            setIsListening(false);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -201,9 +275,32 @@ const CreateBilling = () => {
                     <View className="items-center">
                         <Text className="text-xl font-black text-slate-900 tracking-tighter italic">new.billing<Text className="text-rose-600">.</Text></Text>
                     </View>
-                    <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center">
-                        <Feather name="search" size={18} color="#94a3b8" />
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate('ScannerScreen')}
+                        className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-2"
+                    >
+                        <Feather name="maximize" size={18} color="#E11D48" />
                     </TouchableOpacity>
+                    <TouchableOpacity 
+                        onPress={isListening ? stopListening : startListening}
+                        className={`w-10 h-10 rounded-xl items-center justify-center ${isListening ? 'bg-rose-100' : 'bg-gray-50'}`}
+                    >
+                        <Feather name="mic" size={18} color={isListening ? "#E11D48" : "#94a3b8"} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Search Bar with scan icon alternative or search icon */}
+                <View className="relative mt-4">
+                    <View className="absolute left-4 top-1/2 -mt-2 z-10">
+                        <Feather name="search" size={16} color="#cbd5e1" />
+                    </View>
+                    <TextInput 
+                        placeholder={isListening ? "Listening..." : "Search items or enter code..."} 
+                        className="bg-gray-50 border border-gray-100 px-12 py-3 rounded-2xl font-bold text-slate-800 text-xs"
+                        placeholderTextColor="#cbd5e1"
+                        value={productSearchTerm}
+                        onChangeText={setProductSearchTerm}
+                    />
                 </View>
 
                 {/* Customer Details Inputs */}
@@ -238,13 +335,15 @@ const CreateBilling = () => {
                 <View className="flex-row bg-gray-50 rounded-xl p-1">
                     <TouchableOpacity 
                         onPress={() => setViewMode("grid")}
-                        className={`px-3 py-1.5 rounded-lg ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                        className="px-3 py-1.5 rounded-lg"
+                        style={viewMode === 'grid' ? { backgroundColor: '#ffffff', elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } } : {}}
                     >
                         <Feather name="grid" size={14} color={viewMode === 'grid' ? '#E11D48' : '#94a3b8'} />
                     </TouchableOpacity>
                     <TouchableOpacity 
                         onPress={() => setViewMode("list")}
-                        className={`px-3 py-1.5 rounded-lg ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                        className="px-3 py-1.5 rounded-lg"
+                        style={viewMode === 'list' ? { backgroundColor: '#ffffff', elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } } : {}}
                     >
                         <Feather name="list" size={14} color={viewMode === 'list' ? '#E11D48' : '#94a3b8'} />
                     </TouchableOpacity>

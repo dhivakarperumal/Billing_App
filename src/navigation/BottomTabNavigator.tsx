@@ -82,15 +82,21 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <>
-      <Modal visible={showQuickActions} transparent animationType="fade">
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setShowQuickActions(false)} 
-          className="flex-1 bg-slate-900/40 justify-center items-center p-6"
+      {/* 🔥 STABLE CONTEXT QUICK ACTIONS OVERLAY */}
+      {showQuickActions && (
+        <View 
+          style={[StyleSheet.absoluteFill, { zIndex: 999 }]}
+          className="bg-slate-900/60 justify-center items-center p-6"
         >
-          <View className="bg-gray-50/95 w-full rounded-[48px] p-8 border border-white shadow-2xl">
-            <Text className="text-3xl font-black text-slate-900 tracking-tighter italic mb-8 text-center">
-              quick.actions<Text className="text-rose-600">.</Text>
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={() => setShowQuickActions(false)} 
+            style={StyleSheet.absoluteFill}
+          />
+          
+          <View className="bg-white w-full rounded-[40px] p-8 shadow-2xl">
+            <Text className="text-2xl font-black text-slate-900 mb-8 text-center">
+              Quick Actions<Text className="text-orange-600">.</Text>
             </Text>
             
             <View className="flex-row flex-wrap justify-between">
@@ -98,41 +104,37 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 icon="microphone" 
                 label="Voice Bill" 
                 color="bg-indigo-500" 
-                onPress={() => Alert.alert("Coming Soon", "Voice intelligence module is being calibrated.")} 
+                onPress={() => navigation.navigate('CreateBilling')} 
               />
               <QuickAction 
                 icon="qrcode" 
                 label="Scan Item" 
                 color="bg-emerald-500" 
-                onPress={() => navigation.navigate('Tabs', { screen: 'CreateBill' })} 
+                onPress={() => navigation.navigate('ScannerScreen')} 
               />
               <QuickAction 
                 icon="file-invoice" 
                 label="Manual Bill" 
                 color="bg-orange-500" 
-                onPress={() => {
-                  const rootNav = navigation.getParent();
-                  if (rootNav) rootNav.navigate('CreateBilling');
-                  else navigation.navigate('CreateBilling');
-                }} 
+                onPress={() => navigation.navigate('CreateBilling')} 
               />
               <QuickAction 
                 icon="ellipsis-h" 
                 label="More" 
                 color="bg-slate-400" 
-                onPress={() => Alert.alert("Extra", "Additional utilities arriving in next patch.")} 
+                onPress={() => Alert.alert("Extra", "Additional utilities arriving soon.")} 
               />
             </View>
 
             <TouchableOpacity 
               onPress={() => setShowQuickActions(false)}
-              className="mt-6 py-5 bg-slate-900 rounded-[28px] items-center"
+              className="mt-6 py-4 bg-slate-900 rounded-2xl items-center"
             >
-              <Text className="text-white font-black uppercase text-[10px] tracking-widest">Close Menu</Text>
+              <Text className="text-white font-bold uppercase text-xs tracking-widest">Close</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        </View>
+      )}
 
       <View
         className="absolute left-4 right-4 bg-white rounded-3xl flex-row justify-between items-center px-6 py-3"

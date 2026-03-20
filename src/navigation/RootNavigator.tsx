@@ -5,6 +5,7 @@ import AddProduct from '../screens/AddProduct';
 import AddCategory from '../screens/AddCategory';
 
 import CreateBilling from '../screens/CreateBilling';
+import ScannerScreen from '../screens/ScannerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export default function RootNavigator() {
       <Stack.Screen name="AddProduct" component={AddProduct} />
       <Stack.Screen name="AddCategory" component={AddCategory} />
       <Stack.Screen name="CreateBilling" component={CreateBilling} />
+      <Stack.Screen name="ScannerScreen" component={ScannerScreen} />
     </Stack.Navigator>
   );
 }
