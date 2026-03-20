@@ -32,11 +32,22 @@ function HeaderRight() {
 
   return (
     <View className="flex-row items-center mr-4">
-      <View className="w-8 h-8 rounded-full bg-white justify-center items-center mr-3">
-        <Text className="text-[#4c8bf5] font-bold text-base">{initial}</Text>
+      {/* 🔥 Profile Badge */}
+      <View className="w-9 h-9 rounded-full bg-white justify-center items-center mr-3 shadow-md">
+        <Text className="text-orange-500 font-bold text-base">{initial}</Text>
       </View>
-      <TouchableOpacity onPress={handleLogout} className="p-1">
-        <Icon name="sign-out-alt" size={18} color="#fff" />
+
+      {/* 🔥 Logout Button (Premium Pill Style) */}
+      <TouchableOpacity
+        onPress={handleLogout}
+        className="flex-row items-center bg-white/20 px-3 py-1.5 rounded-full"
+        style={{
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.3)',
+        }}
+      >
+        <Icon name="sign-out-alt" size={14} color="#fff" />
+        <Text className="text-white text-xs ml-2 font-semibold">Logout</Text>
       </TouchableOpacity>
     </View>
   );
@@ -124,10 +135,16 @@ export default function BottomTabNavigator() {
   return (
     <View className="flex-1">
       <Tab.Navigator
-        tabBar={(props) => <CustomTabBar {...props} />}
+        tabBar={props => <CustomTabBar {...props} />}
         screenOptions={{
           headerShown: true,
-          headerStyle: { backgroundColor: ACTIVE_COLOR },
+          headerStyle: {
+            backgroundColor: '#f97316', 
+            elevation: 8,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 6,
+          },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700', fontSize: 18 },
           headerRight: () => <HeaderRight />,
