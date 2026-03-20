@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-
 import { useAuth } from '../contexts/AuthContext';
 
 import Home from '../screens/Home';
@@ -16,7 +15,6 @@ const Tab = createBottomTabNavigator();
 
 const ACTIVE_COLOR = '#4c8bf5';
 const INACTIVE_COLOR = '#9aa0b0';
-const BAR_BG = '#ffffff';
 
 function HeaderRight() {
   const { user, signOut } = useAuth();
@@ -33,129 +31,114 @@ function HeaderRight() {
   const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <View style={styles.headerRightContainer}>
-      <View style={styles.profileBadge}>
-        <Text style={styles.profileInitial}>{initial}</Text>
+    <View className="flex-row items-center mr-4">
+      <View className="w-8 h-8 rounded-full bg-white justify-center items-center mr-3">
+        <Text className="text-[#4c8bf5] font-bold text-base">{initial}</Text>
       </View>
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+      <TouchableOpacity onPress={handleLogout} className="p-1">
         <Icon name="sign-out-alt" size={18} color="#fff" />
       </TouchableOpacity>
     </View>
   );
 }
 
-export default function BottomTabNavigator() {
-  const safeAreaInsets = useSafeAreaInsets();
+/* 🔥 CUSTOM TAB BAR */
+function CustomTabBar({ state, descriptors, navigation }) {
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View
+      className="absolute left-4 right-4 bg-white rounded-3xl flex-row justify-between items-center px-6 py-3"
+      style={{
+        bottom: insets.bottom + 10,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      }}
+    >
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          if (!isFocused) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        const iconMap = {
+          Home: 'home',
+          Bills: 'file-invoice',
+          Customers: 'users',
+          Products: 'box',
+          Settings: 'cog',
+        };
+
+        /* 🔥 CENTER FLOATING BUTTON */
+        if (route.name === 'Customers') {
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              className="bg-orange-500 w-14 h-14 rounded-full justify-center items-center -mt-8"
+              style={{
+                elevation: 8,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+              }}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={onPress}
+            className="flex-1 items-center"
+          >
+            <Icon
+              name={iconMap[route.name]}
+              size={18}
+              color={isFocused ? ACTIVE_COLOR : INACTIVE_COLOR}
+              solid
+            />
+            <Text
+              className={`text-[10px] mt-1 ${
+                isFocused ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              {route.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+export default function BottomTabNavigator() {
+  return (
+    <View className="flex-1">
       <Tab.Navigator
+        tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
           headerShown: true,
           headerStyle: { backgroundColor: ACTIVE_COLOR },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: '700', fontSize: 18 },
           headerRight: () => <HeaderRight />,
-          tabBarActiveTintColor: ACTIVE_COLOR,
-          tabBarInactiveTintColor: INACTIVE_COLOR,
-          tabBarStyle: {
-            backgroundColor: BAR_BG,
-            borderTopWidth: 1,
-            borderTopColor: '#e8eaf0',
-            paddingBottom: safeAreaInsets.bottom,
-            height: 60 + safeAreaInsets.bottom,
-            elevation: 12,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
-            marginBottom: 4,
-          },
         }}
       >
-        <Tab.Screen
-          name="Home"
-          component={Home}
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="home" size={size} color={color} solid />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Bills"
-          component={Bills}
-          options={{
-            title: 'Bills',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="file-invoice" size={size} color={color} solid />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Customers"
-          component={Customers}
-          options={{
-            title: 'Customers',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="users" size={size} color={color} solid />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Products"
-          component={Products}
-          options={{
-            title: 'Products',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="box" size={size} color={color} solid />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={Settings}
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="cog" size={size} color={color} solid />
-            ),
-          }}
-        />
+        <Tab.Screen name="Home" component={Home} />
+        <Tab.Screen name="Bills" component={Bills} />
+        <Tab.Screen name="Customers" component={Customers} />
+        <Tab.Screen name="Products" component={Products} />
+        <Tab.Screen name="Settings" component={Settings} />
       </Tab.Navigator>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  profileBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  profileInitial: {
-    color: ACTIVE_COLOR,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  logoutButton: {
-    padding: 6,
-  },
-});
