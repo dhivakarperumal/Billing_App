@@ -74,15 +74,7 @@ const Bills = () => {
             <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
             
             <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <View style={styles.headerRow}>
-                    <View>
-                        <Text style={styles.headerTitle}>Billing Logs<Text style={{ color: '#f97316' }}>.</Text></Text>
-                        <Text style={styles.headerSubtitle}>Historical transaction vault</Text>
-                    </View>
-                    <TouchableOpacity onPress={loadData} style={styles.refreshBtn}>
-                        <Feather name="refresh-cw" size={18} color="#fff" />
-                    </TouchableOpacity>
-                </View>
+                
 
                 <View style={styles.searchBar}>
                     <Feather name="search" size={14} color="#64748b" />
@@ -121,7 +113,7 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
     headerSubtitle: { fontSize: 10, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
     refreshBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', paddingHorizontal: 15, height: 44, borderRadius: 15, gap: 10 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 15, height: 44, borderRadius: 15, gap: 10 },
     searchPlaceholder: { color: '#64748b', fontSize: 11, fontWeight: '700' },
     loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 2 },
