@@ -28,9 +28,9 @@ const CreateBillPlaceholder = () => (
 
 // ─── Constants ──────────────────────────────────────────
 const PRIMARY_GRADIENT = ['#f97316', '#ea580c']; // Orange
-const HEADER_GRADIENT  = ['#0f172a', '#1e293b']; // Dark Blueish
-const ACTIVE_COLOR     = '#f97316';
-const INACTIVE_COLOR   = '#94a3b8';
+const HEADER_GRADIENT = ['#0f172a', '#1e293b']; // Dark Blueish
+const ACTIVE_COLOR = '#f97316';
+const INACTIVE_COLOR = '#94a3b8';
 
 // ─── Header Components ─────────────────────────────────
 function HeaderBackground() {
@@ -44,10 +44,12 @@ function HeaderBackground() {
   );
 }
 
-function HeaderRight() {
+function HeaderRight({ navigation }: any) {
   const { user, signOut } = useAuth();
+  const [showMenu, setShowMenu] = React.useState(false);
 
   const handleLogout = () => {
+    setShowMenu(false);
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: signOut },
@@ -59,13 +61,49 @@ function HeaderRight() {
 
   return (
     <View style={styles.headerRightContainer}>
-      <View style={styles.avatarBubble}>
-        <Text style={styles.avatarText}>{initial}</Text>
-      </View>
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutPill} activeOpacity={0.7}>
-        <Icon name="sign-out-alt" size={12} color="#fff" />
-        <Text style={styles.logoutText}>Logout</Text>
+      {/* Avatar Click */}
+      <TouchableOpacity
+        onPress={() => setShowMenu(prev => !prev)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.avatarBubble}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
       </TouchableOpacity>
+
+      {/* Dropdown */}
+      {showMenu && (
+        <View style={styles.dropdownMenu}>
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={() => {
+              setShowMenu(false);
+              Alert.alert('Profile', 'Profile screen coming soon');
+            }}
+          >
+            <Icon name="user" size={14} color="#0f172a" />
+            <Text style={styles.dropdownText}>Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={() => {
+              setShowMenu(false);
+              navigation.navigate('Settings');
+            }}
+          >
+            <Icon name="cog" size={14} color="#0f172a" />
+            <Text style={styles.dropdownText}>Settings</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
+            <Icon name="sign-out-alt" size={14} color="#ef4444" />
+            <Text style={[styles.dropdownText, { color: '#ef4444' }]}>
+              Logout
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -76,28 +114,36 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const [showQuickActions, setShowQuickActions] = React.useState(false);
 
   const iconMap: Record<string, string> = {
-    Home:       'grip-horizontal',
-    Bills:      'receipt',
+    Home: 'grip-horizontal',
+    Bills: 'receipt',
     CreateBill: 'plus',
-    Products:   'boxes',
-    Settings:   'sliders-h',
+    Products: 'boxes',
+    Settings: 'sliders-h',
   };
 
   const labelMap: Record<string, string> = {
-    Home:       'Dash',
-    Bills:      'Bills',
+    Home: 'Dash',
+    Bills: 'Bills',
     CreateBill: 'New',
-    Products:   'Items',
-    Settings:   'Menu',
+    Products: 'Items',
+    Settings: 'Menu',
   };
 
   const QuickBtn = ({ icon, label, colors, onPress }: any) => (
     <TouchableOpacity
-      onPress={() => { setShowQuickActions(false); onPress(); }}
+      onPress={() => {
+        setShowQuickActions(false);
+        onPress();
+      }}
       style={styles.qaItem}
       activeOpacity={0.8}
     >
-      <LinearGradient colors={colors} style={styles.qaIconContainer} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient
+        colors={colors}
+        style={styles.qaIconContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <Icon name={icon} size={22} color="#fff" />
       </LinearGradient>
       <Text style={styles.qaLabelText}>{label}</Text>
@@ -107,16 +153,22 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
-      
+
       {/* QUICK ACTIONS MODAL-LIKE OVERLAY */}
       {showQuickActions && (
         <View style={[StyleSheet.absoluteFill, styles.modalOverlay]}>
-          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowQuickActions(false)} />
-          
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShowQuickActions(false)}
+          />
+
           <View style={styles.modalContent}>
             <View style={styles.modalPill} />
-            <Text style={styles.modalTitle}>Quick Actions<Text style={{ color: ACTIVE_COLOR }}>.</Text></Text>
-            
+            <Text style={styles.modalTitle}>
+              Quick Actions<Text style={{ color: ACTIVE_COLOR }}>.</Text>
+            </Text>
+
             <View style={styles.qaGrid}>
               <QuickBtn
                 icon="microphone-alt"
@@ -140,7 +192,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 icon="ellipsis-h"
                 label="Reports"
                 colors={['#64748b', '#475569']}
-                onPress={() => Alert.alert('Coming Soon', 'Detailed reports feature arriving soon.')}
+                onPress={() =>
+                  Alert.alert(
+                    'Coming Soon',
+                    'Detailed reports feature arriving soon.',
+                  )
+                }
               />
             </View>
 
@@ -156,7 +213,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       )}
 
       {/* FLOATING TAB BAR ISLAND */}
-      <View style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 12) }]}
+      >
         <View style={styles.tabBarIsland}>
           {state.routes.map((route: any, index: number) => {
             const isFocused = state.index === index;
@@ -207,7 +266,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   />
                   {isFocused && <View style={styles.activeDot} />}
                 </View>
-                <Text style={[styles.tabLabelText, isFocused && styles.tabLabelActive]}>
+                <Text
+                  style={[
+                    styles.tabLabelText,
+                    isFocused && styles.tabLabelActive,
+                  ]}
+                >
                   {labelMap[route.name]}
                 </Text>
               </TouchableOpacity>
@@ -235,17 +299,39 @@ export default function BottomTabNavigator() {
           letterSpacing: 0.5,
           textTransform: 'uppercase',
         },
-        headerRight: () => <HeaderRight />,
+        headerRight: ({ navigation }) => (
+          <HeaderRight navigation={navigation} />
+        ),
         headerStyle: {
           height: Platform.OS === 'ios' ? 110 : 80,
         },
       }}
     >
-      <Tab.Screen name="Home" component={Home} options={{ title: 'Analytics' }} />
-      <Tab.Screen name="Bills" component={Bills} options={{ title: 'Billing' }} />
-      <Tab.Screen name="CreateBill" component={CreateBillPlaceholder} options={{ title: 'Create' }} />
-      <Tab.Screen name="Products" component={Products} options={{ title: 'Inventory' }} />
-      <Tab.Screen name="Settings" component={Settings} options={{ title: 'Settings' }} />
+      <Tab.Screen
+        name="Home"
+        component={Home}
+        options={{ title: 'Analytics' }}
+      />
+      <Tab.Screen
+        name="Bills"
+        component={Bills}
+        options={{ title: 'Billing' }}
+      />
+      <Tab.Screen
+        name="CreateBill"
+        component={CreateBillPlaceholder}
+        options={{ title: 'Create' }}
+      />
+      <Tab.Screen
+        name="Products"
+        component={Products}
+        options={{ title: 'Inventory' }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={Settings}
+        options={{ title: 'Settings' }}
+      />
     </Tab.Navigator>
   );
 }
@@ -344,6 +430,42 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: ACTIVE_COLOR,
+  },
+
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    width: 140,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+
+    ...Platform.select({
+      android: { elevation: 10 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+    }),
+  },
+
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+
+  dropdownText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
   },
 
   /* FAB */
