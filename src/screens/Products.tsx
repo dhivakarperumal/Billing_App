@@ -5,63 +5,40 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  Modal,
   ActivityIndicator,
   Alert,
   StatusBar,
-  Image
+  Image,
+  StyleSheet,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  fetchProducts, 
-  createProduct, 
-  createCategory, 
-  Product 
-} from '../api';
+import { fetchProducts, Product } from '../api';
+
+const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
 
 const Products = () => {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
   
-  // Data State - Always initialize as empty array
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal States
   const [isFABExpanded, setIsFABExpanded] = useState(false);
-  const [isProductModalVisible, setProductModalVisible] = useState(false);
-  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
-
-  // Form States
-  const [newCategory, setNewCategory] = useState('');
-  const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
       const resp: any = await fetchProducts(token);
-      console.log('API Products Response:', JSON.stringify(resp).substring(0, 200));
-
-      let items = [];
-      if (Array.isArray(resp)) {
-        items = resp;
-      } else if (resp && Array.isArray(resp.data)) {
-        items = resp.data;
-      } else if (resp && Array.isArray(resp.products)) {
-        items = resp.products;
-      } else if (resp && Array.isArray(resp.items)) {
-        items = resp.items;
-      }
-
+      let items = Array.isArray(resp) ? resp : resp?.products || resp?.data || [];
       setProducts(items);
     } catch (error: any) {
       console.error('Fetch error:', error);
-      Alert.alert('Sync failed', error?.message || 'Check your connection.');
       setProducts([]);
     } finally {
       setLoading(false);
@@ -72,174 +49,152 @@ const Products = () => {
     loadData();
   }, [loadData]);
 
-  // Replaced handleCreateProduct with navigation to AddProduct screen
-
-  const handleCreateCategory = async () => {
-    if (!newCategory.trim()) return;
-    setSaving(true);
-    try {
-      await createCategory({ name: newCategory.trim() }, token);
-      setCategoryModalVisible(false);
-      setNewCategory('');
-      Alert.alert('Success', 'New category added to vault.');
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to create category.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Safe filter logic
-  const getSafeProducts = () => {
-    return Array.isArray(products) ? products : [];
-  };
-
-  const filteredProducts = getSafeProducts().filter((p: Product) => {
+  const filteredProducts = products.filter((p: Product) => {
     const name = (p.name || '').toLowerCase();
     const code = (p.product_code || String(p.id) || '').toLowerCase();
     const search = searchTerm.toLowerCase();
     return name.includes(search) || code.includes(search);
   });
 
-  const StatCard = ({ label, value, colorClass }: any) => (
-    <View className={`p-4 rounded-3xl ${colorClass} flex-1 shadow-sm`}>
-      <Text className="text-[10px] font-black text-black/40 uppercase tracking-widest">{label}</Text>
-      <Text className="text-xl font-black text-slate-900 mt-1">{value || 0}</Text>
-    </View>
-  );
-
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
       
-      {/* Premium Header */}
-      <View className="px-6 pt-6 pb-4 bg-white shadow-sm rounded-b-[40px]">
-        <View className="flex-row items-center justify-between mb-6">
-          <View>
-             <Text className="text-3xl font-black italic text-slate-900 lowercase leading-tight">
-               inventory<Text className="text-rose-600">.</Text>
-             </Text>
-             <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Vault Control</Text>
-          </View>
-          <TouchableOpacity className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-             <Feather name="filter" size={18} color="#94a3b8" />
-          </TouchableOpacity>
-        </View>
+      <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+  
 
-        {/* Search Bar */}
-        <View className="relative">
-          <View className="absolute left-4 top-1/2 -mt-2.5 z-10">
-            <Feather name="search" size={16} color="#cbd5e1" />
-          </View>
+        <View style={styles.searchBar}>
+          <Feather name="search" size={15} color="#64748b" />
           <TextInput
-            placeholder="Search by name or code..."
-            placeholderTextColor="#cbd5e1"
-            className="bg-gray-50/50 border border-gray-100 px-12 py-3 rounded-2xl font-bold text-slate-800 text-xs"
+            placeholder="Search assets or product codes..."
+            placeholderTextColor="#64748b"
+            style={styles.searchInput}
             value={searchTerm}
             onChangeText={setSearchTerm}
           />
         </View>
-
-        {/* Stats Row */}
-        <View className="flex-row gap-3 mt-6 mb-2">
-            <StatCard label="Total" value={getSafeProducts().length} colorClass="bg-rose-50" />
-            <StatCard label="Active" value={getSafeProducts().filter(p => (p.price || 0) > 0).length} colorClass="bg-emerald-50" />
-            <StatCard label="Warning" value="02" colorClass="bg-amber-50" />
-        </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator color="#E11D48" size="large" />
-          <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Syncing Vault...</Text>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color="#f97316" size="large" />
+          <Text style={styles.loadingText}>SYNCING VAULT...</Text>
         </View>
       ) : (
         <FlatList
           data={filteredProducts}
-          contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
+          contentContainerStyle={styles.listContent}
           keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity 
               onPress={() => navigation.navigate('AddProduct', { id: item.id })}
-              className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between overflow-hidden"
+              style={styles.card}
+              activeOpacity={0.8}
             >
-                <View className="flex-row items-center space-x-4">
-                  <View className="w-14 h-14 bg-rose-50 rounded-2xl items-center justify-center overflow-hidden">
+                <View style={styles.cardMain}>
+                  <View style={styles.imageBox}>
                     {item.image || item.images?.[0] ? (
-                      <Image 
-                        source={{ uri: item.image || item.images?.[0] }} 
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
+                      <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} resizeMode="cover" />
                     ) : (
-                      <Feather name="box" size={24} color="#E11D48" />
+                      <Feather name="box" size={24} color="#f97316" />
                     )}
                   </View>
-                  <View>
-                    <Text className="text-sm font-black text-slate-800 tracking-tight">{item.name}</Text>
-                    <View className="flex-row flex-wrap items-center gap-1.5 mt-1">
-                      <Text className="text-[9px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md uppercase">PRD-{item.id}</Text>
-                      {item.category && (
-                        <Text className="text-[9px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md uppercase">{item.category}</Text>
-                      )}
-                      {(item.subcategory || item.subCategory) && (
-                        <Text className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">{item.subcategory || item.subCategory}</Text>
-                      )}
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                    <View style={styles.badgeRow}>
+                      <Text style={styles.idBadge}>ID-{item.id}</Text>
+                      {item.category && <Text style={styles.categoryBadge}>{item.category}</Text>}
                     </View>
                   </View>
                 </View>
-                <View className="items-end">
-                  <Text className="text-sm font-black text-slate-900 tracking-tighter">
-                    ₹{(item.price || 0).toLocaleString()}
+                <View style={styles.rightInfo}>
+                  <Text style={styles.priceText}>
+                    ₹{Number(item.offer_price || item.price || item.variants?.[0]?.sellingPrice || item.variants?.[0]?.mrp || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                   </Text>
+                  <View style={styles.stockBadge}>
+                    <Text style={styles.stockLabel}>{item.total_stock || 0} UNIT</Text>
+                  </View>
                 </View>
             </TouchableOpacity>
           )}
           ListEmptyComponent={() => (
-            <View className="items-center py-20">
+            <View style={styles.emptyBox}>
               <Feather name="package" size={40} color="#e5e7eb" />
-              <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">No Items in Vault</Text>
+              <Text style={styles.emptyText}>NO ASSETS FOUND IN VAULT</Text>
             </View>
           )}
         />
       )}
 
-      {/* --- FLOATING ACTION BUTTON (FAB) --- */}
-      <View className="absolute bottom-8 right-8 items-end z-50">
+      {/* FAB */}
+      <View style={styles.fabContainer}>
         {isFABExpanded && (
-          <View className="mb-4 space-y-3 items-end">
+          <View style={styles.fabActions}>
             <TouchableOpacity 
               onPress={() => { navigation.navigate('AddCategory'); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
+              style={styles.fabActionBtn}
             >
-              <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">New Category</Text>
-              <Feather name="tag" size={16} color="#E11D48" />
+              <Text style={styles.fabActionLabel}>New Category</Text>
+              <View style={styles.fabActionIcon}><Feather name="tag" size={14} color="#fff" /></View>
             </TouchableOpacity>
             
             <TouchableOpacity 
               onPress={() => { navigation.navigate('AddProduct'); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
+              style={styles.fabActionBtn}
             >
-              <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">List Product</Text>
-              <Feather name="plus-square" size={16} color="#E11D48" />
+              <Text style={styles.fabActionLabel}>List Product</Text>
+              <View style={styles.fabActionIcon}><Feather name="box" size={14} color="#fff" /></View>
             </TouchableOpacity>
           </View>
         )}
         
         <TouchableOpacity 
           onPress={() => setIsFABExpanded(!isFABExpanded)}
-          style={{ elevation: 15 }}
-          className={`w-16 h-16 rounded-[24px] items-center justify-center shadow-2xl transition-all ${isFABExpanded ? 'bg-slate-900' : 'bg-rose-600'}`}
+          style={[styles.mainFab, isFABExpanded && styles.fabClose]}
+          activeOpacity={0.9}
         >
-          <Feather name={isFABExpanded ? 'x' : 'plus'} size={32} color="white" />
+          <Feather name={isFABExpanded ? 'x' : 'plus'} size={28} color="white" />
         </TouchableOpacity>
       </View>
-      {/* ADD PRODUCT MODAL REMOVED - Using full screen instead */}
-
-      {/* ADD CATEGORY MODAL REMOVED - Using full screen instead */}
-
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { paddingHorizontal: 24, paddingTop: 15, paddingBottom: 35, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 9, color: '#94a3b8', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
+  refreshBtn: { width: 44, height: 44, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, height: 48 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 13, fontWeight: '700', color: '#0f172a' },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 2 },
+  listContent: { padding: 20, paddingBottom: 120 },
+  card: { backgroundColor: '#fff', borderRadius: 28, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', elevation: 2 },
+  cardMain: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  imageBox: { width: 64, height: 64, backgroundColor: '#f8fafc', borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  productImg: { width: '100%', height: '100%' },
+  itemInfo: { flex: 1 },
+  itemName: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  idBadge: { fontSize: 8, fontWeight: '900', color: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  categoryBadge: { fontSize: 8, fontWeight: '900', color: '#64748b', backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  rightInfo: { alignItems: 'flex-end', justifyContent: 'center' },
+  priceText: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+  stockBadge: { marginTop: 4, backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  stockLabel: { fontSize: 8, fontWeight: '900', color: '#22c55e' },
+  fabContainer: { position: 'absolute', bottom: 30, right: 24, alignItems: 'flex-end' },
+  mainFab: { width: 54, height: 54, borderRadius: 50, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10,marginBottom:60 },
+  fabClose: { backgroundColor: '#E11D48' },
+  fabActions: { marginBottom: 15, gap: 10 },
+  fabActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 16, elevation: 4, shadowOpacity: 0.1, shadowRadius: 5 },
+  fabActionLabel: { fontSize: 9, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 1, marginRight: 10 },
+  fabActionIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center' },
+  emptyBox: { flex: 1, alignItems: 'center', paddingVertical: 80 },
+  emptyText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#e2e8f0', letterSpacing: 1.5 }
+});
 
 export default Products;
