@@ -8,9 +8,10 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   StatusBar,
+  Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,18 +44,25 @@ const Products = () => {
     if (!token) return;
     setLoading(true);
     try {
-      const data: any = await fetchProducts(token);
-      // Robust check: ensure we always have an array
-      if (Array.isArray(data)) {
-        setProducts(data);
-      } else if (data && Array.isArray(data.products)) {
-        setProducts(data.products);
-      } else {
-        setProducts([]);
+      const resp: any = await fetchProducts(token);
+      console.log('API Products Response:', JSON.stringify(resp).substring(0, 200));
+
+      let items = [];
+      if (Array.isArray(resp)) {
+        items = resp;
+      } else if (resp && Array.isArray(resp.data)) {
+        items = resp.data;
+      } else if (resp && Array.isArray(resp.products)) {
+        items = resp.products;
+      } else if (resp && Array.isArray(resp.items)) {
+        items = resp.items;
       }
+
+      setProducts(items);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to sync inventory');
-      setProducts([]); // Fallback to empty on error
+      console.error('Fetch error:', error);
+      Alert.alert('Sync failed', error?.message || 'Check your connection.');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -86,9 +94,12 @@ const Products = () => {
     return Array.isArray(products) ? products : [];
   };
 
-  const filteredProducts = getSafeProducts().filter(p => 
-    p?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = getSafeProducts().filter((p: Product) => {
+    const name = (p.name || '').toLowerCase();
+    const code = (p.product_code || String(p.id) || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return name.includes(search) || code.includes(search);
+  });
 
   const StatCard = ({ label, value, colorClass }: any) => (
     <View className={`p-4 rounded-3xl ${colorClass} flex-1 shadow-sm`}>
@@ -153,14 +164,27 @@ const Products = () => {
               className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between overflow-hidden"
             >
                 <View className="flex-row items-center space-x-4">
-                  <View className="w-14 h-14 bg-rose-50 rounded-2xl items-center justify-center">
-                    <Feather name="box" size={24} color="#E11D48" />
+                  <View className="w-14 h-14 bg-rose-50 rounded-2xl items-center justify-center overflow-hidden">
+                    {item.image || item.images?.[0] ? (
+                      <Image 
+                        source={{ uri: item.image || item.images?.[0] }} 
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Feather name="box" size={24} color="#E11D48" />
+                    )}
                   </View>
                   <View>
                     <Text className="text-sm font-black text-slate-800 tracking-tight">{item.name}</Text>
-                    <View className="flex-row items-center space-x-2 mt-1">
+                    <View className="flex-row flex-wrap items-center gap-1.5 mt-1">
                       <Text className="text-[9px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md uppercase">PRD-{item.id}</Text>
-                      <Text className="text-[9px] font-bold text-gray-300 uppercase italic">Active Listing</Text>
+                      {item.category && (
+                        <Text className="text-[9px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md uppercase">{item.category}</Text>
+                      )}
+                      {(item.subcategory || item.subCategory) && (
+                        <Text className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md uppercase">{item.subcategory || item.subCategory}</Text>
+                      )}
                     </View>
                   </View>
                 </View>

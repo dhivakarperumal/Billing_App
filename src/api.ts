@@ -99,11 +99,16 @@ export type ProductData = Omit<Product, 'id'>;
 
 export type BillItem = {
   product_id: string | number;
+  name?: string;
   quantity: number;
+  price?: number;
 };
 
 export type BillPayload = {
-  customer_id: string | number;
+  customer_id?: string | number;
+  customer_name?: string;
+  customer_phone?: string;
+  total_amount?: number;
   items: BillItem[];
 };
 
@@ -168,7 +173,7 @@ export async function fetchProductById(id: string | number, token?: string | nul
 }
 
 export async function createBill(payload: BillPayload, token?: string | null) {
-  return request<{ id: string | number }>(`/bills`, {
+  return request<{ id: string | number }>(`/orders`, {
     method: 'POST',
     body: JSON.stringify(payload),
   },

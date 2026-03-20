@@ -1,313 +1,140 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Button,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Feather from 'react-native-vector-icons/Feather';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { createBill, fetchCustomers, fetchProducts, Product, Customer } from '../api';
-
-type CartItem = {
-  product: Product;
-  quantity: number;
-};
+import { fetchOrders } from '../api';
 
 const Bills = () => {
-  const { token } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | number | null>(null);
-  const [cart, setCart] = useState<Record<string, CartItem>>({});
+    const { token } = useAuth();
+    const navigation = useNavigation<any>();
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [customerData, productData] = await Promise.all([
-        fetchCustomers(token),
-        fetchProducts(token),
-      ]);
-      setCustomers(customerData);
-      setProducts(productData);
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+    const loadData = useCallback(async () => {
+        if (!token) return;
+        setLoading(true);
+        try {
+            const data = await fetchOrders(token);
+            setOrders(data || []);
+        } catch (error: any) {
+            console.error('Fetch error:', error);
+            // Alert.alert('Sync failed', 'Could not refresh bill logs.');
+        } finally {
+            setLoading(false);
+        }
+    }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    useEffect(() => {
+        loadData();
+    }, [navigation, loadData]);
 
-  const selectedCustomer = useMemo(
-    () => customers.find((c) => String(c.id) === String(selectedCustomerId)),
-    [customers, selectedCustomerId],
-  );
-
-  const total = useMemo(() => {
-    return Object.values(cart).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  }, [cart]);
-
-  const updateQuantity = (product: Product, delta: number) => {
-    setCart((current) => {
-      const key = String(product.id);
-      const existing = current[key];
-      const nextQty = (existing?.quantity || 0) + delta;
-      if (nextQty <= 0) {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      }
-      return {
-        ...current,
-        [key]: {
-          product,
-          quantity: nextQty,
-        },
-      };
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedCustomerId) {
-      Alert.alert('Validation', 'Please select a customer for the bill.');
-      return;
-    }
-
-    const items = Object.values(cart).map((item) => ({
-      product_id: item.product.id,
-      quantity: item.quantity,
-    }));
-
-    if (items.length === 0) {
-      Alert.alert('Validation', 'Please add at least one product to the bill.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await createBill(
-        {
-          customer_id: selectedCustomerId,
-          items,
-        },
-        token,
-      );
-      Alert.alert('Success', 'Bill created successfully');
-      setCart({});
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to create bill');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading customers and products…</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create New Bill</Text>
-      <Text style={styles.description}>Select a customer, add products, then save the bill.</Text>
-
-      <Text style={styles.sectionTitle}>1. Select Customer</Text>
-      <View style={styles.scrollSection}>
-        <FlatList
-          horizontal
-          data={customers}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => {
-            const selected = String(item.id) === String(selectedCustomerId);
-            return (
-              <TouchableOpacity
-                style={[styles.card, selected && styles.cardSelected]}
-                onPress={() => setSelectedCustomerId(item.id)}
-              >
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                {item.phone ? <Text style={styles.cardSubtitle}>{item.phone}</Text> : null}
-              </TouchableOpacity>
-            );
-          }}
-          showsHorizontalScrollIndicator={false}
-          ListEmptyComponent={() => (
-            <Text style={styles.empty}>No customers found. Add customers from the Customers tab.</Text>
-          )}
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>2. Add products</Text>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => {
-          const inCart = cart[String(item.id)]?.quantity ?? 0;
-          return (
-            <View style={styles.productRow}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
-              </View>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity
-                  style={styles.qtyButton}
-                  onPress={() => updateQuantity(item, -1)}
-                >
-                  <Text style={styles.qtyButtonText}>–</Text>
-                </TouchableOpacity>
-                <Text style={styles.qtyCount}>{inCart}</Text>
-                <TouchableOpacity
-                  style={styles.qtyButton}
-                  onPress={() => updateQuantity(item, 1)}
-                >
-                  <Text style={styles.qtyButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
+    const BillCard = ({ item }: { item: any }) => (
+        <TouchableOpacity 
+            className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between"
+            activeOpacity={0.7}
+        >
+            <View className="flex-row items-center space-x-4">
+                <View className="w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center">
+                    <Feather name="file-text" size={20} color="#64748b" />
+                </View>
+                <View>
+                    <Text className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded-md self-start mb-1">
+                        #{item.id || item.order_number}
+                    </Text>
+                    <Text className="text-sm font-black text-slate-800 tracking-tight">
+                        {item.customer_name || item.customer?.name || 'Walk-in Customer'}
+                    </Text>
+                    <Text className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
+                        {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                </View>
             </View>
-          );
-        }}
-        ListEmptyComponent={() => (
-          <Text style={styles.empty}>No products found. Add products from the Products tab.</Text>
-        )}
-      />
+            <View className="items-end">
+                <Text className="text-lg font-black text-slate-900 tracking-tighter">
+                    ₹{(item.total_amount || item.total || 0).toLocaleString()}
+                </Text>
+                <View className="flex-row items-center mt-1">
+                    <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
+                    <Text className="text-[9px] font-black text-emerald-600 uppercase tracking-widest italic">{item.status || 'PAID'}</Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>Selected customer:</Text>
-        <Text style={styles.summaryValue}>{selectedCustomer?.name ?? 'None'}</Text>
-        <Text style={styles.summaryText}>Total:</Text>
-        <Text style={styles.summaryValue}>₹{total.toFixed(2)}</Text>
-        <Button title="Create bill" onPress={handleSubmit} disabled={submitting} />
-        {submitting && <ActivityIndicator style={styles.loadingIndicator} />}
-      </View>
-    </View>
-  );
+    return (
+        <SafeAreaView className="flex-1 bg-white">
+            <StatusBar barStyle="dark-content" />
+            
+            {/* Premium Header */}
+            <View className="px-6 pt-6 pb-4 bg-white shadow-sm rounded-b-[40px]">
+                <View className="flex-row items-center justify-between mb-6">
+                    <View>
+                        <Text className="text-3xl font-black italic text-slate-900 lowercase leading-tight">
+                            billing<Text className="text-rose-600">.</Text>
+                        </Text>
+                        <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Transaction Vault History</Text>
+                    </View>
+                    <TouchableOpacity onPress={loadData} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                        <Feather name="refresh-cw" size={18} color="#94a3b8" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Search / Filter Placeholder */}
+                <View className="relative">
+                    <View className="absolute left-4 top-1/2 -mt-2.5 z-10">
+                        <Feather name="search" size={16} color="#cbd5e1" />
+                    </View>
+                    <View className="bg-gray-50/50 border border-gray-100 px-12 py-3 rounded-2xl">
+                        <Text className="font-bold text-gray-300 text-xs">Search transactions...</Text>
+                    </View>
+                </View>
+
+                {/* Stats Row */}
+                <View className="flex-row gap-3 mt-6 mb-2">
+                    <View className="p-4 rounded-3xl bg-rose-50 flex-1 shadow-sm">
+                        <Text className="text-[10px] font-black text-rose-300 uppercase tracking-widest">Today</Text>
+                        <Text className="text-xl font-black text-slate-900 mt-1">₹0</Text>
+                    </View>
+                    <View className="p-4 rounded-3xl bg-emerald-50 flex-1 shadow-sm">
+                        <Text className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Average</Text>
+                        <Text className="text-xl font-black text-slate-900 mt-1">₹0</Text>
+                    </View>
+                </View>
+            </View>
+
+            {loading ? (
+                <View className="flex-1 justify-center items-center">
+                    <ActivityIndicator color="#E11D48" size="large" />
+                    <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Syncing terminals...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={orders}
+                    contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
+                    keyExtractor={(item) => String(item.id)}
+                    renderItem={({ item }) => <BillCard item={item} />}
+                    ListEmptyComponent={() => (
+                        <View className="items-center py-20 opacity-30">
+                            <Feather name="file-text" size={40} color="#64748b" />
+                            <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">No local records</Text>
+                        </View>
+                   )}
+                />
+            )}
+
+           
+        </SafeAreaView>
+    );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  description: {
-    marginBottom: 16,
-    color: '#555',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  scrollSection: {
-    marginBottom: 12,
-  },
-  card: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: '#f3f3f3',
-    marginRight: 12,
-    minWidth: 140,
-  },
-  cardSelected: {
-    backgroundColor: '#4c8bf5',
-  },
-  cardTitle: {
-    fontWeight: '600',
-    color: '#000',
-  },
-  cardSubtitle: {
-    marginTop: 4,
-    color: '#333',
-  },
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#f8f8f8',
-    marginBottom: 10,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  productPrice: {
-    marginTop: 4,
-    color: '#456',
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  qtyButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  qtyCount: {
-    marginHorizontal: 10,
-    minWidth: 24,
-    textAlign: 'center',
-  },
-  summaryContainer: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#f4f4f4',
-    marginTop: 12,
-  },
-  summaryText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  summaryValue: {
-    marginBottom: 8,
-    fontSize: 16,
-  },
-  loadingIndicator: {
-    marginTop: 10,
-  },
-  empty: {
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-});
 
 export default Bills;

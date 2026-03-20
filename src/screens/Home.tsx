@@ -7,7 +7,9 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl,
+  StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
 import Icon from 'react-native-vector-icons/Feather';
@@ -148,201 +150,205 @@ const Home = () => {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      <View className="flex-row items-center justify-between mb-6">
-        <View>
-          <Text className="text-2xl font-black text-slate-800">Analytics</Text>
-          <Text className="text-gray-500 text-xs">Live business performance tracking</Text>
-        </View>
-        <TouchableOpacity
-          className="bg-white p-2 rounded-full border border-gray-100 shadow-sm"
-          onPress={onRefresh}
-        >
-          <Icon name="refresh-cw" size={18} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* STATS GRID */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        {data.stats.map((item: any, i: number) => (
-          <LinearGradient
-            key={i}
-            colors={item.color}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              width: (SCREEN_WIDTH - 48) / 2,
-              height: 110,
-              padding: 16,
-              borderRadius: 16,
-              marginBottom: 16,
-              justifyContent: 'space-between',
-              elevation: 4,
-              shadowColor: item.color[0],
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-            }}
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <StatusBar barStyle="dark-content" />
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <View className="flex-row items-center justify-between mb-6">
+          <View>
+            <Text className="text-2xl font-black text-slate-800">Analytics</Text>
+            <Text className="text-gray-500 text-xs">Live business performance tracking</Text>
+          </View>
+          <TouchableOpacity
+            className="bg-white p-2 rounded-full border border-gray-100 shadow-sm"
+            onPress={onRefresh}
           >
-            <View className="flex-row justify-between items-center">
-              <Text className="text-[10px] font-bold text-white/80 uppercase tracking-widest">
-                {item.title}
-              </Text>
-              <Icon name={item.icon} size={14} color="rgba(255,255,255,0.7)" />
-            </View>
-            <Text className="text-xl font-black text-white">{item.value}</Text>
-          </LinearGradient>
-        ))}
-      </View>
-
-      {/* STOCK OVERVIEW */}
-      <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-6">
-        <View className="flex-row justify-between items-center mb-5">
-          <Text className="text-sm font-black text-slate-800">Stock Insights</Text>
-          <Text className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-            Inventory Health
-          </Text>
+            <Icon name="refresh-cw" size={18} color="#64748b" />
+          </TouchableOpacity>
         </View>
 
-        <View className="flex-row flex-wrap justify-between">
-          {data.stockStats.map((item: any, i: number) => (
-            <TouchableOpacity
+        {/* ... rest of the content remains the same ... */}
+        {/* STATS GRID */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          {data.stats.map((item: any, i: number) => (
+            <LinearGradient
               key={i}
-              onPress={() => navigation.navigate('Products')}
-              style={{ width: '48%', marginBottom: 12 }}
-              className="bg-gray-50/50 border border-gray-100 p-4 rounded-2xl"
+              colors={item.color}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: (SCREEN_WIDTH - 48) / 2,
+                height: 110,
+                padding: 16,
+                borderRadius: 16,
+                marginBottom: 16,
+                justifyContent: 'space-between',
+                elevation: 4,
+                shadowColor: item.color[0],
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 5,
+              }}
             >
-              <View className="flex-row items-center gap-2 mb-2">
-                <Icon name={item.icon} size={14} color={item.iconColor} />
-                <Text className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+              <View className="flex-row justify-between items-center">
+                <Text className="text-[10px] font-bold text-white/80 uppercase tracking-widest">
                   {item.title}
                 </Text>
+                <Icon name={item.icon} size={14} color="rgba(255,255,255,0.7)" />
               </View>
-              <Text className="text-lg font-black text-slate-800">{item.value}</Text>
-            </TouchableOpacity>
+              <Text className="text-xl font-black text-white">{item.value}</Text>
+            </LinearGradient>
           ))}
         </View>
-      </View>
 
-      {/* CHARTS SECTION */}
-      <View className="mb-6">
+        {/* ... */}
         <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-6">
-          <Text className="text-sm font-black text-slate-800 mb-6">Shipment Statistics</Text>
-          <View style={{ height: 200, width: '100%', alignItems: 'center' }}>
-            <BarChart
-              data={data.revenueGraphData}
-              barWidth={22}
-              noOfSections={3}
-              barBorderRadius={4}
-              frontColor="#F43F5E"
-              yAxisThickness={0}
-              xAxisThickness={0}
-              hideRules
-              yAxisTextStyle={{ color: '#94a3b8', fontSize: 10 }}
-              xAxisLabelTextStyle={{ color: '#94a3b8', fontSize: 10 }}
-              labelWidth={30}
-              spacing={20}
-            />
-          </View>
-        </View>
-
-        <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
           <View className="flex-row justify-between items-center mb-5">
-            <Text className="text-sm font-black text-slate-800">Categories</Text>
+            <Text className="text-sm font-black text-slate-800">Stock Insights</Text>
             <Text className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-              Inventory Split
+              Inventory Health
             </Text>
           </View>
-          <View className="flex-row items-center justify-between">
-            <PieChart
-              data={data.categoryData}
-              donut
-              radius={60}
-              innerRadius={45}
-              innerCircleColor={'white'}
-              centerLabelComponent={() => {
-                return (
-                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
-                      {data.categoryData.reduce((acc: number, item: any) => acc + item.value, 0)}
-                    </Text>
-                    <Text style={{ fontSize: 8 }}>Total</Text>
-                  </View>
-                );
-              }}
-            />
-            <View className="flex-1 ml-4 justify-center">
-              {data.categoryData.map((item: any, idx: number) => (
-                <View key={idx} className="flex-row items-center mb-1">
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: item.color,
-                      marginRight: 6,
-                    }}
-                  />
-                  <Text numberOfLines={1} className="text-[10px] text-gray-600 font-medium flex-1">
-                    {item.name} ({item.value})
+
+          <View className="flex-row flex-wrap justify-between">
+            {data.stockStats.map((item: any, i: number) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => navigation.navigate('Products')}
+                style={{ width: '48%', marginBottom: 12 }}
+                className="bg-gray-50/50 border border-gray-100 p-4 rounded-2xl"
+              >
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Icon name={item.icon} size={14} color={item.iconColor} />
+                  <Text className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                    {item.title}
                   </Text>
                 </View>
-              ))}
+                <Text className="text-lg font-black text-slate-800">{item.value}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ... */}
+        <View className="mb-6">
+          <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-6">
+            <Text className="text-sm font-black text-slate-800 mb-6">Shipment Statistics</Text>
+            <View style={{ height: 200, width: '100%', alignItems: 'center' }}>
+              <BarChart
+                data={data.revenueGraphData}
+                barWidth={22}
+                noOfSections={3}
+                barBorderRadius={4}
+                frontColor="#F43F5E"
+                yAxisThickness={0}
+                xAxisThickness={0}
+                hideRules
+                yAxisTextStyle={{ color: '#94a3b8', fontSize: 10 }}
+                xAxisLabelTextStyle={{ color: '#94a3b8', fontSize: 10 }}
+                labelWidth={30}
+                spacing={20}
+              />
+            </View>
+          </View>
+
+          <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+            <View className="flex-row justify-between items-center mb-5">
+              <Text className="text-sm font-black text-slate-800">Categories</Text>
+              <Text className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                Inventory Split
+              </Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <PieChart
+                data={data.categoryData}
+                donut
+                radius={60}
+                innerRadius={45}
+                innerCircleColor={'white'}
+                centerLabelComponent={() => {
+                  return (
+                    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+                        {data.categoryData.reduce((acc: number, item: any) => acc + item.value, 0)}
+                      </Text>
+                      <Text style={{ fontSize: 8 }}>Total</Text>
+                    </View>
+                  );
+                }}
+              />
+              <View className="flex-1 ml-4 justify-center">
+                {data.categoryData.map((item: any, idx: number) => (
+                  <View key={idx} className="flex-row items-center mb-1">
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: item.color,
+                        marginRight: 6,
+                      }}
+                    />
+                    <Text numberOfLines={1} className="text-[10px] text-gray-600 font-medium flex-1">
+                      {item.name} ({item.value})
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* RECENT BILLS */}
-      <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
-        <Text className="text-sm font-black text-slate-800 mb-4">Recent Sales</Text>
+        {/* ... */}
+        <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+          <Text className="text-sm font-black text-slate-800 mb-4">Recent Sales</Text>
 
-        <View className="gap-3">
-          {data.recentBills.length > 0 ? (
-            data.recentBills.map((bill: any, i: number) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => navigation.navigate('Bills')}
-                className="flex-row justify-between items-center border-b border-gray-50 pb-3 last:border-none px-2"
-              >
-                <View className="flex-row items-center gap-3">
-                  <View className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center">
-                    <Icon name="file-text" size={16} color="#F43F5E" />
+          <View className="gap-3">
+            {data.recentBills.length > 0 ? (
+              data.recentBills.map((bill: any, i: number) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => navigation.navigate('Bills')}
+                  className="flex-row justify-between items-center border-b border-gray-50 pb-3 last:border-none px-2"
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center">
+                      <Icon name="file-text" size={16} color="#F43F5E" />
+                    </View>
+                    <View>
+                      <Text className="text-[11px] font-black text-slate-800 uppercase">
+                        #ORD-0{bill.id}
+                      </Text>
+                      <Text className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                        {bill.customer_name || 'Guest User'}
+                      </Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text className="text-[11px] font-black text-slate-800 uppercase">
-                      #ORD-0{bill.id}
+
+                  <View className="items-end">
+                    <Text className="text-xs font-black text-slate-800">
+                      ₹{Number(bill.total_amount).toLocaleString('en-IN')}
                     </Text>
-                    <Text className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                      {bill.customer_name || 'Guest User'}
+                    <Text className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">
+                      {new Date(bill.created_at).toLocaleDateString()}
                     </Text>
                   </View>
-                </View>
-
-                <View className="items-end">
-                  <Text className="text-xs font-black text-slate-800">
-                    ₹{Number(bill.total_amount).toLocaleString('en-IN')}
-                  </Text>
-                  <Text className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">
-                    {new Date(bill.created_at).toLocaleDateString()}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View className="py-6 items-center">
-              <Text className="text-[10px] font-black uppercase text-gray-300 tracking-widest">
-                No Sales Found
-              </Text>
-            </View>
-          )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View className="py-6 items-center">
+                <Text className="text-[10px] font-black uppercase text-gray-300 tracking-widest">
+                  No Sales Found
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

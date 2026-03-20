@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { createCustomer, fetchCustomers, Customer } from '../api';
 
@@ -78,7 +79,7 @@ const Customers = () => {
   const keyExtractor = useMemo(() => (item: Customer) => String(item.id), []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Customers</Text>
       <Text style={styles.description}>Create and view customers linked to your bills.</Text>
 
@@ -122,7 +123,7 @@ const Customers = () => {
           />
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

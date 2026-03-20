@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,13 @@ import {
   Image,
   Dimensions,
   StyleSheet,
+  StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   fetchCategories, 
@@ -34,6 +37,8 @@ const AddProduct = () => {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showMfgPicker, setShowMfgPicker] = useState(false);
+  const [showExpPicker, setShowExpPicker] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
 
@@ -44,7 +49,7 @@ const AddProduct = () => {
     description: '',
     rating: '',
     category: '',
-    subCategory: '',
+    subcategory: '',
     status: 'Active',
     total_stock: 0,
     mrp: '',
@@ -76,6 +81,7 @@ const AddProduct = () => {
           const product = await fetchProductById(id, token);
           setFormData({
             ...product,
+            subcategory: product.subcategory || product.subCategory || '',
             mrp: String(product.mrp || ''),
             discount: String(product.discount || ''),
             offer_price: String(product.offer_price || ''),
@@ -100,41 +106,58 @@ const AddProduct = () => {
   }, [id, isEdit, token]);
 
   const handleChange = (name: string, value: string, section?: string) => {
-    if (section) {
-      setFormData((prev: any) => ({
-        ...prev,
-        [section]: { ...prev[section], [name]: value },
-      }));
-    } else {
-      setFormData((prev: any) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev: any) => {
+      let next = { ...prev };
+      if (section) {
+        next[section] = { ...prev[section], [name]: value };
+      } else {
+        next[name] = value;
+      }
 
-    if (name === 'category') {
-      const cat = categories.find((c: any) => c.name === value);
-      setSelectedCategory(cat);
-      setFormData((prev: any) => ({ ...prev, subCategory: '' }));
-    }
+      // Auto calculation for top level
+      if (!section && (name === 'mrp' || name === 'discount')) {
+        const mrp = Number(next.mrp);
+        const discount = Number(next.discount);
+        if (mrp && !isNaN(mrp)) {
+          next.offer_price = String((mrp - (mrp * (discount || 0)) / 100).toFixed(2));
+        }
+      }
+
+      if (name === 'category') {
+        const cat = categories.find((c: any) => c.name === value);
+        setSelectedCategory(cat);
+        next.subcategory = '';
+      }
+
+      return next;
+    });
   };
 
   const handleVariantChange = (i: number, field: string, value: string) => {
-    const updated = [...formData.variants];
-    updated[i][field] = value;
+    setFormData((prev: any) => {
+      const updatedVariants = [...prev.variants];
+      updatedVariants[i] = { ...updatedVariants[i], [field]: value };
 
-    if (field === 'mrp' || field === 'discount') {
-      const mrp = Number(updated[i].mrp);
-      const discount = Number(updated[i].discount);
-      if (mrp && discount >= 0) {
-        updated[i].sellingPrice = String((mrp - (mrp * discount) / 100).toFixed(2));
+      // Calculate selling price for this variant
+      if (field === 'mrp' || field === 'discount') {
+        const mrp = Number(updatedVariants[i].mrp);
+        const discount = Number(updatedVariants[i].discount);
+        if (mrp && !isNaN(mrp)) {
+          updatedVariants[i].sellingPrice = String((mrp - (mrp * (discount || 0)) / 100).toFixed(2));
+        } else {
+          updatedVariants[i].sellingPrice = '';
+        }
       }
-    }
 
-    setFormData({ ...formData, variants: updated });
-    
-    const newTotal = updated.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
-    setFormData((prev: any) => ({ ...prev, total_stock: newTotal }));
+      // Calculate new total stock
+      const newTotal = updatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+
+      return {
+        ...prev,
+        variants: updatedVariants,
+        total_stock: newTotal,
+      };
+    });
   };
 
   const addVariant = () => {
@@ -167,11 +190,11 @@ const AddProduct = () => {
     if (result.assets) {
       const newImages = result.assets
         .filter((asset: any) => asset.base64)
-        .map((asset: any) => `data:${asset.type};base64,${asset.base64}`);
+        .map((asset: any) => `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`);
       
       setFormData((prev: any) => ({
         ...prev,
-        images: [...prev.images, ...newImages],
+        images: [...(prev.images || []), ...newImages],
       }));
     }
   };
@@ -224,7 +247,8 @@ const AddProduct = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#1e293b" />
@@ -236,6 +260,7 @@ const AddProduct = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* ... */}
         <FormSection title="Core Details" icon="info">
           <FormInput 
             label="Product Name" 
@@ -279,6 +304,48 @@ const AddProduct = () => {
               </ScrollView>
             </View>
           </View>
+          {selectedCategory?.subcategories?.length > 0 && (
+            <View style={{ marginTop: 12 }}>
+              <Text style={styles.label}>Sub-Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+                {selectedCategory.subcategories.map((s: string, idx: number) => (
+                  <TouchableOpacity 
+                    key={idx} 
+                    onPress={() => handleChange('subcategory', s)}
+                    style={[styles.chip, formData.subcategory === s && styles.chipActiveSub]}
+                  >
+                    <Text style={[styles.chipText, formData.subcategory === s && styles.chipTextActive]}>{s}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={[styles.row, { marginTop: 16 }]}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <FormInput 
+                label="Rating (1-5)" 
+                value={formData.rating} 
+                onChangeText={(v: string) => handleChange('rating', v)} 
+                placeholder="4.5" 
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.pickerContainer}>
+                 {['Active', 'Inactive', 'Out of Stock'].map((st) => (
+                   <TouchableOpacity 
+                     key={st} 
+                     onPress={() => handleChange('status', st)}
+                     style={[styles.statusChip, formData.status === st && styles.statusActive]}
+                   >
+                     <Text style={[styles.statusText, formData.status === st && styles.statusTextActive]}>{st}</Text>
+                   </TouchableOpacity>
+                 ))}
+              </View>
+            </View>
+          </View>
         </FormSection>
 
         <FormSection title="Pricing & Media" icon="image">
@@ -292,13 +359,22 @@ const AddProduct = () => {
                 keyboardType="numeric"
               />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 0.8, marginRight: 8 }}>
               <FormInput 
-                label="Discount (%)" 
+                label="Off %" 
                 value={formData.discount} 
                 onChangeText={(v: string) => handleChange('discount', v)} 
                 placeholder="0" 
                 keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <FormInput 
+                label="Offer Price" 
+                value={formData.offer_price} 
+                editable={false}
+                placeholder="0.00" 
+                style={[styles.input, { backgroundColor: '#f1f5f9', color: '#64748b' }]}
               />
             </View>
           </View>
@@ -320,38 +396,164 @@ const AddProduct = () => {
         </FormSection>
 
         <FormSection title="Variants" icon="box">
+          <View style={styles.totalStockBadge}>
+             <Text style={styles.totalStockLabel}>Total Distributed Stock:</Text>
+             <Text style={styles.totalStockValue}>{formData.total_stock || 0} Units</Text>
+          </View>
           {formData.variants.map((v: any, i: number) => (
             <View key={i} style={styles.variantCard}>
-              <View style={styles.row}>
-                <TextInput 
-                  style={[styles.variantInput, { flex: 2 }]} 
-                  placeholder="Qty (e.g. 500)" 
-                  value={v.quantity} 
-                  onChangeText={(val) => handleVariantChange(i, 'quantity', val)}
-                />
-                <TextInput 
-                  style={[styles.variantInput, { flex: 1 }]} 
-                  placeholder="Unit (kg)" 
-                  value={v.unit} 
-                  onChangeText={(val) => handleVariantChange(i, 'unit', val)}
-                />
-                <TextInput 
-                  style={[styles.variantInput, { flex: 1 }]} 
-                  placeholder="Stock" 
-                  value={v.stock} 
-                  onChangeText={(val) => handleVariantChange(i, 'stock', val)}
-                />
+              <View style={styles.variantHeader}>
+                <Text style={styles.variantTitle}>Variant #{i + 1}</Text>
                 {formData.variants.length > 1 && (
                   <TouchableOpacity onPress={() => removeVariant(i)} style={styles.variantDelete}>
-                    <Icon name="trash-2" size={18} color="#F43F5E" />
+                    <Icon name="trash-2" size={16} color="#F43F5E" />
                   </TouchableOpacity>
                 )}
+              </View>
+
+              <View style={styles.grid}>
+                <View style={styles.gridCol}>
+                  <Text style={styles.miniLabel}>Qty / Weight</Text>
+                  <TextInput 
+                    style={styles.variantInput} 
+                    placeholder="e.g. 500" 
+                    placeholderTextColor="#cbd5e1"
+                    value={v.quantity} 
+                    onChangeText={(val) => handleVariantChange(i, 'quantity', val)}
+                  />
+                </View>
+                <View style={styles.gridCol}>
+                  <Text style={styles.miniLabel}>Unit</Text>
+                  <TextInput 
+                    style={styles.variantInput} 
+                    placeholder="e.g. Grams" 
+                    placeholderTextColor="#cbd5e1"
+                    value={v.unit} 
+                    onChangeText={(val) => handleVariantChange(i, 'unit', val)}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.grid, { marginTop: 12 }]}>
+                <View style={styles.gridCol}>
+                  <Text style={styles.miniLabel}>MRP (₹)</Text>
+                  <TextInput 
+                    style={styles.variantInput} 
+                    placeholder="0.00" 
+                    placeholderTextColor="#cbd5e1"
+                    value={v.mrp} 
+                    onChangeText={(val) => handleVariantChange(i, 'mrp', val)}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.gridCol}>
+                  <Text style={styles.miniLabel}>Discount (%)</Text>
+                  <TextInput 
+                    style={styles.variantInput} 
+                    placeholder="0" 
+                    placeholderTextColor="#cbd5e1"
+                    value={v.discount} 
+                    onChangeText={(val) => handleVariantChange(i, 'discount', val)}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.grid, { marginTop: 12 }]}>
+                <View style={styles.gridCol}>
+                  <Text style={styles.miniLabel}>Availability (Stock)</Text>
+                  <TextInput 
+                    style={styles.variantInput} 
+                    placeholder="0" 
+                    placeholderTextColor="#cbd5e1"
+                    value={v.stock} 
+                    onChangeText={(val) => handleVariantChange(i, 'stock', val)}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.gridCol}>
+                  <Text style={[styles.miniLabel, { color: '#F43F5E' }]}>Selling Price</Text>
+                  <View style={[styles.variantInput, { backgroundColor: '#fef2f2', borderBottomColor: '#fecaca' }]}>
+                    <Text style={{ color: '#F43F5E', fontWeight: '900', fontSize: 13 }}>₹ {v.sellingPrice || '0.00'}</Text>
+                  </View>
+                </View>
               </View>
             </View>
           ))}
           <TouchableOpacity style={styles.addVariant} onPress={addVariant}>
             <Text style={styles.addVariantText}>+ Add Variant</Text>
           </TouchableOpacity>
+        </FormSection>
+
+        <FormSection title="Shelf Life & Supplier" icon="truck">
+           <View style={styles.grid}>
+             <View style={styles.gridCol}>
+               <Text style={styles.miniLabel}>MFG Date</Text>
+               <TouchableOpacity 
+                 onPress={() => setShowMfgPicker(true)}
+                 style={styles.dateButton}
+               >
+                 <Text style={styles.dateButtonText}>{formData.expiry.mfgDate || 'Select Date'}</Text>
+                 <Icon name="calendar" size={14} color="#F43F5E" />
+               </TouchableOpacity>
+               {showMfgPicker && (
+                 <DateTimePicker
+                   value={formData.expiry.mfgDate ? new Date(formData.expiry.mfgDate) : new Date()}
+                   mode="date"
+                   display="default"
+                   onChange={(event, date) => {
+                     setShowMfgPicker(false);
+                     if (date) handleChange('mfgDate', date.toISOString().split('T')[0], 'expiry');
+                   }}
+                 />
+               )}
+             </View>
+             <View style={styles.gridCol}>
+               <Text style={styles.miniLabel}>EXP Date</Text>
+               <TouchableOpacity 
+                 onPress={() => setShowExpPicker(true)}
+                 style={styles.dateButton}
+               >
+                 <Text style={styles.dateButtonText}>{formData.expiry.expDate || 'Select Date'}</Text>
+                 <Icon name="calendar" size={14} color="#F43F5E" />
+               </TouchableOpacity>
+               {showExpPicker && (
+                 <DateTimePicker
+                   value={formData.expiry.expDate ? new Date(formData.expiry.expDate) : new Date()}
+                   mode="date"
+                   display="default"
+                   onChange={(event, date) => {
+                     setShowExpPicker(false);
+                     if (date) handleChange('expDate', date.toISOString().split('T')[0], 'expiry');
+                   }}
+                 />
+               )}
+             </View>
+           </View>
+
+           <View style={{ marginTop: 12 }}>
+             <FormInput 
+               label="Batch Number" 
+               value={formData.expiry.batchNo} 
+               onChangeText={(v: string) => handleChange('batchNo', v, 'expiry')} 
+               placeholder="B-882-X" 
+             />
+           </View>
+
+           <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }}>
+             <FormInput 
+               label="Supplier Name" 
+               value={formData.supplier.name} 
+               onChangeText={(v: string) => handleChange('name', v, 'supplier')} 
+               placeholder="Full Distribution Co." 
+             />
+             <FormInput 
+               label="Contact Info" 
+               value={formData.supplier.contact} 
+               onChangeText={(v: string) => handleChange('contact', v, 'supplier')} 
+               placeholder="+91 98765 43210" 
+             />
+           </View>
         </FormSection>
 
         <TouchableOpacity 
@@ -362,7 +564,7 @@ const AddProduct = () => {
           {saving ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>{isEdit ? 'UPDATE PRODUCT' : 'PUBLISH PRODUCT'}</Text>}
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -411,16 +613,32 @@ const styles = StyleSheet.create({
   chipScroll: { marginTop: 4 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
   chipActive: { backgroundColor: '#F43F5E', borderColor: '#F43F5E' },
+  chipActiveSub: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
   chipText: { fontSize: 12, fontWeight: '800', color: '#64748b' },
   chipTextActive: { color: 'white' },
+  pickerContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  statusChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' },
+  statusActive: { backgroundColor: '#1e293b', borderColor: '#1e293b' },
+  statusText: { fontSize: 10, fontWeight: '900', color: '#94a3b8' },
+  statusTextActive: { color: 'white' },
   imageScroll: { flexDirection: 'row', marginTop: 8 },
   addImage: { width: 80, height: 80, borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   imageWrapper: { width: 80, height: 80, marginRight: 12 },
   image: { width: 80, height: 80, borderRadius: 12 },
   removeImage: { position: 'absolute', top: -5, right: -5, backgroundColor: '#F43F5E', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  variantCard: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 12, marginBottom: 8 },
-  variantInput: { fontSize: 12, fontWeight: '700', color: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', marginRight: 8, paddingVertical: 4 },
+  totalStockBadge: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  totalStockLabel: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' },
+  totalStockValue: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
+  dateButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  dateButtonText: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
+  variantCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+  variantHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 8 },
+  variantTitle: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' },
+  variantInput: { fontSize: 13, fontWeight: '700', color: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingVertical: 8 },
   variantDelete: { padding: 4 },
+  grid: { flexDirection: 'row', gap: 12 },
+  gridCol: { flex: 1 },
+  miniLabel: { fontSize: 8, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 },
   addVariant: { padding: 12, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#F43F5E', borderRadius: 12, marginTop: 8 },
   addVariantText: { color: '#F43F5E', fontWeight: '900', fontSize: 12 },
   submitButton: { backgroundColor: '#F43F5E', borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 16, elevation: 4 },
