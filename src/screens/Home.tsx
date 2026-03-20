@@ -150,11 +150,11 @@ const Home = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View className="flex-row items-center justify-between mb-6">

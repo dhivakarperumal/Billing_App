@@ -1,8 +1,17 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert, Modal, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Platform,
+  StatusBar,
+} from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 
 import Home from '../screens/Home';
@@ -14,238 +23,425 @@ import Settings from '../screens/Settings';
 const Tab = createBottomTabNavigator();
 
 const CreateBillPlaceholder = () => (
-  <View style={{ flex: 1, backgroundColor: 'orange', justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontWeight: 'bold' }}>NAVIGATION PLACEHOLDER</Text>
-  </View>
+  <View style={{ flex: 1, backgroundColor: '#f8f9fa' }} />
 );
 
-const ACTIVE_COLOR = '#4c8bf5';
-const INACTIVE_COLOR = '#9aa0b0';
+// ─── Constants ──────────────────────────────────────────
+const PRIMARY_GRADIENT = ['#f97316', '#ea580c']; // Orange
+const HEADER_GRADIENT  = ['#0f172a', '#1e293b']; // Dark Blueish
+const ACTIVE_COLOR     = '#f97316';
+const INACTIVE_COLOR   = '#94a3b8';
+
+// ─── Header Components ─────────────────────────────────
+function HeaderBackground() {
+  return (
+    <LinearGradient
+      colors={HEADER_GRADIENT}
+      style={StyleSheet.absoluteFill}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    />
+  );
+}
 
 function HeaderRight() {
   const { user, signOut } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to sign out?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: signOut },
+      { text: 'Sign Out', style: 'destructive', onPress: signOut },
     ]);
   };
 
   if (!user) return null;
-
   const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <View className="flex-row items-center mr-4">
-      {/* 🔥 Profile Badge */}
-      <View className="w-9 h-9 rounded-full bg-white justify-center items-center mr-3 shadow-md">
-        <Text className="text-orange-500 font-bold text-base">{initial}</Text>
+    <View style={styles.headerRightContainer}>
+      <View style={styles.avatarBubble}>
+        <Text style={styles.avatarText}>{initial}</Text>
       </View>
-
-      {/* 🔥 Logout Button (Premium Pill Style) */}
-      <TouchableOpacity
-        onPress={handleLogout}
-        className="flex-row items-center bg-white/20 px-3 py-1.5 rounded-full"
-        style={{
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.3)',
-        }}
-      >
-        <Icon name="sign-out-alt" size={14} color="#fff" />
-        <Text className="text-white text-xs ml-2 font-semibold">Logout</Text>
+      <TouchableOpacity onPress={handleLogout} style={styles.logoutPill} activeOpacity={0.7}>
+        <Icon name="sign-out-alt" size={12} color="#fff" />
+        <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-/* 🔥 CUSTOM TAB BAR */
+// ─── Custom Tab Bar (Floating Island Style) ──────────────
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [showQuickActions, setShowQuickActions] = React.useState(false);
 
-  const QuickAction = ({ icon, label, onPress, color }: any) => (
+  const iconMap: Record<string, string> = {
+    Home:       'grip-horizontal',
+    Bills:      'receipt',
+    CreateBill: 'plus',
+    Products:   'boxes',
+    Settings:   'sliders-h',
+  };
+
+  const labelMap: Record<string, string> = {
+    Home:       'Dash',
+    Bills:      'Bills',
+    CreateBill: 'New',
+    Products:   'Items',
+    Settings:   'Menu',
+  };
+
+  const QuickBtn = ({ icon, label, colors, onPress }: any) => (
     <TouchableOpacity
-      onPress={() => {
-        setShowQuickActions(false);
-        onPress();
-      }}
-      className="items-center justify-center p-4 bg-white rounded-3xl mb-4 shadow-lg w-[45%]"
-      style={{ elevation: 5 }}
+      onPress={() => { setShowQuickActions(false); onPress(); }}
+      style={styles.qaItem}
+      activeOpacity={0.8}
     >
-      <View className={`${color} w-12 h-12 rounded-2xl items-center justify-center mb-2`}>
-        <Icon name={icon} size={20} color="white" />
-      </View>
-      <Text className="text-slate-800 font-black uppercase text-[10px] tracking-widest">{label}</Text>
+      <LinearGradient colors={colors} style={styles.qaIconContainer} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Icon name={icon} size={22} color="#fff" />
+      </LinearGradient>
+      <Text style={styles.qaLabelText}>{label}</Text>
     </TouchableOpacity>
   );
 
   return (
     <>
-      {/* 🔥 STABLE CONTEXT QUICK ACTIONS OVERLAY */}
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      
+      {/* QUICK ACTIONS MODAL-LIKE OVERLAY */}
       {showQuickActions && (
-        <View 
-          style={[StyleSheet.absoluteFill, { zIndex: 999 }]}
-          className="bg-slate-900/60 justify-center items-center p-6"
-        >
-          <TouchableOpacity 
-            activeOpacity={1} 
-            onPress={() => setShowQuickActions(false)} 
-            style={StyleSheet.absoluteFill}
-          />
+        <View style={[StyleSheet.absoluteFill, styles.modalOverlay]}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setShowQuickActions(false)} />
           
-          <View className="bg-white w-full rounded-[40px] p-8 shadow-2xl">
-            <Text className="text-2xl font-black text-slate-900 mb-8 text-center">
-              Quick Actions<Text className="text-orange-600">.</Text>
-            </Text>
+          <View style={styles.modalContent}>
+            <View style={styles.modalPill} />
+            <Text style={styles.modalTitle}>Quick Actions<Text style={{ color: ACTIVE_COLOR }}>.</Text></Text>
             
-            <View className="flex-row flex-wrap justify-between">
-              <QuickAction 
-                icon="microphone" 
-                label="Voice Bill" 
-                color="bg-indigo-500" 
-                onPress={() => navigation.navigate('CreateBilling')} 
+            <View style={styles.qaGrid}>
+              <QuickBtn
+                icon="microphone-alt"
+                label="Voice Bill"
+                colors={['#6366f1', '#4f46e5']}
+                onPress={() => navigation.navigate('CreateBilling')}
               />
-              <QuickAction 
-                icon="qrcode" 
-                label="Scan Item" 
-                color="bg-emerald-500" 
-                onPress={() => navigation.navigate('ScannerScreen')} 
+              <QuickBtn
+                icon="expand"
+                label="Quick Scan"
+                colors={['#10b981', '#059669']}
+                onPress={() => navigation.navigate('ScannerScreen')}
               />
-              <QuickAction 
-                icon="file-invoice" 
-                label="Manual Bill" 
-                color="bg-orange-500" 
-                onPress={() => navigation.navigate('CreateBilling')} 
+              <QuickBtn
+                icon="file-signature"
+                label="Manual"
+                colors={['#f59e0b', '#d97706']}
+                onPress={() => navigation.navigate('CreateBilling')}
               />
-              <QuickAction 
-                icon="ellipsis-h" 
-                label="More" 
-                color="bg-slate-400" 
-                onPress={() => Alert.alert("Extra", "Additional utilities arriving soon.")} 
+              <QuickBtn
+                icon="ellipsis-h"
+                label="Reports"
+                colors={['#64748b', '#475569']}
+                onPress={() => Alert.alert('Coming Soon', 'Detailed reports feature arriving soon.')}
               />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowQuickActions(false)}
-              className="mt-6 py-4 bg-slate-900 rounded-2xl items-center"
+              style={styles.modalCloseBtn}
+              activeOpacity={0.8}
             >
-              <Text className="text-white font-bold uppercase text-xs tracking-widest">Close</Text>
+              <Text style={styles.modalCloseTxt}>Dismiss</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      <View
-        className="absolute left-4 right-4 bg-white rounded-3xl flex-row justify-between items-center px-6 py-3"
-        style={{
-          bottom: insets.bottom + 10,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-        }}
-      >
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+      {/* FLOATING TAB BAR ISLAND */}
+      <View style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.tabBarIsland}>
+          {state.routes.map((route: any, index: number) => {
+            const isFocused = state.index === index;
+            const { options } = descriptors[route.key];
 
-        const onPress = () => {
-          if (route.name === 'CreateBill') {
-            const rootNav = navigation.getParent();
-            if (rootNav) {
-              rootNav.navigate('CreateBilling');
-            } else {
-              navigation.navigate('CreateBilling');
+            const onPress = () => {
+              if (route.name === 'CreateBill') {
+                setShowQuickActions(true);
+              } else if (!isFocused) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            // CENTER FAB
+            if (route.name === 'CreateBill') {
+              return (
+                <TouchableOpacity
+                  key={route.key}
+                  onPress={onPress}
+                  style={styles.fabOuter}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={PRIMARY_GRADIENT}
+                    style={styles.fabInner}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Icon name="plus" size={20} color="#fff" />
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
             }
-          } else if (!isFocused) {
-            navigation.navigate(route.name);
-          }
-        };
 
-        const iconMap: any = {
-          Home: 'home',
-          Bills: 'file-invoice',
-          CreateBill: 'plus',
-          Products: 'box',
-          Settings: 'cog',
-        };
-
-        /* 🔥 CENTER FLOATING BUTTON */
-        if (route.name === 'CreateBill') {
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={() => setShowQuickActions(true)}
-              className="bg-orange-500 w-14 h-14 rounded-full justify-center items-center -mt-8"
-              style={{
-                elevation: 8,
-                shadowColor: '#000',
-                shadowOpacity: 0.2,
-                shadowRadius: 6,
-              }}
-            >
-              <Icon name="plus" size={20} color="#fff" />
-            </TouchableOpacity>
-          );
-        }
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={onPress}
-            className="flex-1 items-center"
-          >
-            <Icon
-              name={iconMap[route.name]}
-              size={18}
-              color={isFocused ? ACTIVE_COLOR : INACTIVE_COLOR}
-              solid
-            />
-            <Text
-              className={`text-[10px] mt-1 ${
-                isFocused ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              {route.name === 'CreateBill' ? 'Bill' : route.name}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                style={styles.tabButton}
+                activeOpacity={0.7}
+              >
+                <View style={styles.tabIconBox}>
+                  <Icon
+                    name={iconMap[route.name]}
+                    size={isFocused ? 18 : 17}
+                    color={isFocused ? ACTIVE_COLOR : INACTIVE_COLOR}
+                    solid={isFocused}
+                  />
+                  {isFocused && <View style={styles.activeDot} />}
+                </View>
+                <Text style={[styles.tabLabelText, isFocused && styles.tabLabelActive]}>
+                  {labelMap[route.name]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </>
   );
 }
 
+// ─── Navigator Configuration ────────────────────────────
 export default function BottomTabNavigator() {
   return (
-    <View className="flex-1">
-      <Tab.Navigator
-        tabBar={props => <CustomTabBar {...props} />}
-        screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: '#f97316', 
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 6,
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: '700', fontSize: 18 },
-          headerRight: () => <HeaderRight />,
-        }}
-      >
-        <Tab.Screen name="Home" component={Home} />
-        <Tab.Screen name="Bills" component={Bills} />
-        <Tab.Screen 
-          name="CreateBill" 
-          component={CreateBillPlaceholder} 
-          options={{ title: 'Create Bill' }} 
-        />
-        <Tab.Screen name="Products" component={Products} />
-        <Tab.Screen name="Settings" component={Settings} />
-      </Tab.Navigator>
-    </View>
+    <Tab.Navigator
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: true,
+        headerBackground: () => <HeaderBackground />,
+        headerTintColor: '#fff',
+        headerTitleAlign: 'left',
+        headerTitleStyle: {
+          fontWeight: '900',
+          fontSize: 18,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+        },
+        headerRight: () => <HeaderRight />,
+        headerStyle: {
+          height: Platform.OS === 'ios' ? 110 : 80,
+        },
+      }}
+    >
+      <Tab.Screen name="Home" component={Home} options={{ title: 'Analytics' }} />
+      <Tab.Screen name="Bills" component={Bills} options={{ title: 'Billing' }} />
+      <Tab.Screen name="CreateBill" component={CreateBillPlaceholder} options={{ title: 'Create' }} />
+      <Tab.Screen name="Products" component={Products} options={{ title: 'Inventory' }} />
+      <Tab.Screen name="Settings" component={Settings} options={{ title: 'Settings' }} />
+    </Tab.Navigator>
   );
 }
+
+// ─── Styles ──────────────────────────────────────────
+const styles = StyleSheet.create({
+  /* HEADER */
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    gap: 8,
+  },
+  avatarBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  avatarText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  logoutPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(244, 63, 94, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+    gap: 4,
+  },
+  logoutText: {
+    color: '#fb7185',
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+
+  /* TAB BAR */
+  tabBarWrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 100,
+  },
+  tabBarIsland: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
+    ...Platform.select({
+      android: { elevation: 12 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+    }),
+  },
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  tabIconBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 30,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: ACTIVE_COLOR,
+    marginTop: 2,
+  },
+  tabLabelText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: INACTIVE_COLOR,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  tabLabelActive: {
+    color: ACTIVE_COLOR,
+  },
+
+  /* FAB */
+  fabOuter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff', // outer ring color if needed
+    marginTop: -35,
+    padding: 4,
+    ...Platform.select({
+      android: { elevation: 8 },
+      ios: {
+        shadowColor: ACTIVE_COLOR,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+      },
+    }),
+  },
+  fabInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* MODAL / QUICK ACTIONS */
+  modalOverlay: {
+    zIndex: 1000,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  modalPill: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0f172a',
+    textAlign: 'center',
+    marginBottom: 24,
+    letterSpacing: -0.5,
+  },
+  qaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 20,
+  },
+  qaItem: {
+    width: '47%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  qaIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  qaLabelText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalCloseBtn: {
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalCloseTxt: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+});
