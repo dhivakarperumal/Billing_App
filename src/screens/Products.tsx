@@ -61,15 +61,7 @@ const Products = () => {
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
       
       <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerTitle}>Inventory<Text style={{ color: '#f97316' }}>.</Text></Text>
-            <Text style={styles.headerSubtitle}>GLOBAL ASSET CONTROL</Text>
-          </View>
-          <TouchableOpacity onPress={loadData} style={styles.refreshBtn}>
-             <Feather name="refresh-cw" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
+  
 
         <View style={styles.searchBar}>
           <Feather name="search" size={15} color="#64748b" />
@@ -117,7 +109,9 @@ const Products = () => {
                   </View>
                 </View>
                 <View style={styles.rightInfo}>
-                  <Text style={styles.priceText}>₹{(item.price || 0).toLocaleString()}</Text>
+                  <Text style={styles.priceText}>
+                    ₹{Number(item.offer_price || item.price || item.variants?.[0]?.sellingPrice || item.variants?.[0]?.mrp || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </Text>
                   <View style={styles.stockBadge}>
                     <Text style={styles.stockLabel}>{item.total_stock || 0} UNIT</Text>
                   </View>
@@ -193,7 +187,7 @@ const styles = StyleSheet.create({
   stockBadge: { marginTop: 4, backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   stockLabel: { fontSize: 8, fontWeight: '900', color: '#22c55e' },
   fabContainer: { position: 'absolute', bottom: 30, right: 24, alignItems: 'flex-end' },
-  mainFab: { width: 64, height: 64, borderRadius: 22, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
+  mainFab: { width: 54, height: 54, borderRadius: 50, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10,marginBottom:60 },
   fabClose: { backgroundColor: '#E11D48' },
   fabActions: { marginBottom: 15, gap: 10 },
   fabActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 16, elevation: 4, shadowOpacity: 0.1, shadowRadius: 5 },

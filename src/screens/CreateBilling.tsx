@@ -374,7 +374,7 @@ const CreateBilling = () => {
                             <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
                             <Text style={styles.itemCode}>ID-{item.id}</Text>
                             <View style={styles.itemFooter}>
-                                <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0)}</Text>
+                                <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString('en-IN')}</Text>
                                 <View style={styles.stockBadge}>
                                     <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
                                 </View>
