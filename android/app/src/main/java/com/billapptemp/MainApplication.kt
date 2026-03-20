@@ -14,8 +14,8 @@ class MainApplication : Application(), ReactApplication {
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
-          // VoicePackage is auto-linked via autolinkLibrariesWithApp() in build.gradle
-          // Adding it manually here caused a double-registration (NativeModules.Voice = null)
+          // Manually add VoicePackage if not picked up by Autolink
+          add(com.wenkesj.voice.VoicePackage())
           // CameraPackage kept here if autolinking doesn't pick it up
           add(com.mrousavy.camera.react.CameraPackage())
         },

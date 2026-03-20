@@ -7,12 +7,17 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  StyleSheet,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
+
+const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
 
 const Bills = () => {
     const { token } = useAuth();
@@ -28,7 +33,6 @@ const Bills = () => {
             setOrders(data || []);
         } catch (error: any) {
             console.error('Fetch error:', error);
-            // Alert.alert('Sync failed', 'Could not refresh bill logs.');
         } finally {
             setLoading(false);
         }
@@ -36,105 +40,107 @@ const Bills = () => {
 
     useEffect(() => {
         loadData();
-    }, [navigation, loadData]);
+    }, [loadData]);
 
     const BillCard = ({ item }: { item: any }) => (
         <TouchableOpacity 
-            className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between"
-            activeOpacity={0.7}
+            style={styles.card}
+            activeOpacity={0.8}
         >
-            <View className="flex-row items-center space-x-4">
-                <View className="w-12 h-12 bg-slate-50 rounded-2xl items-center justify-center">
-                    <Feather name="file-text" size={20} color="#64748b" />
+            <View style={styles.cardMain}>
+                <View style={styles.iconBox}>
+                    <Feather name="file-text" size={18} color="#f97316" />
                 </View>
-                <View>
-                    <Text className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded-md self-start mb-1">
-                        #{item.id || item.order_number}
-                    </Text>
-                    <Text className="text-sm font-black text-slate-800 tracking-tight">
-                        {item.customer_name || item.customer?.name || 'Walk-in Customer'}
-                    </Text>
-                    <Text className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
-                        {new Date(item.created_at).toLocaleDateString()}
-                    </Text>
+                <View style={styles.metaBox}>
+                    <View style={styles.badgeLine}>
+                        <Text style={styles.idBadge}>#ORD-{item.id || item.order_number}</Text>
+                        <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                    </View>
+                    <Text style={styles.customerName}>{item.customer_name || 'Walk-in Guest'}</Text>
                 </View>
             </View>
-            <View className="items-end">
-                <Text className="text-lg font-black text-slate-900 tracking-tighter">
-                    ₹{(item.total_amount || item.total || 0).toLocaleString()}
-                </Text>
-                <View className="flex-row items-center mt-1">
-                    <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
-                    <Text className="text-[9px] font-black text-emerald-600 uppercase tracking-widest italic">{item.status || 'PAID'}</Text>
+            <View style={styles.valBox}>
+                <Text style={styles.totalVal}>₹{(item.total_amount || item.total || 0).toLocaleString()}</Text>
+                <View style={styles.statusRow}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>{item.status || 'PAID'}</Text>
                 </View>
             </View>
         </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
+            <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
             
-            {/* Premium Header */}
-            <View className="px-6 pt-6 pb-4 bg-white shadow-sm rounded-b-[40px]">
-                <View className="flex-row items-center justify-between mb-6">
+            <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <View style={styles.headerRow}>
                     <View>
-                        <Text className="text-3xl font-black italic text-slate-900 lowercase leading-tight">
-                            billing<Text className="text-rose-600">.</Text>
-                        </Text>
-                        <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Transaction Vault History</Text>
+                        <Text style={styles.headerTitle}>Billing Logs<Text style={{ color: '#f97316' }}>.</Text></Text>
+                        <Text style={styles.headerSubtitle}>Historical transaction vault</Text>
                     </View>
-                    <TouchableOpacity onPress={loadData} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                        <Feather name="refresh-cw" size={18} color="#94a3b8" />
+                    <TouchableOpacity onPress={loadData} style={styles.refreshBtn}>
+                        <Feather name="refresh-cw" size={18} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Search / Filter Placeholder */}
-                <View className="relative">
-                    <View className="absolute left-4 top-1/2 -mt-2.5 z-10">
-                        <Feather name="search" size={16} color="#cbd5e1" />
-                    </View>
-                    <View className="bg-gray-50/50 border border-gray-100 px-12 py-3 rounded-2xl">
-                        <Text className="font-bold text-gray-300 text-xs">Search transactions...</Text>
-                    </View>
+                <View style={styles.searchBar}>
+                    <Feather name="search" size={14} color="#64748b" />
+                    <Text style={styles.searchPlaceholder}>Search transaction records...</Text>
                 </View>
-
-                {/* Stats Row */}
-                <View className="flex-row gap-3 mt-6 mb-2">
-                    <View className="p-4 rounded-3xl bg-rose-50 flex-1 shadow-sm">
-                        <Text className="text-[10px] font-black text-rose-300 uppercase tracking-widest">Today</Text>
-                        <Text className="text-xl font-black text-slate-900 mt-1">₹0</Text>
-                    </View>
-                    <View className="p-4 rounded-3xl bg-emerald-50 flex-1 shadow-sm">
-                        <Text className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Average</Text>
-                        <Text className="text-xl font-black text-slate-900 mt-1">₹0</Text>
-                    </View>
-                </View>
-            </View>
+            </LinearGradient>
 
             {loading ? (
-                <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator color="#E11D48" size="large" />
-                    <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Syncing terminals...</Text>
+                <View style={styles.loadingBox}>
+                    <ActivityIndicator color="#f97316" size="large" />
+                    <Text style={styles.loadingText}>SYNCING VAULT RECORDS...</Text>
                 </View>
             ) : (
                 <FlatList
                     data={orders}
-                    contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
+                    contentContainerStyle={styles.listContent}
                     keyExtractor={(item) => String(item.id)}
+                    showsVerticalScrollIndicator={false}
                     renderItem={({ item }) => <BillCard item={item} />}
                     ListEmptyComponent={() => (
-                        <View className="items-center py-20 opacity-30">
-                            <Feather name="file-text" size={40} color="#64748b" />
-                            <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">No local records</Text>
+                        <View style={styles.emptyBox}>
+                            <Feather name="database" size={40} color="#e2e8f0" />
+                            <Text style={styles.emptyText}>NO TRANSACTION DATA LOGGED</Text>
                         </View>
-                   )}
+                    )}
                 />
             )}
-
-           
         </SafeAreaView>
     );
 };
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#f8fafc' },
+    header: { paddingHorizontal: 24, paddingTop: 15, paddingBottom: 35, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+    headerSubtitle: { fontSize: 10, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+    refreshBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', paddingHorizontal: 15, height: 44, borderRadius: 15, gap: 10 },
+    searchPlaceholder: { color: '#64748b', fontSize: 11, fontWeight: '700' },
+    loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 2 },
+    listContent: { padding: 20, paddingBottom: 110 },
+    card: { backgroundColor: '#fff', borderRadius: 24, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', elevation: 2 },
+    cardMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    iconBox: { width: 44, height: 44, backgroundColor: '#f8fafc', borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    metaBox: { flex: 1 },
+    badgeLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    idBadge: { fontSize: 9, fontWeight: '900', color: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    dateText: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+    customerName: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
+    valBox: { alignItems: 'flex-end' },
+    totalVal: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    statusDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22c55e' },
+    statusText: { fontSize: 9, fontWeight: '900', color: '#22c55e', textTransform: 'uppercase' },
+    emptyBox: { flex: 1, alignItems: 'center', paddingVertical: 80 },
+    emptyText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#e2e8f0', letterSpacing: 1.5 }
+});
 
 export default Bills;

@@ -3,20 +3,26 @@ import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     FlatList, Modal, ActivityIndicator, Alert,
     StatusBar, Dimensions, Platform, Image,
-    PermissionsAndroid
+    PermissionsAndroid, StyleSheet
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
 import Voice from '@react-native-voice/voice';
-import { useRoute } from "@react-navigation/native";
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
+// ─── Constants ──────────────────────────────────────────
+const PRIMARY_GRADIENT = ['#f97316', '#ea580c']; // Orange
+const HEADER_GRADIENT  = ['#0f172a', '#1e293b']; // Dark Blueish
+const ACCENT_COLOR     = '#E11D48'; // Rose Red
+
 const CreateBilling = () => {
     const navigation = useNavigation<any>();
+    const route = useRoute<any>();
     const { token } = useAuth();
     
     // Data States
@@ -36,31 +42,29 @@ const CreateBilling = () => {
     // Form State
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
-    const route = useRoute<any>();
     const [cart, setCart] = useState<any[]>([]);
     const [isListening, setIsListening] = useState(false);
     const [voiceLang, setVoiceLang] = useState<'en' | 'ta'>('en');
     const voiceLangRef = useRef<'en' | 'ta'>('en');
 
-    // Keep ref in sync with state so callbacks always read the latest value
+    // Sync ref for callbacks
     useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
 
-    // Handle incoming barcode
+    // Barcode Handling
     useEffect(() => {
         if (route.params?.barcode) {
             const barcode = route.params.barcode;
             const product = products.find(p => p.product_code === barcode || String(p.id) === barcode);
             if (product) {
                 handleProductPress(product);
-                // Clear the param after use
                 navigation.setParams({ barcode: null });
             } else {
-                Alert.alert("Barcode Error", `Product with code ${barcode} not found in inventory.`);
+                Alert.alert("Barcode Error", `Product code ${barcode} not found in inventory.`);
             }
         }
     }, [route.params?.barcode, products]);
 
-    // Voice Handlers
+    // Voice Setup
     useEffect(() => {
         Voice.onSpeechResults = (e: any) => {
             if (e.value && e.value.length > 0) {
@@ -69,107 +73,67 @@ const CreateBilling = () => {
             }
         };
         Voice.onSpeechPartialResults = (e: any) => {
-            // Show partial (live) results in the search box as user speaks
-            if (e.value && e.value.length > 0) {
-                setProductSearchTerm(e.value[0]);
-            }
+            if (e.value && e.value.length > 0) setProductSearchTerm(e.value[0]);
         };
         Voice.onSpeechError = (e: any) => {
             console.error('Voice error:', e?.error);
             setIsListening(false);
             const code = e?.error?.code;
-            // Code 7 = no match found, not a fatal error
             if (code !== '7' && code !== 7) {
-                Alert.alert(
-                    'Voice Error',
-                    `Could not recognize speech. Make sure microphone permission is granted.\n(code: ${code})`
-                );
+                Alert.alert('Voice Error', 'Recognition failed. Make sure mic permission is granted and try again.');
             }
         };
-        Voice.onSpeechEnd = () => {
-            setIsListening(false);
-        };
+        Voice.onSpeechEnd = () => setIsListening(false);
+        
         return () => {
             try {
-                Voice.destroy()
-                    .then(() => Voice.removeAllListeners())
-                    .catch(err => console.warn('Voice cleanup error:', err));
-            } catch (err) {
-                console.warn('Voice destroy error:', err);
-            }
+                Voice.destroy().then(() => Voice.removeAllListeners()).catch(() => {});
+            } catch (err) {}
         };
     }, []);
 
     const startListening = async () => {
-        // 1. Request RECORD_AUDIO permission at runtime (required Android 6+)
         if (Platform.OS === 'android') {
-            try {
-                const granted = await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-                    {
-                        title: 'Microphone Permission',
-                        message: 'This app needs microphone access for voice search.',
-                        buttonPositive: 'Allow',
-                        buttonNegative: 'Deny',
-                    }
-                );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                    Alert.alert(
-                        'Permission Denied',
-                        'Microphone permission is required for voice search.\n\nGo to Settings → Apps → BillApp → Permissions → Microphone → Allow.'
-                    );
-                    return;
-                }
-            } catch (permErr) {
-                console.warn('Permission request error:', permErr);
-                return;
-            }
+            const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
         }
 
-        // 2. Start voice recognition
         const locale = voiceLangRef.current === 'ta' ? 'ta-IN' : 'en-IN';
         try {
             await Voice.cancel().catch(() => {});
-            await Voice.start(locale);
-            setIsListening(true);
+            setTimeout(async () => {
+                try {
+                    await Voice.start(locale);
+                    setIsListening(true);
+                } catch (err: any) {
+                    console.error("Delayed Start error:", err);
+                    Alert.alert("Voice Readying", "System is still initializing. Try again in a moment.");
+                    setIsListening(false);
+                }
+            }, 50);
         } catch (e: any) {
-            console.error('startListening error:', e);
+            console.error('Initial start error:', e);
             setIsListening(false);
-            const msg = String(e?.message || e);
-            if (msg.includes('startSpeech') || msg.includes('null')) {
-                Alert.alert(
-                    'Voice Module Error',
-                    'Voice recognition module failed to load.\n\nPlease rebuild the app:\n  npx react-native run-android'
-                );
-            } else {
-                Alert.alert('Voice Error', `Could not start voice recognition.\n${msg}`);
+            if (String(e?.message).includes('null')) {
+                Alert.alert('Module Sync', 'Voice module is linking. Restarting app after build is required.');
             }
         }
     };
 
     const stopListening = async () => {
-        try {
-            await Voice.stop();
-        } catch (e) {
-            console.warn('stopListening error:', e);
-        }
+        try { await Voice.stop(); } catch (e) {}
         setIsListening(false);
     };
 
-    const toggleVoiceLang = () => {
-        setVoiceLang(prev => (prev === 'en' ? 'ta' : 'en'));
-    };
+    const toggleVoiceLang = () => setVoiceLang(prev => (prev === 'en' ? 'ta' : 'en'));
 
+    // Data Loading
     useEffect(() => {
         const loadInitialData = async () => {
             if (!token) return;
             try {
-                const [pData, cData] = await Promise.all([
-                    fetchProducts(token),
-                    fetchCategories(token)
-                ]);
+                const [pData, cData] = await Promise.all([fetchProducts(token), fetchCategories(token)]);
                 
-                // Robust response handling for products
                 let pItems = [];
                 if (Array.isArray(pData)) {
                     pItems = pData;
@@ -179,7 +143,6 @@ const CreateBilling = () => {
                 }
                 setProducts(pItems);
 
-                // Robust response handling for categories
                 let cItems = [];
                 if (Array.isArray(cData)) {
                     cItems = cData;
@@ -188,9 +151,8 @@ const CreateBilling = () => {
                     cItems = obj.categories || obj.data || obj.items || [];
                 }
                 setCategories(cItems);
-
             } catch (err) {
-                console.error("Failed to load initial data", err);
+                console.error("Data load error", err);
             } finally {
                 setLoading(false);
             }
@@ -202,13 +164,14 @@ const CreateBilling = () => {
         const items = Array.isArray(products) ? products : [];
         return items.filter(p => {
             const matchCat = selectedCategory === "All" || p.category === selectedCategory;
-            const normalizedSearch = (productSearchTerm || "").toLowerCase();
+            const term = (productSearchTerm || "").toLowerCase();
             const pName = (p.name || "").toLowerCase();
             const pCode = (p.product_code || String(p.id || "")).toLowerCase();
-            return matchCat && (pName.includes(normalizedSearch) || pCode.includes(normalizedSearch));
+            return matchCat && (pName.includes(term) || pCode.includes(term));
         });
     }, [products, selectedCategory, productSearchTerm]);
 
+    // Cart Logic
     const handleProductPress = (product: Product) => {
         if (product.variants && product.variants.length > 0) {
             setSelectedProduct(product);
@@ -220,18 +183,11 @@ const CreateBilling = () => {
 
     const addToCart = (product: Product, variant?: any) => {
         const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
-        
+        const price = variant ? Number(variant.sellingPrice || variant.mrp || 0) : Number(product.offer_price || product.price || 0);
+
         setCart(prev => {
             const exists = prev.find(item => item.id === itemId);
-            if (exists) {
-                return prev.map(item => 
-                    item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
-                );
-            }
-            const price = variant 
-                ? Number(variant.sellingPrice || variant.mrp || 0) 
-                : Number(product.offer_price || product.price || 0);
-
+            if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
             return [...prev, {
                 id: itemId,
                 product_id: product.id,
@@ -241,36 +197,15 @@ const CreateBilling = () => {
                 image: product.images?.[0] || null
             }];
         });
-        
         setShowVariantModal(false);
-    };
-
-    const updateQuantity = (id: string, delta: number) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === id) {
-                const newQty = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: newQty };
-            }
-            return item;
-        }));
-    };
-
-    const removeItem = (id: string) => {
-        setCart(prev => prev.filter(item => item.id !== id));
     };
 
     const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     const handleFinalizeBill = async () => {
-        if (!customerName || !customerPhone) {
-            Alert.alert("Customer Details", "Full name and contact number required for processing.");
-            return;
-        }
-        if (cart.length === 0) {
-            Alert.alert("Empty Terminal", "Add items to the manifest before finalization.");
-            return;
-        }
+        if (!customerName || !customerPhone) return Alert.alert("Missing Info", "Full name and contact number required.");
+        if (cart.length === 0) return Alert.alert("Empty Manifest", "Add items to the cart first.");
 
         setSaving(true);
         try {
@@ -285,20 +220,12 @@ const CreateBilling = () => {
                     price: i.price
                 }))
             };
-
-            console.log("Syncing Bill Payload:", JSON.stringify(payload));
-            
             await createBill(payload, token);
-
-            Alert.alert("Success", "Transaction synchronized with Global Vault.");
+            Alert.alert("Success", "Transaction finalized and uploaded.");
             setCart([]);
-            setCustomerName("");
-            setCustomerPhone("");
             navigation.goBack();
         } catch (err: any) {
-            console.error("Sync Error Details:", err);
-            const errorMsg = err?.message || "Failed to upload transaction data. Check your network or details.";
-            Alert.alert("Sync Error", errorMsg);
+            Alert.alert("Upload Failed", err?.message || "Check network connection.");
         } finally {
             setSaving(false);
         }
@@ -306,294 +233,237 @@ const CreateBilling = () => {
 
     if (loading) {
         return (
-            <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator color="#E11D48" size="large" />
-                <Text style={{ marginTop: 20, fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2 }}>SYNCING TERMINAL...</Text>
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator color={ACCENT_COLOR} size="large" />
+                <Text style={styles.loadingText}>INITIALIZING TERMINAL...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <StatusBar barStyle="dark-content" />
+        <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+            <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
             
-            {/* Header Section */}
-            <View className="px-6 pt-2 pb-6 bg-white shadow-sm border-b border-gray-50">
-                <View className="flex-row items-center justify-between mb-6">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center">
-                        <Feather name="arrow-left" size={20} color="#1e293b" />
+            {/* ─── Premium Header ─── */}
+            <LinearGradient colors={HEADER_GRADIENT} style={styles.headerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconBtn}>
+                        <Feather name="arrow-left" size={20} color="#fff" />
                     </TouchableOpacity>
-                    <View className="items-center">
-                        <Text className="text-xl font-black text-slate-900 tracking-tighter italic">new.billing<Text className="text-rose-600">.</Text></Text>
+                    
+                    <View style={styles.headerTitleWrap}>
+                        <Text style={styles.headerTitle}>TRANS.BILLING<Text style={{ color: '#f97316' }}>.</Text></Text>
                     </View>
-                    <TouchableOpacity 
-                        onPress={() => navigation.navigate('ScannerScreen')}
-                        className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-2"
-                    >
-                        <Feather name="maximize" size={18} color="#E11D48" />
-                    </TouchableOpacity>
 
-                    {/* Language Toggle: EN / TA */}
-                    <TouchableOpacity
-                        onPress={toggleVoiceLang}
-                        style={{
-                            backgroundColor: voiceLang === 'ta' ? '#fdf2f8' : '#f8fafc',
-                            borderWidth: 1,
-                            borderColor: voiceLang === 'ta' ? '#E11D48' : '#e2e8f0',
-                            borderRadius: 10,
-                            paddingHorizontal: 8,
-                            paddingVertical: 6,
-                            marginRight: 8,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Text style={{
-                            fontSize: 10,
-                            fontWeight: '900',
-                            color: voiceLang === 'ta' ? '#E11D48' : '#94a3b8',
-                            letterSpacing: 0.5,
-                        }}>
-                            {voiceLang === 'ta' ? 'தமிழ்' : 'EN'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Mic Button */}
-                    <TouchableOpacity 
-                        onPress={isListening ? stopListening : startListening}
-                        style={{
-                            width: 40, height: 40,
-                            borderRadius: 12,
-                            backgroundColor: isListening ? '#ffe4e6' : '#f8fafc',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Feather name="mic" size={18} color={isListening ? "#E11D48" : "#94a3b8"} />
-                    </TouchableOpacity>
+                    <View style={styles.headerRightActions}>
+                        <TouchableOpacity onPress={toggleVoiceLang} style={[styles.langSwitch, voiceLang === 'ta' && { borderColor: '#f97316' }]}>
+                            <Text style={[styles.langText, voiceLang === 'ta' && { color: '#f97316' }]}>{voiceLang === 'ta' ? 'TA' : 'EN'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={isListening ? stopListening : startListening}
+                            style={[styles.micBtn, isListening && { backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}
+                        >
+                            <Feather name="mic" size={18} color={isListening ? "#f97316" : "#fff"} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
-                {/* Search Bar with scan icon alternative or search icon */}
-                <View className="relative mt-4">
-                    <View className="absolute left-4 top-1/2 -mt-2 z-10">
-                        <Feather name="search" size={16} color="#cbd5e1" />
-                    </View>
+                {/* Search Bar */}
+                <View style={styles.searchBarContainer}>
+                    <Feather name="search" size={16} color="#94a3b8" style={styles.searchIcon} />
                     <TextInput 
-                        placeholder={
-                            isListening
-                                ? (voiceLang === 'ta' ? 'கேட்கிறேன்...' : 'Listening...')
-                                : (voiceLang === 'ta' ? 'பொருட்களை தேடுங்கள்...' : 'Search items or enter code...')
-                        } 
-                        className="bg-gray-50 border border-gray-100 px-12 py-3 rounded-2xl font-bold text-slate-800 text-xs"
-                        placeholderTextColor="#cbd5e1"
+                        placeholder={isListening ? (voiceLang === 'ta' ? 'கேட்கிறேன்...' : 'Listening...') : (voiceLang === 'ta' ? 'தேடுங்கள்...' : 'Search Inventory...')} 
+                        style={styles.searchInput}
+                        placeholderTextColor="#475569"
                         value={productSearchTerm}
                         onChangeText={setProductSearchTerm}
                     />
+                    <TouchableOpacity onPress={() => navigation.navigate('ScannerScreen')} style={styles.inlineScanner}>
+                        <Feather name="maximize" size={16} color="#f97316" />
+                    </TouchableOpacity>
                 </View>
 
-                {/* Customer Details Inputs */}
-                <View className="flex-row space-x-3">
-                    <View className="flex-1 bg-gray-50 rounded-2xl p-3 flex-row items-center">
-                        <Feather name="user" size={14} color="#cbd5e1" className="mr-3" />
+                {/* Quick Customer Mini-Form */}
+                <View style={styles.customerFormRow}>
+                    <View style={styles.miniInputContainer}>
+                        <Feather name="user" size={12} color="#64748b" />
                         <TextInput 
-                            placeholder="Full Name" 
-                            className="flex-1 font-bold text-slate-800 text-xs" 
-                            placeholderTextColor="#cbd5e1"
+                            placeholder="Name" 
+                            style={styles.miniInput} 
+                            placeholderTextColor="#475569"
                             value={customerName}
                             onChangeText={setCustomerName}
                         />
                     </View>
-                    <View className="flex-1 bg-gray-50 rounded-2xl p-3 flex-row items-center">
-                        <Feather name="phone" size={14} color="#cbd5e1" className="mr-3" />
+                    <View style={styles.miniInputContainer}>
+                        <Feather name="phone" size={12} color="#64748b" />
                         <TextInput 
-                            placeholder="Phone Number" 
+                            placeholder="Phone" 
                             keyboardType="phone-pad"
-                            className="flex-1 font-bold text-slate-800 text-xs" 
-                            placeholderTextColor="#cbd5e1"
+                            style={styles.miniInput} 
+                            placeholderTextColor="#475569"
                             value={customerPhone}
                             onChangeText={setCustomerPhone}
                         />
                     </View>
                 </View>
-            </View>
+            </LinearGradient>
 
-            {/* Inventory Controls */}
-            <View className="px-6 pt-6 flex-row items-center justify-between">
-                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Inventory</Text>
-                <View className="flex-row bg-gray-50 rounded-xl p-1">
-                    <TouchableOpacity 
-                        onPress={() => setViewMode("grid")}
-                        className="px-3 py-1.5 rounded-lg"
-                        style={viewMode === 'grid' ? { backgroundColor: '#ffffff', elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } } : {}}
-                    >
-                        <Feather name="grid" size={14} color={viewMode === 'grid' ? '#E11D48' : '#94a3b8'} />
+            {/* ─── Inventory Feed ─── */}
+            <View style={styles.inventoryHeader}>
+                <Text style={styles.inventorySub}>GLOBAL ASSETS</Text>
+                <View style={styles.viewModeToggle}>
+                    <TouchableOpacity onPress={() => setViewMode("grid")} style={[styles.toggleBtn, viewMode === 'grid' && styles.toggleActive]}>
+                        <Feather name="grid" size={14} color={viewMode === 'grid' ? '#f97316' : '#94a3b8'} />
                     </TouchableOpacity>
-                    <TouchableOpacity 
-                        onPress={() => setViewMode("list")}
-                        className="px-3 py-1.5 rounded-lg"
-                        style={viewMode === 'list' ? { backgroundColor: '#ffffff', elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } } : {}}
-                    >
-                        <Feather name="list" size={14} color={viewMode === 'list' ? '#E11D48' : '#94a3b8'} />
+                    <TouchableOpacity onPress={() => setViewMode("list")} style={[styles.toggleBtn, viewMode === 'list' && styles.toggleActive]}>
+                        <Feather name="list" size={14} color={viewMode === 'list' ? '#f97316' : '#94a3b8'} />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Product Feed */}
             <FlatList
                 data={filteredProducts}
                 key={viewMode}
                 numColumns={viewMode === 'grid' ? 2 : 1}
-                contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
                     <TouchableOpacity 
                         onPress={() => handleProductPress(item)}
-                        style={{ elevation: 2 }}
-                        className={`bg-white rounded-[32px] m-2 p-4 border border-gray-100 ${viewMode === 'grid' ? 'flex-1' : 'flex-row items-center'}`}
+                        style={[styles.card, viewMode === 'grid' ? styles.gridCard : styles.listCard]}
+                        activeOpacity={0.8}
                     >
-                        <View className={`bg-slate-50 rounded-3xl items-center justify-center overflow-hidden ${viewMode === 'grid' ? 'w-full aspect-square mb-4' : 'w-16 h-16 mr-4'}`}>
+                        <View style={[styles.imageContainer, viewMode === 'grid' ? styles.gridImage : styles.listImage]}>
                             {item.image || item.images?.[0] ? (
-                                <Image 
-                                    source={{ uri: item.image || item.images?.[0] }} 
-                                    className="w-full h-full"
-                                    resizeMode="cover"
-                                />
+                                <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} resizeMode="cover" />
                             ) : (
-                                <Feather name="package" size={viewMode === 'grid' ? 32 : 24} color="#cbd5e1" />
+                                <Feather name="package" size={24} color="#cbd5e1" />
                             )}
                         </View>
-                        <View className="flex-1">
-                            <Text className="text-xs font-black text-slate-900 tracking-tight text-center sm:text-left">{item.name}</Text>
-                            <Text className="text-[8px] font-black text-gray-400 uppercase mt-1 text-center sm:text-left">PRD-{item.id}</Text>
-                            <View className="flex-row items-center justify-between mt-3">
-                                <Text className="text-sm font-black text-rose-600 italic">₹{Number(item.offer_price || item.price || 0)}</Text>
-                                <View className="bg-emerald-50 px-2 py-0.5 rounded-md">
-                                    <Text className="text-[8px] font-black text-emerald-600">{item.total_stock || 0} U</Text>
+                        <View style={styles.cardInfo}>
+                            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                            <Text style={styles.itemCode}>ID-{item.id}</Text>
+                            <View style={styles.itemFooter}>
+                                <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0)}</Text>
+                                <View style={styles.stockBadge}>
+                                    <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
                                 </View>
                             </View>
                         </View>
                     </TouchableOpacity>
                 )}
                 ListEmptyComponent={() => (
-                    <View className="items-center py-20 opacity-20">
-                        <Feather name="package" size={48} color="#64748b" />
-                        <Text className="mt-4 font-black uppercase text-[10px] tracking-widest">No stock records</Text>
+                    <View style={styles.emptyContainer}>
+                        <Feather name="search" size={40} color="#e2e8f0" />
+                        <Text style={styles.emptyText}>No matching assets found</Text>
                     </View>
                 )}
             />
 
-            {/* Floating Action Bar */}
+            {/* ─── Footer Action Bar ─── */}
             {cart.length > 0 && (
-                <View className="absolute bottom-10 left-6 right-6 flex-row items-center space-x-3">
-                    <TouchableOpacity 
-                        onPress={() => setShowCart(true)}
-                        style={{ elevation: 20, shadowColor: '#1e293b', shadowOpacity: 0.3, shadowRadius: 10 }}
-                        className="flex-1 h-16 bg-slate-900 rounded-[28px] flex-row items-center px-6"
-                    >
-                        <View className="w-10 h-10 bg-white/10 rounded-2xl items-center justify-center">
-                            <Feather name="shopping-bag" size={18} color="white" />
+                <View style={[styles.footerBar, { bottom: Platform.OS === 'ios' ? 20 : 10 }]}>
+                    <TouchableOpacity onPress={() => setShowCart(true)} style={styles.cartBtn} activeOpacity={0.9}>
+                        <View style={styles.cartIconWrapper}>
+                            <Feather name="shopping-cart" size={18} color="#fff" />
                         </View>
-                        <View className="ml-4 flex-1">
-                            <Text className="text-white text-sm font-black italic">₹{cartTotal.toLocaleString()}</Text>
-                            <Text className="text-white/40 text-[9px] font-black uppercase tracking-widest">{cartItemCount} Items added</Text>
+                        <View style={styles.cartInfo}>
+                            <Text style={styles.cartVal}>₹{cartTotal.toLocaleString()}</Text>
+                            <Text style={styles.cartCount}>{cartItemCount} ITEMS</Text>
                         </View>
-                        <Feather name="chevron-up" size={16} color="white" />
+                        <Feather name="chevron-up" size={18} color="#94a3b8" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        onPress={handleFinalizeBill}
-                        style={{ elevation: 20, shadowColor: '#E11D48', shadowOpacity: 0.3, shadowRadius: 10 }}
-                        className="w-16 h-16 bg-rose-600 rounded-[28px] items-center justify-center"
-                    >
-                        {saving ? <ActivityIndicator color="white" /> : <Feather name="check-circle" size={24} color="white" />}
+                    <TouchableOpacity onPress={handleFinalizeBill} style={styles.commitBtn} activeOpacity={0.85}>
+                        {saving ? <ActivityIndicator color="white" /> : <Feather name="check-circle" size={22} color="white" />}
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* Cart Modal */}
+            {/* ─── Cart Modal ─── */}
             <Modal visible={showCart} animationType="slide" transparent>
-                <View className="flex-1 bg-black/40 justify-end">
-                    <TouchableOpacity className="flex-1" onPress={() => setShowCart(false)} />
-                    <View className="bg-white rounded-t-[50px] p-8 max-h-[85%]">
-                        <View className="w-12 h-1 bg-gray-200 rounded-full self-center mb-8" />
-                        <View className="flex-row items-center justify-between mb-8">
-                            <Text className="text-2xl font-black text-slate-900 italic">cart.manifest<Text className="text-rose-600">.</Text></Text>
-                            <TouchableOpacity onPress={() => setShowCart(false)}>
-                                <Feather name="x" size={24} color="#94a3b8" />
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCart(false)} />
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalPill} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Cart Manifest<Text style={{ color: '#f97316' }}>.</Text></Text>
+                            <TouchableOpacity onPress={() => setShowCart(false)} style={styles.modalCloseIcon}>
+                                <Feather name="x" size={20} color="#94a3b8" />
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {cart.map((item, index) => (
-                                <View key={item.id} className="flex-row items-center mb-6 bg-slate-50/50 p-4 rounded-3xl border border-slate-100">
-                                    <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center">
-                                        <Feather name="file-text" size={20} color="#cbd5e1" />
+                        <ScrollView style={styles.cartScroll} showsVerticalScrollIndicator={false}>
+                            {cart.map((item) => (
+                                <View key={item.id} style={styles.cartItem}>
+                                    <View style={styles.cartItemIcon}>
+                                        <Feather name="box" size={16} color="#94a3b8" />
                                     </View>
-                                    <View className="flex-1 ml-4">
-                                        <Text className="text-xs font-black text-slate-800 uppercase tracking-tight">{item.name}</Text>
-                                        <Text className="text-[10px] font-black text-rose-500 mt-1">₹{item.price.toLocaleString()}</Text>
+                                    <View style={styles.cartItemMeta}>
+                                        <Text style={styles.cartItemName}>{item.name}</Text>
+                                        <Text style={styles.cartItemPrice}>₹{item.price.toLocaleString()}</Text>
                                     </View>
-                                    <View className="flex-row items-center bg-white rounded-2xl p-1 px-3 border border-slate-100">
-                                        <TouchableOpacity onPress={() => updateQuantity(item.id, -1)}>
-                                            <Feather name="minus" size={12} color="#94a3b8" />
+                                    <View style={styles.qtyControl}>
+                                        <TouchableOpacity onPress={() => {
+                                            if (item.quantity > 1) {
+                                                setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i));
+                                            } else {
+                                                setCart(prev => prev.filter(i => i.id !== item.id));
+                                            }
+                                        }}>
+                                            <Feather name={item.quantity > 1 ? "minus" : "trash-2"} size={14} color={item.quantity > 1 ? "#64748b" : "#f43f5e"} />
                                         </TouchableOpacity>
-                                        <Text className="mx-4 font-black text-slate-900 text-xs">{item.quantity}</Text>
-                                        <TouchableOpacity onPress={() => updateQuantity(item.id, 1)}>
-                                            <Feather name="plus" size={12} color="#E11D48" />
+                                        <Text style={styles.qtyValue}>{item.quantity}</Text>
+                                        <TouchableOpacity onPress={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}>
+                                            <Feather name="plus" size={14} color="#f97316" />
                                         </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity onPress={() => removeItem(item.id)} className="ml-4">
-                                        <Feather name="trash-2" size={16} color="#fda4af" />
-                                    </TouchableOpacity>
                                 </View>
                             ))}
                         </ScrollView>
 
-                        <View className="mt-8 pt-8 border-t border-slate-50 flex-row items-center justify-between">
+                        <View style={styles.modalFooter}>
                             <View>
-                                <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Valuation</Text>
-                                <Text className="text-3xl font-black text-slate-900 italic">₹{cartTotal.toLocaleString()}</Text>
+                                <Text style={styles.totalLabel}>TOTAL VALUATION</Text>
+                                <Text style={styles.totalVal}>₹{cartTotal.toLocaleString()}</Text>
                             </View>
-                            <TouchableOpacity 
-                                onPress={handleFinalizeBill}
-                                className="bg-rose-600 px-10 py-5 rounded-[28px] shadow-xl shadow-rose-200"
-                            >
-                                <Text className="text-white font-black uppercase text-[10px] tracking-widest">Commit Bill</Text>
+                            <TouchableOpacity onPress={handleFinalizeBill} style={styles.finalizeBtn}>
+                                <Text style={styles.finalizeTxt}>COMMIT BILL</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            {/* Variant Selector */}
-            <Modal visible={showVariantModal} transparent animationType="fade">
-                <View className="flex-1 bg-slate-900/60 items-center justify-center p-6">
-                    <View className="bg-white w-full rounded-[48px] p-10">
-                        <Text className="text-3xl font-black text-slate-900 tracking-tighter italic mb-2">select.variant<Text className="text-rose-600">.</Text></Text>
-                        <Text className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">{selectedProduct?.name}</Text>
+            {/* ─── Variant Modal ─── */}
+            <Modal visible={showVariantModal} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowVariantModal(false)} />
+                    <View style={styles.variantSheet}>
+                        <View style={styles.modalPill} />
+                        <Text style={styles.variantTitle}>{selectedProduct?.name}</Text>
+                        <Text style={styles.variantSubtitle}>SELECT UNIT VARIANT</Text>
                         
-                        <ScrollView className="max-h-[300px]">
-                            {selectedProduct?.variants?.map((v, i) => (
+                        <View style={styles.variantGrid}>
+                            {selectedProduct?.variants?.map((v: any, idx: number) => (
                                 <TouchableOpacity 
-                                    key={i} 
-                                    onPress={() => addToCart(selectedProduct!, v)}
-                                    className="bg-slate-50 p-6 rounded-[32px] mb-4 flex-row items-center justify-between border border-transparent"
+                                    key={idx} 
+                                    style={styles.variantBtn}
+                                    onPress={() => addToCart(selectedProduct as Product, v)}
                                 >
-                                    <View>
-                                        <Text className="font-black text-slate-900 uppercase text-xs">{v.quantity} {v.unit}</Text>
-                                        <Text className="text-[8px] font-black text-emerald-500 uppercase mt-1 tracking-widest">Avail: {v.stock}</Text>
+                                    <Text style={styles.vQty}>{v.quantity}{v.unit}</Text>
+                                    <Text style={styles.vPrice}>₹{v.sellingPrice || v.mrp || 0}</Text>
+                                    <View style={styles.vTag}>
+                                        <Feather name="plus" size={12} color="#fff" />
                                     </View>
-                                    <Text className="text-base font-black text-rose-600">₹{Number(v.sellingPrice || v.mrp || 0)}</Text>
                                 </TouchableOpacity>
                             ))}
-                        </ScrollView>
-
-                        <TouchableOpacity 
-                            onPress={() => setShowVariantModal(false)}
-                            className="mt-8 py-5 bg-slate-900 rounded-[28px] items-center"
-                        >
-                            <Text className="text-white font-black uppercase text-[10px] tracking-widest">Return to Feed</Text>
+                        </View>
+                        
+                        <TouchableOpacity onPress={() => setShowVariantModal(false)} style={styles.cancelBtn}>
+                            <Text style={styles.cancelTxt}>CANCEL</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -603,3 +473,97 @@ const CreateBilling = () => {
 };
 
 export default CreateBilling;
+
+const styles = StyleSheet.create({
+    loadingContainer: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 15, fontSize: 10, color: '#94a3b8', fontWeight: '900', letterSpacing: 2 },
+    container: { flex: 1, backgroundColor: '#f8fafc' },
+    
+    /* HEADER */
+    headerGradient: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+    headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    headerTitleWrap: { flex: 1, alignItems: 'center' },
+    headerTitle: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
+    headerRightActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    langSwitch: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+    langText: { color: '#94a3b8', fontSize: 10, fontWeight: '900' },
+    micBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    
+    /* SEARCH / FORM */
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15 },
+    searchIcon: { marginRight: 10 },
+    searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a' },
+    inlineScanner: { padding: 5 },
+    customerFormRow: { flexDirection: 'row', gap: 10 },
+    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 12, height: 40 },
+    miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: '#fff' },
+
+    /* INVENTORY */
+    inventoryHeader: { paddingHorizontal: 24, paddingTop: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    inventorySub: { fontSize: 10, fontWeight: '900', color: '#64748b', letterSpacing: 1.5 },
+    viewModeToggle: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 10, padding: 3 },
+    toggleBtn: { padding: 8, borderRadius: 8 },
+    toggleActive: { backgroundColor: '#f8fafc', elevation: 2 },
+
+    /* CARDS */
+    listContent: { padding: 16, paddingBottom: 120 },
+    card: { backgroundColor: '#fff', borderRadius: 24, margin: 8, padding: 12, borderWidth: 1, borderColor: '#f1f5f9' },
+    gridCard: { flex: 1 },
+    listCard: { flexDirection: 'row', alignItems: 'center' },
+    imageContainer: { backgroundColor: '#f8fafc', borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    gridImage: { width: '100%', aspectRatio: 1, marginBottom: 12 },
+    listImage: { width: 60, height: 60, marginRight: 15 },
+    productImg: { width: '100%', height: '100%' },
+    cardInfo: { flex: 1 },
+    itemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
+    itemCode: { fontSize: 8, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginTop: 2 },
+    itemFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+    itemPrice: { fontSize: 14, fontWeight: '900', color: '#E11D48' },
+    stockBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    stockText: { fontSize: 8, fontWeight: '900', color: '#22c55e' },
+
+    /* FOOTER BAR */
+    footerBar: { position: 'absolute', left: 24, right: 24, flexDirection: 'row', gap: 12, zIndex: 100 },
+    cartBtn: { flex: 1, height: 60, backgroundColor: '#0f172a', borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, elevation: 8 },
+    cartIconWrapper: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    cartInfo: { flex: 1, marginLeft: 12 },
+    cartVal: { color: '#fff', fontSize: 15, fontWeight: '900' },
+    cartCount: { color: '#64748b', fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
+    commitBtn: { width: 60, height: 60, backgroundColor: '#E11D48', borderRadius: 20, alignItems: 'center', justifyContent: 'center', elevation: 8 },
+
+    /* MODAL */
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
+    modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '85%' },
+    modalPill: { width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
+    modalTitle: { fontSize: 22, fontWeight: '900', color: '#0f172a' },
+    modalCloseIcon: { padding: 5 },
+    cartScroll: { marginBottom: 20 },
+    cartItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 15, borderRadius: 20, marginBottom: 10 },
+    cartItemIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+    cartItemMeta: { flex: 1, marginLeft: 12 },
+    cartItemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
+    cartItemPrice: { fontSize: 10, fontWeight: '800', color: '#E11D48', marginTop: 1 },
+    qtyControl: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 5, paddingHorizontal: 10, gap: 12 },
+    qtyValue: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+    modalFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 20 },
+    totalLabel: { fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 1 },
+    totalVal: { fontSize: 28, fontWeight: '900', color: '#0f172a' },
+    finalizeBtn: { backgroundColor: '#E11D48', paddingHorizontal: 25, paddingVertical: 15, borderRadius: 18 },
+    finalizeTxt: { color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+    emptyContainer: { paddingVertical: 80, alignItems: 'center' },
+    emptyText: { marginTop: 15, fontSize: 11, fontWeight: '900', color: '#cbd5e1', letterSpacing: 0.5 },
+    
+    /* VARIANT SHEET */
+    variantSheet: { backgroundColor: '#fff', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 30, maxHeight: '70%', alignItems: 'center' },
+    variantTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 5, textAlign: 'center' },
+    variantSubtitle: { fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 1.5, marginBottom: 25 },
+    variantGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginBottom: 30 },
+    variantBtn: { backgroundColor: '#f8fafc', width: (width - 100) / 2, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#f1f5f9', alignItems: 'center', position: 'relative' },
+    vQty: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+    vPrice: { fontSize: 12, fontWeight: '800', color: '#E11D48', marginTop: 4 },
+    vTag: { position: 'absolute', top: -5, right: -5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center', elevation: 2 },
+    cancelBtn: { paddingVertical: 15 },
+    cancelTxt: { fontSize: 11, fontWeight: '900', color: '#94a3b8', letterSpacing: 1 },
+});
