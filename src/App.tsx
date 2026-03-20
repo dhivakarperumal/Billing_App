@@ -10,6 +10,8 @@ import Login from './screens/Login';
 import Register from './screens/Register';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
 
+import "../global.css"
+
 function AppContent() {
   const { token } = useAuth();
   const [showRegister, setShowRegister] = useState(false);

@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -29,217 +28,103 @@ const Login = ({ onSwitchToRegister }: Props) => {
     await signIn(identifier.trim(), password.trim());
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert(
-      'Google Login',
-      'Google Login requires native module configuration (client ID, SHA-1 keys) which is not yet set up for this React Native app.'
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>
+    <View className="flex-1 justify-center p-5 bg-gray-900">
+
+      <View className="bg-white rounded-2xl p-6 shadow-lg">
+
+        {/* Title */}
+        <Text className="text-3xl font-bold text-blue-500 text-center mb-2">
+          Welcome Back
+        </Text>
+
+        <Text className="text-gray-500 text-center mb-6">
           Sign in to explore our premium collection
         </Text>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Email or Username</Text>
+        {/* Form */}
+        <View className="gap-2">
+
+          {/* Email */}
+          <Text className="text-gray-700 font-medium mt-2">
+            Email or Username
+          </Text>
+
           <TextInput
-            style={styles.input}
+            className="border border-gray-200 rounded-lg p-4 text-base text-black bg-white"
             placeholder="Email or Username"
             placeholderTextColor="#9ca3af"
             value={identifier}
             onChangeText={setIdentifier}
             autoCapitalize="none"
-            autoCorrect={false}
           />
 
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.passwordContainer}>
+          {/* Password */}
+          <Text className="text-gray-700 font-medium mt-3">
+            Password
+          </Text>
+
+          <View className="flex-row items-center border border-gray-200 rounded-lg bg-white">
             <TextInput
-              style={styles.passwordInput}
+              className="flex-1 p-4 text-base text-black"
               placeholder="Password"
               placeholderTextColor="#9ca3af"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
             />
+
             <TouchableOpacity
-              style={styles.eyeIcon}
+              className="p-4"
               onPress={() => setShowPassword(!showPassword)}
             >
               <Icon
                 name={showPassword ? 'eye-slash' : 'eye'}
-                size={20}
+                size={18}
                 color="#6b7280"
               />
             </TouchableOpacity>
           </View>
 
+          {/* Login Button */}
           <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            className={`bg-blue-500 p-4 rounded-lg items-center mt-5 ${
+              loading ? 'opacity-70' : ''
+            }`}
             onPress={handleLogin}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text className="text-white text-base font-semibold">
+                Login
+              </Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
+          {/* Divider */}
+          <View className="flex-row items-center my-6">
+            <View className="flex-1 h-[1px] bg-gray-200" />
+            <Text className="mx-3 text-gray-400 font-medium">OR</Text>
+            <View className="flex-1 h-[1px] bg-gray-200" />
           </View>
 
-      
-
-          <Text style={styles.footerText}>
+          {/* Footer */}
+          <Text className="text-center text-gray-500 mt-4">
             Don't have an account?{' '}
-            <Text style={styles.footerLink} onPress={onSwitchToRegister}>
+            <Text
+              className="text-blue-500 font-semibold"
+              onPress={onSwitchToRegister}
+            >
               Sign Up
             </Text>
           </Text>
+
         </View>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#4c8bf5', // Primary gradient fallback
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#4c8bf5',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  form: {
-    gap: 4,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 6,
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#111',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 14,
-    fontSize: 16,
-    color: '#111',
-  },
-  eyeIcon: {
-    padding: 14,
-  },
-  loginButton: {
-    backgroundColor: '#4c8bf5',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#4c8bf5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  dividerText: {
-    color: '#9ca3af',
-    fontWeight: '500',
-    marginHorizontal: 12,
-    fontSize: 14,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  googleButtonText: {
-    color: '#374151',
-    fontWeight: '600',
-    fontSize: 15,
-    marginLeft: 10,
-  },
-  footerText: {
-    textAlign: 'center',
-    color: '#6b7280',
-    marginTop: 24,
-    fontSize: 14,
-  },
-  footerLink: {
-    color: '#4c8bf5',
-    fontWeight: '600',
-  },
-});
 
 export default Login;
