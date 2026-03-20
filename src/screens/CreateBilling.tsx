@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     FlatList, Modal, ActivityIndicator, Alert,
-    StatusBar, Dimensions, Platform, Image
+    StatusBar, Dimensions, Platform, Image,
+    PermissionsAndroid
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -11,9 +12,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
 import Voice from '@react-native-voice/voice';
 import { useRoute } from "@react-navigation/native";
-import { NativeModules } from 'react-native';
-
-const VoiceModule = NativeModules.Voice;
 
 const { width } = Dimensions.get('window');
 
@@ -41,6 +39,11 @@ const CreateBilling = () => {
     const route = useRoute<any>();
     const [cart, setCart] = useState<any[]>([]);
     const [isListening, setIsListening] = useState(false);
+    const [voiceLang, setVoiceLang] = useState<'en' | 'ta'>('en');
+    const voiceLangRef = useRef<'en' | 'ta'>('en');
+
+    // Keep ref in sync with state so callbacks always read the latest value
+    useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
 
     // Handle incoming barcode
     useEffect(() => {
@@ -59,54 +62,102 @@ const CreateBilling = () => {
 
     // Voice Handlers
     useEffect(() => {
-        if (!VoiceModule) {
-            console.warn("Speech recognition native module not found.");
-            return;
-        }
-
         Voice.onSpeechResults = (e: any) => {
             if (e.value && e.value.length > 0) {
                 setProductSearchTerm(e.value[0]);
                 stopListening();
             }
         };
+        Voice.onSpeechPartialResults = (e: any) => {
+            // Show partial (live) results in the search box as user speaks
+            if (e.value && e.value.length > 0) {
+                setProductSearchTerm(e.value[0]);
+            }
+        };
         Voice.onSpeechError = (e: any) => {
-            console.error("Speech Error:", e);
-            stopListening();
+            console.error('Voice error:', e?.error);
+            setIsListening(false);
+            const code = e?.error?.code;
+            // Code 7 = no match found, not a fatal error
+            if (code !== '7' && code !== 7) {
+                Alert.alert(
+                    'Voice Error',
+                    `Could not recognize speech. Make sure microphone permission is granted.\n(code: ${code})`
+                );
+            }
+        };
+        Voice.onSpeechEnd = () => {
+            setIsListening(false);
         };
         return () => {
-            if (VoiceModule && Voice) {
-                try {
-                    Voice.destroy().then(() => Voice.removeAllListeners()).catch(e => console.error(e));
-                } catch (e) {
-                    console.error("Failed to destroy Voice:", e);
-                }
+            try {
+                Voice.destroy()
+                    .then(() => Voice.removeAllListeners())
+                    .catch(err => console.warn('Voice cleanup error:', err));
+            } catch (err) {
+                console.warn('Voice destroy error:', err);
             }
         };
     }, []);
 
     const startListening = async () => {
-        if (!VoiceModule) {
-            Alert.alert("Speech Unavailable", "The voice recognition module is not registered on this device. Please check app permissions and build configuration.");
-            return;
+        // 1. Request RECORD_AUDIO permission at runtime (required Android 6+)
+        if (Platform.OS === 'android') {
+            try {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                    {
+                        title: 'Microphone Permission',
+                        message: 'This app needs microphone access for voice search.',
+                        buttonPositive: 'Allow',
+                        buttonNegative: 'Deny',
+                    }
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    Alert.alert(
+                        'Permission Denied',
+                        'Microphone permission is required for voice search.\n\nGo to Settings → Apps → BillApp → Permissions → Microphone → Allow.'
+                    );
+                    return;
+                }
+            } catch (permErr) {
+                console.warn('Permission request error:', permErr);
+                return;
+            }
         }
+
+        // 2. Start voice recognition
+        const locale = voiceLangRef.current === 'ta' ? 'ta-IN' : 'en-IN';
         try {
-            await Voice.start('en-US');
+            await Voice.cancel().catch(() => {});
+            await Voice.start(locale);
             setIsListening(true);
-        } catch (e) {
-            console.error(e);
-            Alert.alert("Speech Error", "Could not start voice recognition.");
+        } catch (e: any) {
+            console.error('startListening error:', e);
+            setIsListening(false);
+            const msg = String(e?.message || e);
+            if (msg.includes('startSpeech') || msg.includes('null')) {
+                Alert.alert(
+                    'Voice Module Error',
+                    'Voice recognition module failed to load.\n\nPlease rebuild the app:\n  npx react-native run-android'
+                );
+            } else {
+                Alert.alert('Voice Error', `Could not start voice recognition.\n${msg}`);
+            }
         }
     };
 
     const stopListening = async () => {
-        if (!Voice) return;
         try {
             await Voice.stop();
-            setIsListening(false);
         } catch (e) {
-            console.error(e);
+            console.warn('stopListening error:', e);
         }
+        setIsListening(false);
+    };
+
+    const toggleVoiceLang = () => {
+        setVoiceLang(prev => (prev === 'en' ? 'ta' : 'en'));
     };
 
     useEffect(() => {
@@ -281,9 +332,42 @@ const CreateBilling = () => {
                     >
                         <Feather name="maximize" size={18} color="#E11D48" />
                     </TouchableOpacity>
+
+                    {/* Language Toggle: EN / TA */}
+                    <TouchableOpacity
+                        onPress={toggleVoiceLang}
+                        style={{
+                            backgroundColor: voiceLang === 'ta' ? '#fdf2f8' : '#f8fafc',
+                            borderWidth: 1,
+                            borderColor: voiceLang === 'ta' ? '#E11D48' : '#e2e8f0',
+                            borderRadius: 10,
+                            paddingHorizontal: 8,
+                            paddingVertical: 6,
+                            marginRight: 8,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <Text style={{
+                            fontSize: 10,
+                            fontWeight: '900',
+                            color: voiceLang === 'ta' ? '#E11D48' : '#94a3b8',
+                            letterSpacing: 0.5,
+                        }}>
+                            {voiceLang === 'ta' ? 'தமிழ்' : 'EN'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Mic Button */}
                     <TouchableOpacity 
                         onPress={isListening ? stopListening : startListening}
-                        className={`w-10 h-10 rounded-xl items-center justify-center ${isListening ? 'bg-rose-100' : 'bg-gray-50'}`}
+                        style={{
+                            width: 40, height: 40,
+                            borderRadius: 12,
+                            backgroundColor: isListening ? '#ffe4e6' : '#f8fafc',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
                     >
                         <Feather name="mic" size={18} color={isListening ? "#E11D48" : "#94a3b8"} />
                     </TouchableOpacity>
@@ -295,7 +379,11 @@ const CreateBilling = () => {
                         <Feather name="search" size={16} color="#cbd5e1" />
                     </View>
                     <TextInput 
-                        placeholder={isListening ? "Listening..." : "Search items or enter code..."} 
+                        placeholder={
+                            isListening
+                                ? (voiceLang === 'ta' ? 'கேட்கிறேன்...' : 'Listening...')
+                                : (voiceLang === 'ta' ? 'பொருட்களை தேடுங்கள்...' : 'Search items or enter code...')
+                        } 
                         className="bg-gray-50 border border-gray-100 px-12 py-3 rounded-2xl font-bold text-slate-800 text-xs"
                         placeholderTextColor="#cbd5e1"
                         value={productSearchTerm}
