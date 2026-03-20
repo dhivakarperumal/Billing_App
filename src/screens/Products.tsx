@@ -12,6 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   fetchProducts, 
@@ -22,6 +23,7 @@ import {
 
 const Products = () => {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
   
   // Data State - Always initialize as empty array
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,8 +36,6 @@ const Products = () => {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
 
   // Form States
-  const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -64,27 +64,7 @@ const Products = () => {
     loadData();
   }, [loadData]);
 
-  const handleCreateProduct = async () => {
-    if (!newName.trim() || !newPrice.trim()) {
-      return Alert.alert('Essentials missing!', 'Name and price are required.');
-    }
-    setSaving(true);
-    try {
-      await createProduct({ 
-        name: newName.trim(), 
-        price: Number(newPrice) 
-      }, token);
-      setProductModalVisible(false);
-      setNewName('');
-      setNewPrice('');
-      loadData();
-      Alert.alert('Success', 'Inventory updated live!');
-    } catch (error: any) {
-      Alert.alert('Process failed', error?.message || 'Check your inputs.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Replaced handleCreateProduct with navigation to AddProduct screen
 
   const handleCreateCategory = async () => {
     if (!newCategory.trim()) return;
@@ -168,7 +148,10 @@ const Products = () => {
           contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
-            <TouchableOpacity className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between overflow-hidden">
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('AddProduct', { id: item.id })}
+              className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between overflow-hidden"
+            >
                 <View className="flex-row items-center space-x-4">
                   <View className="w-14 h-14 bg-rose-50 rounded-2xl items-center justify-center">
                     <Feather name="box" size={24} color="#E11D48" />
@@ -202,7 +185,7 @@ const Products = () => {
         {isFABExpanded && (
           <View className="mb-4 space-y-3 items-end">
             <TouchableOpacity 
-              onPress={() => { setCategoryModalVisible(true); setIsFABExpanded(false); }}
+              onPress={() => { navigation.navigate('AddCategory'); setIsFABExpanded(false); }}
               className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
             >
               <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">New Category</Text>
@@ -210,7 +193,7 @@ const Products = () => {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              onPress={() => { setProductModalVisible(true); setIsFABExpanded(false); }}
+              onPress={() => { navigation.navigate('AddProduct'); setIsFABExpanded(false); }}
               className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
             >
               <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">List Product</Text>
@@ -227,81 +210,9 @@ const Products = () => {
           <Feather name={isFABExpanded ? 'x' : 'plus'} size={32} color="white" />
         </TouchableOpacity>
       </View>
+      {/* ADD PRODUCT MODAL REMOVED - Using full screen instead */}
 
-      {/* ADD PRODUCT MODAL */}
-      <Modal visible={isProductModalVisible} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/40">
-           <View className="bg-white rounded-t-[50px] p-8 pb-12 shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-black italic text-slate-900 uppercase">List Product</Text>
-                <TouchableOpacity onPress={() => setProductModalVisible(false)} className="p-2">
-                  <Feather name="x" size={24} color="#94a3b8" />
-                </TouchableOpacity>
-              </View>
-              
-              <View className="space-y-4">
-                 <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Product Identity</Text>
-                    <TextInput 
-                      className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800"
-                      placeholder="e.g. Traditional Wedding Silk"
-                      value={newName}
-                      onChangeText={setNewName}
-                    />
-                 </View>
-                 <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Price Component (₹)</Text>
-                    <TextInput 
-                      className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800"
-                      placeholder="2999"
-                      keyboardType="numeric"
-                      value={newPrice}
-                      onChangeText={setNewPrice}
-                    />
-                 </View>
-
-                 <TouchableOpacity 
-                   onPress={handleCreateProduct}
-                   disabled={saving}
-                   className="bg-rose-600 p-6 rounded-3xl items-center mt-4 shadow-xl shadow-rose-200"
-                 >
-                    {saving ? <ActivityIndicator color="white" /> : (
-                      <Text className="text-white font-black uppercase tracking-widest">Sync to Cloud</Text>
-                    )}
-                 </TouchableOpacity>
-              </View>
-           </View>
-        </View>
-      </Modal>
-
-      {/* ADD CATEGORY MODAL */}
-      <Modal visible={isCategoryModalVisible} animationType="fade" transparent>
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setCategoryModalVisible(false)}
-          className="flex-1 justify-center px-6 bg-black/60"
-        >
-           <View className="bg-white rounded-[40px] p-8 shadow-2xl overflow-hidden" onStartShouldSetResponder={() => true}>
-              <Text className="text-xl font-black text-slate-900 uppercase italic">Add Category</Text>
-              <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-6">Inventory Taxonomies</Text>
-              
-              <TextInput 
-                className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800 mb-6"
-                placeholder="Category Name"
-                value={newCategory}
-                onChangeText={setNewCategory}
-                autoFocus
-              />
-
-              <TouchableOpacity 
-                onPress={handleCreateCategory}
-                className="bg-slate-900 p-5 rounded-2xl items-center"
-              >
-                <Text className="text-white font-black uppercase tracking-widest text-xs">Register Category</Text>
-              </TouchableOpacity>
-           </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* ADD CATEGORY MODAL REMOVED - Using full screen instead */}
 
     </SafeAreaView>
   );

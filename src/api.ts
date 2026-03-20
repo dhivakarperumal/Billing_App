@@ -77,9 +77,25 @@ export type Customer = {
 
 export type Product = {
   id: string | number;
+  product_code?: string;
   name: string;
-  price: number;
+  name_tamil?: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  status?: string;
+  total_stock?: number;
+  price: number; // For backward compatibility or main price
+  mrp?: number;
+  offer_price?: number;
+  variants?: any[];
+  expiry?: any;
+  supplier?: any;
+  images?: string[];
+  [key: string]: any;
 };
+
+export type ProductData = Omit<Product, 'id'>;
 
 export type BillItem = {
   product_id: string | number;
@@ -125,7 +141,7 @@ export async function fetchProducts(token?: string | null) {
 }
 
 export async function createProduct(
-  data: Omit<Product, 'id'>,
+  data: ProductData,
   token?: string | null,
 ) {
   return request<Product>(`/products`, {
@@ -135,6 +151,22 @@ export async function createProduct(
     token);
 }
 
+export async function updateProduct(
+  id: string | number,
+  data: Partial<ProductData>,
+  token?: string | null,
+) {
+  return request<Product>(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  },
+    token);
+}
+
+export async function fetchProductById(id: string | number, token?: string | null) {
+  return request<Product>(`/products/${id}`, { method: 'GET' }, token);
+}
+
 export async function createBill(payload: BillPayload, token?: string | null) {
   return request<{ id: string | number }>(`/bills`, {
     method: 'POST',
@@ -142,19 +174,44 @@ export async function createBill(payload: BillPayload, token?: string | null) {
   },
     token);
 }
+export type Category = {
+  id: string | number;
+  catId?: string;
+  name: string;
+  description?: string;
+  image?: string;
+  subcategories?: string[];
+};
+
 export async function createCategory(
-  data: { name: string },
+  data: Omit<Category, 'id'>,
   token?: string | null,
 ) {
-  return request<{ id: string | number; name: string }>(`/categories`, {
+  return request<Category>(`/categories`, {
     method: 'POST',
     body: JSON.stringify(data),
   },
     token);
 }
 
+export async function updateCategory(
+  id: string | number,
+  data: Partial<Omit<Category, 'id'>>,
+  token?: string | null,
+) {
+  return request<Category>(`/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  },
+    token);
+}
+
+export async function fetchCategoryById(id: string | number, token?: string | null) {
+  return request<Category>(`/categories/${id}`, { method: 'GET' }, token);
+}
+
 export async function fetchCategories(token?: string | null) {
-  return request<{ id: string | number; name: string }[]>(`/categories`, { method: 'GET' }, token);
+  return request<Category[]>(`/categories`, { method: 'GET' }, token);
 }
 
 export async function fetchOrders(token?: string | null) {

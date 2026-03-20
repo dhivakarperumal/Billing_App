@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
+import RootNavigator from './navigation/RootNavigator';
 
 import "../global.css"
 
@@ -25,8 +26,8 @@ function AppContent() {
     );
   }
 
-  // User is logged in, show the main tabs
-  return <BottomTabNavigator />;
+  // User is logged in, show the main navigator
+  return <RootNavigator />;
 }
 
 export default function App() {
