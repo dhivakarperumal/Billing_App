@@ -14,8 +14,10 @@ class MainApplication : Application(), ReactApplication {
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
-          // Packages that cannot be autolinked yet can be added manually here, for example:
-          // add(MyReactNativePackage())
+          // Manually add VoicePackage if not picked up by Autolink
+          add(com.wenkesj.voice.VoicePackage())
+          // CameraPackage kept here if autolinking doesn't pick it up
+          add(com.mrousavy.camera.react.CameraPackage())
         },
     )
   }

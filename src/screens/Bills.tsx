@@ -1,313 +1,138 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Button,
+  StatusBar,
+  StyleSheet,
+  Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Feather from 'react-native-vector-icons/Feather';
+import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
-import { createBill, fetchCustomers, fetchProducts, Product, Customer } from '../api';
+import { fetchOrders } from '../api';
 
-type CartItem = {
-  product: Product;
-  quantity: number;
-};
+const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
 
 const Bills = () => {
-  const { token } = useAuth();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | number | null>(null);
-  const [cart, setCart] = useState<Record<string, CartItem>>({});
+    const { token } = useAuth();
+    const navigation = useNavigation<any>();
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [customerData, productData] = await Promise.all([
-        fetchCustomers(token),
-        fetchProducts(token),
-      ]);
-      setCustomers(customerData);
-      setProducts(productData);
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+    const loadData = useCallback(async () => {
+        if (!token) return;
+        setLoading(true);
+        try {
+            const data = await fetchOrders(token);
+            setOrders(data || []);
+        } catch (error: any) {
+            console.error('Fetch error:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
-  const selectedCustomer = useMemo(
-    () => customers.find((c) => String(c.id) === String(selectedCustomerId)),
-    [customers, selectedCustomerId],
-  );
-
-  const total = useMemo(() => {
-    return Object.values(cart).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  }, [cart]);
-
-  const updateQuantity = (product: Product, delta: number) => {
-    setCart((current) => {
-      const key = String(product.id);
-      const existing = current[key];
-      const nextQty = (existing?.quantity || 0) + delta;
-      if (nextQty <= 0) {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      }
-      return {
-        ...current,
-        [key]: {
-          product,
-          quantity: nextQty,
-        },
-      };
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedCustomerId) {
-      Alert.alert('Validation', 'Please select a customer for the bill.');
-      return;
-    }
-
-    const items = Object.values(cart).map((item) => ({
-      product_id: item.product.id,
-      quantity: item.quantity,
-    }));
-
-    if (items.length === 0) {
-      Alert.alert('Validation', 'Please add at least one product to the bill.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await createBill(
-        {
-          customer_id: selectedCustomerId,
-          items,
-        },
-        token,
-      );
-      Alert.alert('Success', 'Bill created successfully');
-      setCart({});
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to create bill');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading customers and products…</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create New Bill</Text>
-      <Text style={styles.description}>Select a customer, add products, then save the bill.</Text>
-
-      <Text style={styles.sectionTitle}>1. Select Customer</Text>
-      <View style={styles.scrollSection}>
-        <FlatList
-          horizontal
-          data={customers}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => {
-            const selected = String(item.id) === String(selectedCustomerId);
-            return (
-              <TouchableOpacity
-                style={[styles.card, selected && styles.cardSelected]}
-                onPress={() => setSelectedCustomerId(item.id)}
-              >
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                {item.phone ? <Text style={styles.cardSubtitle}>{item.phone}</Text> : null}
-              </TouchableOpacity>
-            );
-          }}
-          showsHorizontalScrollIndicator={false}
-          ListEmptyComponent={() => (
-            <Text style={styles.empty}>No customers found. Add customers from the Customers tab.</Text>
-          )}
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>2. Add products</Text>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => {
-          const inCart = cart[String(item.id)]?.quantity ?? 0;
-          return (
-            <View style={styles.productRow}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>₹{item.price.toFixed(2)}</Text>
-              </View>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity
-                  style={styles.qtyButton}
-                  onPress={() => updateQuantity(item, -1)}
-                >
-                  <Text style={styles.qtyButtonText}>–</Text>
-                </TouchableOpacity>
-                <Text style={styles.qtyCount}>{inCart}</Text>
-                <TouchableOpacity
-                  style={styles.qtyButton}
-                  onPress={() => updateQuantity(item, 1)}
-                >
-                  <Text style={styles.qtyButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
+    const BillCard = ({ item }: { item: any }) => (
+        <TouchableOpacity 
+            style={styles.card}
+            activeOpacity={0.8}
+        >
+            <View style={styles.cardMain}>
+                <View style={styles.iconBox}>
+                    <Feather name="file-text" size={18} color="#f97316" />
+                </View>
+                <View style={styles.metaBox}>
+                    <View style={styles.badgeLine}>
+                        <Text style={styles.idBadge}>#ORD-{item.id || item.order_number}</Text>
+                        <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                    </View>
+                    <Text style={styles.customerName}>{item.customer_name || 'Walk-in Guest'}</Text>
+                </View>
             </View>
-          );
-        }}
-        ListEmptyComponent={() => (
-          <Text style={styles.empty}>No products found. Add products from the Products tab.</Text>
-        )}
-      />
+            <View style={styles.valBox}>
+                <Text style={styles.totalVal}>₹{(item.total_amount || item.total || 0).toLocaleString()}</Text>
+                <View style={styles.statusRow}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>{item.status || 'PAID'}</Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>Selected customer:</Text>
-        <Text style={styles.summaryValue}>{selectedCustomer?.name ?? 'None'}</Text>
-        <Text style={styles.summaryText}>Total:</Text>
-        <Text style={styles.summaryValue}>₹{total.toFixed(2)}</Text>
-        <Button title="Create bill" onPress={handleSubmit} disabled={submitting} />
-        {submitting && <ActivityIndicator style={styles.loadingIndicator} />}
-      </View>
-    </View>
-  );
+    return (
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
+            <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+            
+            <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                
+
+                <View style={styles.searchBar}>
+                    <Feather name="search" size={14} color="#64748b" />
+                    <Text style={styles.searchPlaceholder}>Search transaction records...</Text>
+                </View>
+            </LinearGradient>
+
+            {loading ? (
+                <View style={styles.loadingBox}>
+                    <ActivityIndicator color="#f97316" size="large" />
+                    <Text style={styles.loadingText}>SYNCING VAULT RECORDS...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={orders}
+                    contentContainerStyle={styles.listContent}
+                    keyExtractor={(item) => String(item.id)}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => <BillCard item={item} />}
+                    ListEmptyComponent={() => (
+                        <View style={styles.emptyBox}>
+                            <Feather name="database" size={40} color="#e2e8f0" />
+                            <Text style={styles.emptyText}>NO TRANSACTION DATA LOGGED</Text>
+                        </View>
+                    )}
+                />
+            )}
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  description: {
-    marginBottom: 16,
-    color: '#555',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  scrollSection: {
-    marginBottom: 12,
-  },
-  card: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: '#f3f3f3',
-    marginRight: 12,
-    minWidth: 140,
-  },
-  cardSelected: {
-    backgroundColor: '#4c8bf5',
-  },
-  cardTitle: {
-    fontWeight: '600',
-    color: '#000',
-  },
-  cardSubtitle: {
-    marginTop: 4,
-    color: '#333',
-  },
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#f8f8f8',
-    marginBottom: 10,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  productPrice: {
-    marginTop: 4,
-    color: '#456',
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  qtyButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  qtyCount: {
-    marginHorizontal: 10,
-    minWidth: 24,
-    textAlign: 'center',
-  },
-  summaryContainer: {
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#f4f4f4',
-    marginTop: 12,
-  },
-  summaryText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  summaryValue: {
-    marginBottom: 8,
-    fontSize: 16,
-  },
-  loadingIndicator: {
-    marginTop: 10,
-  },
-  empty: {
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 12,
-  },
+    container: { flex: 1, backgroundColor: '#f8fafc' },
+    header: { paddingHorizontal: 24, paddingTop: 15, paddingBottom: 35, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+    headerSubtitle: { fontSize: 10, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+    refreshBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 15, height: 44, borderRadius: 15, gap: 10 },
+    searchPlaceholder: { color: '#64748b', fontSize: 11, fontWeight: '700' },
+    loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 2 },
+    listContent: { padding: 20, paddingBottom: 110 },
+    card: { backgroundColor: '#fff', borderRadius: 24, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', elevation: 2 },
+    cardMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    iconBox: { width: 44, height: 44, backgroundColor: '#f8fafc', borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    metaBox: { flex: 1 },
+    badgeLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    idBadge: { fontSize: 9, fontWeight: '900', color: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    dateText: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+    customerName: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
+    valBox: { alignItems: 'flex-end' },
+    totalVal: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    statusDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#22c55e' },
+    statusText: { fontSize: 9, fontWeight: '900', color: '#22c55e', textTransform: 'uppercase' },
+    emptyBox: { flex: 1, alignItems: 'center', paddingVertical: 80 },
+    emptyText: { marginTop: 15, fontSize: 9, fontWeight: '900', color: '#e2e8f0', letterSpacing: 1.5 }
 });
 
 export default Bills;
