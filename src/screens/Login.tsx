@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,122 +6,134 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome5';
-import { useAuth } from '../contexts/AuthContext';
+  StatusBar,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { useAuth } from "../contexts/AuthContext";
+import { ImageBackground } from "react-native";
 
-type Props = {
-  onSwitchToRegister: () => void;
-};
-
-const Login = ({ onSwitchToRegister }: Props) => {
+const Login = ({ onSwitchToRegister }) => {
   const { signIn, loading } = useAuth();
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password.trim()) {
-      Alert.alert('Validation Error', 'Please enter your username/email and password.');
+      Alert.alert("Error", "Enter credentials");
       return;
     }
-    await signIn(identifier.trim(), password.trim());
+    await signIn(identifier, password);
   };
 
   return (
-    <View className="flex-1 justify-center p-5 bg-gray-900">
+    <View className="flex-1 bg-white">
+      <StatusBar barStyle="light-content" />
 
-      <View className="bg-white rounded-2xl p-6 shadow-lg">
+      {/* IMAGE HEADER (TOP HALF) */}
+      <ImageBackground
+        source={require("../assets/billing-bg.jpg")}
+        className="h-[50%] justify-center items-center px-6"
+        resizeMode="cover"
+      >
+        {/* Overlay */}
+        <View className="absolute inset-0 bg-blue-900/70" />
 
-        {/* Title */}
-        <Text className="text-3xl font-bold text-blue-500 text-center mb-2">
-          Welcome Back
-        </Text>
-
-        <Text className="text-gray-500 text-center mb-6">
-          Sign in to explore our premium collection
-        </Text>
-
-        {/* Form */}
-        <View className="gap-2">
-
-          {/* Email */}
-          <Text className="text-gray-700 font-medium mt-2">
-            Email or Username
-          </Text>
-
-          <TextInput
-            className="border border-gray-200 rounded-lg p-4 text-base text-black bg-white"
-            placeholder="Email or Username"
-            placeholderTextColor="#9ca3af"
-            value={identifier}
-            onChangeText={setIdentifier}
-            autoCapitalize="none"
-          />
-
-          {/* Password */}
-          <Text className="text-gray-700 font-medium mt-3">
-            Password
-          </Text>
-
-          <View className="flex-row items-center border border-gray-200 rounded-lg bg-white">
-            <TextInput
-              className="flex-1 p-4 text-base text-black"
-              placeholder="Password"
-              placeholderTextColor="#9ca3af"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-            />
-
-            <TouchableOpacity
-              className="p-4"
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Icon
-                name={showPassword ? 'eye-slash' : 'eye'}
-                size={18}
-                color="#6b7280"
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Login Button */}
-          <TouchableOpacity
-            className={`bg-blue-500 p-4 rounded-lg items-center mt-5 ${
-              loading ? 'opacity-70' : ''
-            }`}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-base font-semibold">
-                Login
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View className="flex-row items-center my-6">
-            <View className="flex-1 h-[1px] bg-gray-200" />
-            <Text className="mx-3 text-gray-400 font-medium">OR</Text>
-            <View className="flex-1 h-[1px] bg-gray-200" />
-          </View>
-
-          {/* Footer */}
-          <Text className="text-center text-gray-500 mt-4">
-            Don't have an account?{' '}
-            <Text
-              className="text-blue-500 font-semibold"
-              onPress={onSwitchToRegister}
-            >
-              Sign Up
-            </Text>
-          </Text>
-
+        {/* Logo */}
+        <View className="w-20 h-20 bg-blue-500 rounded-full justify-center items-center mb-4">
+          <Icon name="wallet" size={26} color="#fff" />
         </View>
+
+        {/* App Name */}
+        <Text className="text-blue-200 text-base mb-2 text-center">
+          Q-Techx Billing
+        </Text>
+
+        {/* BIG TITLE */}
+        <Text className="text-white text-4xl font-extrabold text-center leading-tight">
+          Manage Your{"\n"}Business Smartly
+        </Text>
+
+        {/* SUBTEXT */}
+        <Text className="text-blue-100 text-base text-center mt-3 px-4">
+          Track invoices, payments and grow your business effortlessly.
+        </Text>
+      </ImageBackground>
+
+      {/* FORM (BOTTOM FULL) */}
+      <View className="flex-1 bg-white rounded-t-[30px] px-6 pt-6">
+
+        <Text className="text-gray-400 text-center mb-6">
+          Sign in to continue
+        </Text>
+
+        {/* Email */}
+        <Text className="text-gray-500 mb-1">Email Address</Text>
+        <TextInput
+          className="border-b border-blue-200 pb-2 mb-5 text-black"
+          placeholder="Email or Username"
+          value={identifier}
+          onChangeText={setIdentifier}
+        />
+
+        {/* Password */}
+        <Text className="text-gray-500 mb-1">Password</Text>
+        <View className="border-b border-blue-200 flex-row items-center">
+          <TextInput
+            className="flex-1 pb-2 text-black"
+            placeholder="Password"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Icon
+              name={showPassword ? "eye-slash" : "eye"}
+              size={16}
+              color="#6b7280"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Actions */}
+        <View className="flex-row justify-between items-center mt-4">
+          <Text className="text-gray-400 text-sm">
+            Remember me
+          </Text>
+
+          <Text className="text-blue-600 text-sm">
+            Forgot Password?
+          </Text>
+        </View>
+
+        {/* Button */}
+        <TouchableOpacity
+          className={`bg-blue-600 py-4 rounded-xl items-center mt-8 ${loading ? "opacity-70" : ""
+            }`}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white font-bold text-base">
+              LOGIN
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Footer */}
+        <Text className="text-center text-gray-400 mt-6">
+          Don’t have an account?{" "}
+          <Text
+            className="text-blue-600 font-semibold"
+            onPress={onSwitchToRegister}
+          >
+            SIGN UP
+          </Text>
+        </Text>
+
       </View>
     </View>
   );

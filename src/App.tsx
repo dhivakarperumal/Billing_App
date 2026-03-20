@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
+import Toast from 'react-native-toast-message';
 
 import "../global.css"
 
@@ -38,6 +39,7 @@ export default function App() {
       <AuthProvider>
         <NavigationContainer>
           <AppContent />
+          <Toast />
         </NavigationContainer>
       </AuthProvider>
     </SafeAreaProvider>
