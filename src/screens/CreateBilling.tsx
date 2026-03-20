@@ -50,16 +50,42 @@ const CreateBilling = () => {
     // Sync ref for callbacks
     useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
 
-    // Barcode Handling
+    // Barcode Handling from Scanner
     useEffect(() => {
-        if (route.params?.barcode) {
-            const barcode = route.params.barcode;
-            const product = products.find(p => p.product_code === barcode || String(p.id) === barcode);
+        if (route.params?.barcode && products.length > 0) {
+            const barcode = String(route.params.barcode).toLowerCase().trim();
+            
+            // SUPER AGGRESSIVE SEARCH: Check every field for a match
+            const product = products.find(p => {
+                const b = barcode.toLowerCase().trim();
+                
+                // 1. Direct Field Matches (Code, Barcode, SKU, ID)
+                if (String(p.product_code || "").toLowerCase() === b) return true;
+                if (String(p.barcode || "").toLowerCase() === b) return true;
+                if (String(p.sku || "").toLowerCase() === b) return true;
+                if (String(p.id || "").toLowerCase() === b) return true;
+                if (String(p.code || "").toLowerCase() === b) return true;
+                
+                // 2. Contains Match (Fuzzy)
+                if (String(p.name || "").toLowerCase().includes(b)) return true;
+
+                // 3. Object search
+                return Object.values(p).some(val => 
+                    (typeof val === 'string' || typeof val === 'number') && 
+                    String(val).toLowerCase().trim() === b
+                );
+            });
+            
             if (product) {
                 handleProductPress(product);
                 navigation.setParams({ barcode: null });
             } else {
-                Alert.alert("Barcode Error", `Product code ${barcode} not found in inventory.`);
+                console.warn(`Barcode [${barcode}] not found among ${products.length} products.`);
+                Alert.alert(
+                    "Barcode Trace Failed", 
+                    `[${barcode}] not detected in currently loaded inventory (${products.length} items). \n\nCheck if product exists in Products screen or pull-to-refresh.`
+                );
+                navigation.setParams({ barcode: null });
             }
         }
     }, [route.params?.barcode, products]);
@@ -93,6 +119,13 @@ const CreateBilling = () => {
     }, []);
 
     const startListening = async () => {
+        // Safe check for the native module to avoid 'of null' errors
+        const VoiceModule = (Voice as any)._nativeModule || Voice; 
+        if (!VoiceModule) {
+            Alert.alert("Module Sync Error", "The Voice Recognition engine is not linked. Please run: npx react-native run-android");
+            return;
+        }
+
         if (Platform.OS === 'android') {
             const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
             if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
@@ -107,8 +140,10 @@ const CreateBilling = () => {
                     setIsListening(true);
                 } catch (err: any) {
                     console.error("Delayed Start error:", err);
-                    Alert.alert("Voice Readying", "System is still initializing. Try again in a moment.");
                     setIsListening(false);
+                    if (String(err?.message).includes('null')) {
+                        Alert.alert('Native Error', 'Voice module failed to attach. Ensure you have run npx react-native run-android.');
+                    }
                 }
             }, 50);
         } catch (e: any) {
@@ -132,24 +167,16 @@ const CreateBilling = () => {
         const loadInitialData = async () => {
             if (!token) return;
             try {
-                const [pData, cData] = await Promise.all([fetchProducts(token), fetchCategories(token)]);
+                const [pResp, cResp]: any = await Promise.all([
+                    fetchProducts(token).catch(() => []),
+                    fetchCategories(token).catch(() => [])
+                ]);
                 
-                let pItems = [];
-                if (Array.isArray(pData)) {
-                    pItems = pData;
-                } else if (pData && typeof pData === 'object') {
-                    const obj = pData as any;
-                    pItems = obj.products || obj.data || obj.items || [];
-                }
+                // Robust response handling
+                let pItems = Array.isArray(pResp) ? pResp : (pResp.products || pResp.data || pResp.items || []);
                 setProducts(pItems);
 
-                let cItems = [];
-                if (Array.isArray(cData)) {
-                    cItems = cData;
-                } else if (cData && typeof cData === 'object') {
-                    const obj = cData as any;
-                    cItems = obj.categories || obj.data || obj.items || [];
-                }
+                let cItems = Array.isArray(cResp) ? cResp : (cResp.categories || cResp.data || cResp.items || []);
                 setCategories(cItems);
             } catch (err) {
                 console.error("Data load error", err);
@@ -173,15 +200,16 @@ const CreateBilling = () => {
 
     // Cart Logic
     const handleProductPress = (product: Product) => {
-        if (product.variants && product.variants.length > 0) {
+        if (product && product.variants && product.variants.length > 0) {
             setSelectedProduct(product);
             setShowVariantModal(true);
-        } else {
+        } else if (product) {
             addToCart(product);
         }
     };
 
     const addToCart = (product: Product, variant?: any) => {
+        if (!product) return;
         const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
         const price = variant ? Number(variant.sellingPrice || variant.mrp || 0) : Number(product.offer_price || product.price || 0);
 
@@ -194,7 +222,7 @@ const CreateBilling = () => {
                 name: variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name,
                 price: price,
                 quantity: 1,
-                image: product.images?.[0] || null
+                image: product.image || product.images?.[0] || null
             }];
         });
         setShowVariantModal(false);
@@ -283,12 +311,12 @@ const CreateBilling = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Quick Customer Mini-Form */}
+                {/* Customer Mini-Form */}
                 <View style={styles.customerFormRow}>
                     <View style={styles.miniInputContainer}>
                         <Feather name="user" size={12} color="#64748b" />
                         <TextInput 
-                            placeholder="Name" 
+                            placeholder="Full Name" 
                             style={styles.miniInput} 
                             placeholderTextColor="#475569"
                             value={customerName}
@@ -298,7 +326,7 @@ const CreateBilling = () => {
                     <View style={styles.miniInputContainer}>
                         <Feather name="phone" size={12} color="#64748b" />
                         <TextInput 
-                            placeholder="Phone" 
+                            placeholder="Number" 
                             keyboardType="phone-pad"
                             style={styles.miniInput} 
                             placeholderTextColor="#475569"
@@ -364,7 +392,7 @@ const CreateBilling = () => {
 
             {/* ─── Footer Action Bar ─── */}
             {cart.length > 0 && (
-                <View style={[styles.footerBar, { bottom: Platform.OS === 'ios' ? 20 : 10 }]}>
+                <View style={[styles.footerBar, { bottom: 10 }]}>
                     <TouchableOpacity onPress={() => setShowCart(true)} style={styles.cartBtn} activeOpacity={0.9}>
                         <View style={styles.cartIconWrapper}>
                             <Feather name="shopping-cart" size={18} color="#fff" />
@@ -479,10 +507,9 @@ const styles = StyleSheet.create({
     loadingText: { marginTop: 15, fontSize: 10, color: '#94a3b8', fontWeight: '900', letterSpacing: 2 },
     container: { flex: 1, backgroundColor: '#f8fafc' },
     
-    /* HEADER */
-    headerGradient: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+    headerGradient: { paddingHorizontal: 20, paddingTop: 30, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-    headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',marginTop:10 },
     headerTitleWrap: { flex: 1, alignItems: 'center' },
     headerTitle: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
     headerRightActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -490,7 +517,6 @@ const styles = StyleSheet.create({
     langText: { color: '#94a3b8', fontSize: 10, fontWeight: '900' },
     micBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     
-    /* SEARCH / FORM */
     searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15 },
     searchIcon: { marginRight: 10 },
     searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a' },
@@ -499,14 +525,12 @@ const styles = StyleSheet.create({
     miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 12, height: 40 },
     miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: '#fff' },
 
-    /* INVENTORY */
     inventoryHeader: { paddingHorizontal: 24, paddingTop: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     inventorySub: { fontSize: 10, fontWeight: '900', color: '#64748b', letterSpacing: 1.5 },
     viewModeToggle: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 10, padding: 3 },
     toggleBtn: { padding: 8, borderRadius: 8 },
     toggleActive: { backgroundColor: '#f8fafc', elevation: 2 },
 
-    /* CARDS */
     listContent: { padding: 16, paddingBottom: 120 },
     card: { backgroundColor: '#fff', borderRadius: 24, margin: 8, padding: 12, borderWidth: 1, borderColor: '#f1f5f9' },
     gridCard: { flex: 1 },
@@ -523,7 +547,6 @@ const styles = StyleSheet.create({
     stockBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
     stockText: { fontSize: 8, fontWeight: '900', color: '#22c55e' },
 
-    /* FOOTER BAR */
     footerBar: { position: 'absolute', left: 24, right: 24, flexDirection: 'row', gap: 12, zIndex: 100 },
     cartBtn: { flex: 1, height: 60, backgroundColor: '#0f172a', borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, elevation: 8 },
     cartIconWrapper: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
@@ -532,7 +555,6 @@ const styles = StyleSheet.create({
     cartCount: { color: '#64748b', fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
     commitBtn: { width: 60, height: 60, backgroundColor: '#E11D48', borderRadius: 20, alignItems: 'center', justifyContent: 'center', elevation: 8 },
 
-    /* MODAL */
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
     modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '85%' },
     modalPill: { width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
@@ -555,7 +577,6 @@ const styles = StyleSheet.create({
     emptyContainer: { paddingVertical: 80, alignItems: 'center' },
     emptyText: { marginTop: 15, fontSize: 11, fontWeight: '900', color: '#cbd5e1', letterSpacing: 0.5 },
     
-    /* VARIANT SHEET */
     variantSheet: { backgroundColor: '#fff', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 30, maxHeight: '70%', alignItems: 'center' },
     variantTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 5, textAlign: 'center' },
     variantSubtitle: { fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 1.5, marginBottom: 25 },

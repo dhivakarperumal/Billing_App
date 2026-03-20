@@ -151,7 +151,7 @@ const Home = () => {
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
       
       {/* Premium Header */}
-      <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      {/* <LinearGradient colors={HEADER_GRADIENT} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerTitle}>Analytics<Text style={{ color: '#f97316' }}>.</Text></Text>
@@ -161,7 +161,7 @@ const Home = () => {
              <Icon name="refresh-cw" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </LinearGradient> */}
 
       <ScrollView
         style={{ flex: 1 }}
