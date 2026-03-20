@@ -52,6 +52,10 @@ async function request<T>(
   return data;
 }
 
+export async function get<T>(path: string, token?: string | null): Promise<T> {
+  return request<T>(path, { method: 'GET' }, token);
+}
+
 export type LoginPayload = {
   phone?: string;
   identifier?: string;
@@ -113,7 +117,7 @@ export async function createCustomer(
     method: 'POST',
     body: JSON.stringify(data),
   },
-  token);
+    token);
 }
 
 export async function fetchProducts(token?: string | null) {
@@ -128,7 +132,7 @@ export async function createProduct(
     method: 'POST',
     body: JSON.stringify(data),
   },
-  token);
+    token);
 }
 
 export async function createBill(payload: BillPayload, token?: string | null) {
@@ -136,5 +140,23 @@ export async function createBill(payload: BillPayload, token?: string | null) {
     method: 'POST',
     body: JSON.stringify(payload),
   },
-  token);
+    token);
+}
+export async function createCategory(
+  data: { name: string },
+  token?: string | null,
+) {
+  return request<{ id: string | number; name: string }>(`/categories`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  },
+    token);
+}
+
+export async function fetchCategories(token?: string | null) {
+  return request<{ id: string | number; name: string }[]>(`/categories`, { method: 'GET' }, token);
+}
+
+export async function fetchOrders(token?: string | null) {
+  return request<any[]>(`/orders`, { method: 'GET' }, token);
 }
