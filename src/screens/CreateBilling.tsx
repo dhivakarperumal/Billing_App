@@ -522,8 +522,8 @@ const styles = StyleSheet.create({
     searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a' },
     inlineScanner: { padding: 5 },
     customerFormRow: { flexDirection: 'row', gap: 10 },
-    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 12, height: 40 },
-    miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: '#fff' },
+    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 40 },
+    miniInput: { flex: 1, marginLeft: 8, fontSize: 11, backgroundColor:"#fff", fontWeight: '700', color: 'rgba(0, 0, 0, 0.78)' },
 
     inventoryHeader: { paddingHorizontal: 24, paddingTop: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     inventorySub: { fontSize: 10, fontWeight: '900', color: '#64748b', letterSpacing: 1.5 },
