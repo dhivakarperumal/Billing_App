@@ -12,13 +12,7 @@ class MainApplication : Application(), ReactApplication {
   override val reactHost: ReactHost by lazy {
     getDefaultReactHost(
       context = applicationContext,
-      packageList =
-        PackageList(this).packages.apply {
-          // Manually add VoicePackage if not picked up by Autolink
-          add(com.wenkesj.voice.VoicePackage())
-          // CameraPackage kept here if autolinking doesn't pick it up
-          add(com.mrousavy.camera.react.CameraPackage())
-        },
+      packageList = PackageList(this).packages,
     )
   }
 
