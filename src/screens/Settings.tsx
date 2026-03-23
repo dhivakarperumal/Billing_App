@@ -30,17 +30,12 @@ const Settings = () => {
   return (
     <ScrollView className="flex-1 bg-slate-50 px-4 pt-6">
 
-      {/* Header */}
-      <Text className="text-2xl font-extrabold text-slate-900 mb-6">
-        Settings
-      </Text>
-
       {/* Cards */}
       {settingsOptions.map((item, index) => (
         <TouchableOpacity
           key={index}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate(item.screen)}
+          onPress={() => navigation.getParent()?.navigate(item.screen)}
           className="bg-white rounded-3xl p-5 mb-4 border border-gray-100 
           shadow-[0_10px_30px_rgba(0,0,0,0.06)] flex-row items-center justify-between"
         >
