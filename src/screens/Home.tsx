@@ -437,7 +437,7 @@ const Home = () => {
             <Text className="text-sm font-black text-slate-800 mb-6">
               Shipment Statistics
             </Text>
-            <View style={{ height: 200, width: '100%', alignItems: 'center' }}>
+            <View style={{ height: 250, width: '100%', alignItems: 'center' }}>
               <BarChart
                 data={data.revenueGraphData}
                 barWidth={22}
