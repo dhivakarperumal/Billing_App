@@ -10,7 +10,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
-import Voice from '@react-native-voice/voice';
+// import Voice from '@react-native-voice/voice';
 import { useRoute } from "@react-navigation/native";
 
 const { width } = Dimensions.get('window');
