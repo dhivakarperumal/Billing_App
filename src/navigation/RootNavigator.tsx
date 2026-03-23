@@ -3,9 +3,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BottomTabNavigator from './BottomTabNavigator';
 import AddProduct from '../screens/AddProduct';
 import AddCategory from '../screens/AddCategory';
-
 import CreateBilling from '../screens/CreateBilling';
 import ScannerScreen from '../screens/ScannerScreen';
+
+import PrinterConfig from '../Settings/PrinterConfig';
+import PrinterSettings from '../Settings/PrinterSettings';
+import GSTSettings from '../Settings/GSTSettings';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,6 +20,10 @@ export default function RootNavigator() {
       <Stack.Screen name="AddCategory" component={AddCategory} />
       <Stack.Screen name="CreateBilling" component={CreateBilling} />
       <Stack.Screen name="ScannerScreen" component={ScannerScreen} />
+      
+      <Stack.Screen name="PrinterConfig" component={PrinterConfig} />
+      <Stack.Screen name="PrinterSettings" component={PrinterSettings} />
+      <Stack.Screen name="GSTSettings" component={GSTSettings} />
     </Stack.Navigator>
   );
 }

@@ -40,7 +40,7 @@ const Settings = () => {
         <TouchableOpacity
           key={index}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate(item.screen)}
+          onPress={() => navigation.getParent()?.navigate(item.screen)}
           className="bg-white rounded-3xl p-5 mb-4 border border-gray-100 
           shadow-[0_10px_30px_rgba(0,0,0,0.06)] flex-row items-center justify-between"
         >
