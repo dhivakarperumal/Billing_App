@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import BackButton from '../screens/BackButton';
 
 const GSTSettings = () => {
   const [gst, setGst] = useState('');
@@ -17,20 +18,10 @@ const GSTSettings = () => {
       contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
     >
-
-      {/* 🔥 HEADER */}
-      <View className="px-5 pt-6 mb-6">
-        <Text className="text-2xl font-black text-slate-900">
-          GST Settings
-        </Text>
-        <Text className="text-xs text-gray-400 font-bold tracking-widest">
-          CONFIGURE GST FOR BILLING
-        </Text>
-      </View>
+      <BackButton title="GST Settings" />
 
       {/* 🔥 MAIN CARD */}
       <View className="mx-4 bg-white rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
-
         {/* GST INPUT */}
         <View className="mb-6">
           <Text className="text-[10px] font-black text-gray-400 tracking-[2px] mb-2">
@@ -54,7 +45,6 @@ const GSTSettings = () => {
           </Text>
 
           <View className="flex-row gap-3">
-
             {/* INCLUDE */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -67,9 +57,7 @@ const GSTSettings = () => {
             >
               <Text
                 className={`text-center text-xs font-black tracking-widest ${
-                  gstType === 'include'
-                    ? 'text-white'
-                    : 'text-gray-500'
+                  gstType === 'include' ? 'text-white' : 'text-gray-500'
                 }`}
               >
                 INCLUDE GST
@@ -88,15 +76,12 @@ const GSTSettings = () => {
             >
               <Text
                 className={`text-center text-xs font-black tracking-widest ${
-                  gstType === 'exclude'
-                    ? 'text-white'
-                    : 'text-gray-500'
+                  gstType === 'exclude' ? 'text-white' : 'text-gray-500'
                 }`}
               >
                 EXCLUDE GST
               </Text>
             </TouchableOpacity>
-
           </View>
         </View>
 
@@ -118,9 +103,7 @@ const GSTSettings = () => {
             SAVE GST SETTINGS
           </Text>
         </TouchableOpacity>
-
       </View>
-
     </ScrollView>
   );
 };

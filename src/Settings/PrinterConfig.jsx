@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import BackButton from '../screens/BackButton';
 
 const PrinterConfig = () => {
   const [printer, setPrinter] = useState({
@@ -30,14 +31,7 @@ const PrinterConfig = () => {
     <ScrollView className="flex-1 bg-[#f8fafc]">
 
       {/* 🔥 HEADER */}
-      <View className="px-5 pt-6 mb-5">
-        <Text className="text-2xl font-black text-slate-900 tracking-tight">
-          Printer Configuration
-        </Text>
-        <Text className="text-[10px] text-gray-400 font-bold tracking-[2px] mt-1">
-          MANAGE BILLING PRINTER SETTINGS
-        </Text>
-      </View>
+      <BackButton title="Printer Configuration" />
 
       {/* 🔥 MAIN CARD */}
       <View className="mx-4 bg-white rounded-[32px] p-6 

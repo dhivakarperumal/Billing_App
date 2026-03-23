@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
+import BackButton from '../screens/BackButton';
 
 const PrinterSettings = () => {
   const [settings, setSettings] = useState({
@@ -69,14 +70,7 @@ const PrinterSettings = () => {
     >
 
       {/* HEADER */}
-      <View className="px-5 pt-6 mb-6">
-        <Text className="text-2xl font-black text-slate-900">
-          Printer Settings
-        </Text>
-        <Text className="text-xs text-gray-400 font-bold">
-          CUSTOMIZE YOUR BILL LAYOUT
-        </Text>
-      </View>
+      <BackButton title="Printer Settings" />
 
       {/* ================= SHOP DETAILS ================= */}
       <View className="mx-4 bg-white rounded-3xl p-5 mb-4 shadow-sm">

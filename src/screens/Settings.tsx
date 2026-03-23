@@ -30,11 +30,6 @@ const Settings = () => {
   return (
     <ScrollView className="flex-1 bg-slate-50 px-4 pt-6">
 
-      {/* Header */}
-      <Text className="text-2xl font-extrabold text-slate-900 mb-6">
-        Settings
-      </Text>
-
       {/* Cards */}
       {settingsOptions.map((item, index) => (
         <TouchableOpacity
