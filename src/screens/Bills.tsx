@@ -155,12 +155,12 @@ const Bills = () => {
                             </View>
                         )}
 
-                        <View className="flex-row justify-between space-x-2">
+                        <View className="flex-row justify-between gap-3 space-x-2">
                             <TouchableOpacity
                                 className="flex-1 p-4 rounded-xl bg-slate-200 items-center"
                                 onPress={() => setModalVisible(false)}
                             >
-                                <Text className="font-black text-slate-600">Cancel</Text>
+                                <Text className="font-black text-slate-600">Close</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
