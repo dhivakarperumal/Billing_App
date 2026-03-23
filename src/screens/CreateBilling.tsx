@@ -91,26 +91,61 @@ const CreateBilling = () => {
 
     // Barcode Handling
     useEffect(() => {
-        const processBarcode = (code: string) => {
-            const bc = String(code).toLowerCase().trim();
-            const product = products.find(p => {
-                const b = bc.toLowerCase().trim();
-                return String(p.product_code || "").toLowerCase() === b || 
-                       String(p.barcode || "").toLowerCase() === b;
+        // Add a product directly to cart (used for batch scan, no modal)
+        const addProductDirectly = (product: Product) => {
+            const variant = product.variants?.[0];
+            const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
+            const price = variant
+                ? Number(variant.sellingPrice || variant.mrp || 0)
+                : Number(product.offer_price || product.price || 0);
+            const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
+
+            setCart(prev => {
+                const exists = prev.find(item => item.id === itemId);
+                if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
+                return [...prev, {
+                    id: itemId,
+                    product_id: product.id,
+                    name,
+                    price,
+                    quantity: 1,
+                    image: product.image || product.images?.[0] || null
+                }];
             });
-            if (product) {
-                handleProductPress(product);
-            } else {
-                Alert.alert("Not Found", `Barcode [${bc}] matches no inventory item.`);
-            }
+        };
+
+        const findProductByBarcode = (code: string) => {
+            const bc = String(code).toLowerCase().trim();
+            return products.find(p =>
+                String(p.product_code || "").toLowerCase() === bc ||
+                String((p as any).barcode || "").toLowerCase() === bc
+            );
         };
 
         if (products.length > 0) {
             if (route.params?.barcode) {
-                processBarcode(route.params.barcode);
+                // Single scan → open modal for variant/quantity selection
+                const product = findProductByBarcode(route.params.barcode);
+                if (product) {
+                    handleProductPress(product);
+                } else {
+                    Alert.alert("Not Found", `Barcode [${route.params.barcode}] matches no inventory item.`);
+                }
                 navigation.setParams({ barcode: null });
             } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
-                route.params.barcodes.forEach((v: string) => processBarcode(v));
+                // Batch multi-scan → add all directly to cart (qty 1 each, first variant)
+                const notFound: string[] = [];
+                route.params.barcodes.forEach((code: string) => {
+                    const product = findProductByBarcode(code);
+                    if (product) {
+                        addProductDirectly(product);
+                    } else {
+                        notFound.push(code);
+                    }
+                });
+                if (notFound.length > 0) {
+                    Alert.alert("Some Not Found", `${notFound.length} barcode(s) didn't match any product:\n${notFound.join(', ')}`);
+                }
                 navigation.setParams({ barcodes: null });
             }
         }

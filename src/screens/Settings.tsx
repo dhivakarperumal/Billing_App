@@ -182,6 +182,21 @@ const Settings = () => {
               <Feather name="chevron-right" size={20} color="#cbd5e1" />
             </TouchableOpacity>
           ))}
+
+          <View style={{ height: 10 }} />
+          <TouchableOpacity 
+            style={[styles.item, { borderColor: '#e2e8f0', borderStyle: 'dashed', backgroundColor: '#fdf2f8' }]}
+            onPress={() => navigation.navigate('Diagnostics')}
+          >
+            <View style={[styles.itemIcon, { backgroundColor: '#fce7f3' }]}>
+              <Feather name="activity" size={20} color="#db2777" />
+            </View>
+            <View style={styles.itemMeta}>
+              <Text style={[styles.itemTitle, { color: '#db2777' }]}>System Diagnostics</Text>
+              <Text style={styles.itemSubtitle}>Test Camera, GPS & Bluetooth</Text>
+            </View>
+            <Feather name="zap" size={16} color="#db2777" />
+          </TouchableOpacity>
        </ScrollView>
     </View>
   );

@@ -7,6 +7,7 @@ import AddCategory from '../screens/AddCategory';
 import CreateBilling from '../screens/CreateBilling';
 import ScannerScreen from '../screens/ScannerScreen';
 import PrinterSettings from '../screens/PrinterSettings';
+import DiagnosticsScreen from '../screens/Diagnostics';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export default function RootNavigator() {
       <Stack.Screen name="CreateBilling" component={CreateBilling} />
       <Stack.Screen name="ScannerScreen" component={ScannerScreen} />
       <Stack.Screen name="PrinterSettings" component={PrinterSettings} />
+      <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} />
     </Stack.Navigator>
   );
 }
