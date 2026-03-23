@@ -273,27 +273,7 @@ const Home = () => {
           paddingTop: 16,
           paddingBottom: 120,
         }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
       >
-        <View className="flex-row items-center justify-between mb-6">
-          <View>
-            <Text className="text-2xl font-black text-slate-800">
-              Analytics
-            </Text>
-            <Text className="text-gray-500 text-xs">
-              Live business performance tracking
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="bg-white p-2 rounded-full border border-gray-100 shadow-sm"
-            onPress={onRefresh}
-          >
-            <Icon name="refresh-cw" size={18} color="#64748b" />
-          </TouchableOpacity>
-        </View>
-
         {/* STATS GRID */}
         <View
           style={{
@@ -380,33 +360,72 @@ const Home = () => {
         </View>
 
         {/* ... */}
-        <View className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-6">
-          <View className="flex-row justify-between items-center mb-5">
-            <Text className="text-sm font-black text-slate-800">
-              Stock Insights
-            </Text>
-            <Text className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-              Inventory Health
-            </Text>
+        <View className="bg-green-200 rounded-[30px] p-5 mb-6 mt-6 border border-gray-100 shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
+          {/* Header */}
+          <View className="flex-row justify-between items-center mb-6">
+            <View>
+              <Text className="text-[16px] font-extrabold text-slate-900 tracking-wide">
+                Stock Insights
+              </Text>
+              <View className="flex-row items-center mt-1 gap-1">
+                <View className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                <Text className="text-[10px] text-gray-400 font-semibold tracking-wide">
+                  Inventory Health
+                </Text>
+              </View>
+            </View>
           </View>
 
+          {/* Cards */}
           <View className="flex-row flex-wrap justify-between">
             {data.stockStats.map((item: any, i: number) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => navigation.navigate('Products')}
-                style={{ width: '48%', marginBottom: 12 }}
-                className="bg-gray-50/50 border border-gray-100 p-4 rounded-2xl"
+                style={{ width: '48%', marginBottom: 14 }}
+                className="bg-white rounded-[20px] p-4 border border-gray-100"
               >
-                <View className="flex-row items-center gap-2 mb-2">
-                  <Icon name={item.icon} size={14} color={item.iconColor} />
-                  <Text className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                {/* Floating effect layer */}
+                <View className="absolute inset-0 rounded-[20px] bg-gray-100/40" />
+
+                {/* Content */}
+                <View className="relative z-10">
+                  {/* Icon + Title */}
+                  <View className="flex-row items-center justify-between mb-3">
+                    <View
+                      className="w-9 h-9 rounded-xl items-center justify-center"
+                      style={{ backgroundColor: `${item.iconColor}15` }}
+                    >
+                      <Icon name={item.icon} size={15} color={item.iconColor} />
+                    </View>
+
+                    {/* Small accent dot */}
+                    <View
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: item.iconColor }}
+                    />
+                  </View>
+
+                  {/* Title */}
+                  <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                     {item.title}
                   </Text>
+
+                  {/* Value */}
+                  <Text className="text-[22px] font-extrabold text-slate-900 tracking-tight">
+                    {item.value}
+                  </Text>
+
+                  {/* Bottom divider accent */}
+                  <View
+                    className="mt-3 h-[2px] rounded-full"
+                    style={{
+                      width: '45%',
+                      backgroundColor: item.iconColor,
+                      opacity: 0.25,
+                    }}
+                  />
                 </View>
-                <Text className="text-lg font-black text-slate-800">
-                  {item.value}
-                </Text>
               </TouchableOpacity>
             ))}
           </View>
