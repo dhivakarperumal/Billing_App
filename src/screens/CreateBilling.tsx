@@ -3,7 +3,7 @@ import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     FlatList, Modal, ActivityIndicator, Alert,
     StatusBar, Dimensions, Platform, Image,
-    PermissionsAndroid, StyleSheet
+    PermissionsAndroid, StyleSheet, NativeModules, DeviceEventEmitter, Animated, Easing
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -88,6 +88,102 @@ const CreateBilling = () => {
 
     // Sync ref for callbacks - Legacy
     const voiceLangRef = useRef<'en' | 'ta'>('en');
+
+    // ─── Voice Search ──────────────────────────────────────────
+    const [isListening, setIsListening] = useState(false);
+    const [voiceStatus, setVoiceStatus] = useState('');
+    const micAnim = useRef(new Animated.Value(1)).current;
+    const micPulse = useRef<Animated.CompositeAnimation | null>(null);
+
+    const startMicPulse = () => {
+        micPulse.current = Animated.loop(
+            Animated.sequence([
+                Animated.timing(micAnim, { toValue: 1.3, duration: 500, useNativeDriver: true }),
+                Animated.timing(micAnim, { toValue: 1.0, duration: 500, useNativeDriver: true }),
+            ])
+        );
+        micPulse.current.start();
+    };
+
+    const stopMicPulse = () => {
+        micPulse.current?.stop();
+        micAnim.setValue(1);
+    };
+
+    const matchVoiceToProduct = (text: string, productList: Product[]) => {
+        const q = text.toLowerCase().trim();
+        // Exact name match first
+        let found = productList.find(p => (p.name || '').toLowerCase() === q);
+        // Partial name match
+        if (!found) found = productList.find(p => (p.name || '').toLowerCase().includes(q));
+        // Word-level match
+        if (!found) {
+            const words = q.split(' ').filter(w => w.length > 2);
+            found = productList.find(p => words.some(w => (p.name || '').toLowerCase().includes(w)));
+        }
+        return found;
+    };
+
+    const startVoiceSearch = async () => {
+        // Request mic permission
+        if (Platform.OS === 'android') {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                { title: 'Mic Permission', message: 'Speak to search products', buttonPositive: 'Allow' }
+            );
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                Alert.alert('Permission Denied', 'Microphone access is required for voice search.');
+                return;
+            }
+        }
+
+        setIsListening(true);
+        setVoiceStatus('Listening...');
+        startMicPulse();
+
+        try {
+            // Use Android SpeechRecognizer intent via NativeModules
+            const { SpeechRecognizer } = NativeModules;
+            if (SpeechRecognizer && SpeechRecognizer.startListening) {
+                // If a native module exists
+                SpeechRecognizer.startListening('en-IN', (result: string, error: string) => {
+                    setIsListening(false);
+                    stopMicPulse();
+                    if (error || !result) {
+                        setVoiceStatus('Could not hear. Try again.');
+                        setTimeout(() => setVoiceStatus(''), 2000);
+                        return;
+                    }
+                    processVoiceResult(result);
+                });
+            } else {
+                // Fallback: simulate with keyboard search
+                setVoiceStatus('Voice module unavailable — use keyboard search');
+                setTimeout(() => { setVoiceStatus(''); setIsListening(false); stopMicPulse(); }, 2500);
+            }
+        } catch (e) {
+            setIsListening(false);
+            stopMicPulse();
+            setVoiceStatus('Voice error. Use keyboard search.');
+            setTimeout(() => setVoiceStatus(''), 2500);
+        }
+    };
+
+    const processVoiceResult = (text: string) => {
+        setVoiceStatus(`Heard: "${text}"`);
+        const matched = matchVoiceToProduct(text, products);
+        if (matched) {
+            setTimeout(() => {
+                setVoiceStatus('');
+                setProductSearchTerm(matched.name);
+                handleProductPress(matched);
+            }, 600);
+        } else {
+            // Fall back to showing search results
+            setProductSearchTerm(text);
+            setTimeout(() => setVoiceStatus(''), 2500);
+        }
+    };
 
     // Barcode Handling
     useEffect(() => {
@@ -320,10 +416,24 @@ const CreateBilling = () => {
                         value={productSearchTerm}
                         onChangeText={setProductSearchTerm}
                     />
+                    {/* Voice Button */}
+                    <TouchableOpacity onPress={startVoiceSearch} style={styles.voiceBtn} disabled={isListening}>
+                        <Animated.View style={{ transform: [{ scale: micAnim }] }}>
+                            <Feather name="mic" size={16} color={isListening ? '#ef4444' : '#10b981'} />
+                        </Animated.View>
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('ScannerScreen')} style={styles.inlineScanner}>
                         <Feather name="maximize" size={16} color="#f97316" />
                     </TouchableOpacity>
                 </View>
+
+                {/* Voice Status Bar */}
+                {voiceStatus !== '' && (
+                    <View style={styles.voiceStatusBar}>
+                        <Feather name={isListening ? 'mic' : 'check-circle'} size={12} color={isListening ? '#ef4444' : '#10b981'} />
+                        <Text style={styles.voiceStatusTxt}>{voiceStatus}</Text>
+                    </View>
+                )}
 
                 <View style={styles.customerFormRow}>
                     <View style={styles.miniInputContainer}>
@@ -492,9 +602,12 @@ const styles = StyleSheet.create({
     headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
     headerTitleWrap: { flex: 1, alignItems: 'center' },
     headerTitle: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15 },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 5 },
     searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a', paddingLeft: 10 },
+    voiceBtn: { padding: 6, marginRight: 4 },
     inlineScanner: { padding: 5 },
+    voiceStatusBar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 10 },
+    voiceStatusTxt: { fontSize: 11, fontWeight: '800', color: 'white', flex: 1 },
     customerFormRow: { flexDirection: 'row', gap: 10 },
     miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 40 },
     miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: 'rgba(0, 0, 0, 0.78)' },
