@@ -78,10 +78,9 @@ const Login = ({ onSwitchToRegister }) => {
         </Text>
 
         {/* Email */}
-        <Text className="text-gray-500 mb-1">Email Address</Text>
+        <Text className="text-gray-500 mb-1">Email or UserName</Text>
         <TextInput
           className="border-b border-blue-200 pb-2 mb-5 text-black"
-          placeholder="Email or Username"
           value={identifier}
           onChangeText={setIdentifier}
         />
@@ -91,7 +90,6 @@ const Login = ({ onSwitchToRegister }) => {
         <View className="border-b border-blue-200 flex-row items-center">
           <TextInput
             className="flex-1 pb-2 text-black"
-            placeholder="Password"
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
