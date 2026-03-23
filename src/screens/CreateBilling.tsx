@@ -91,23 +91,30 @@ const CreateBilling = () => {
 
     // Barcode Handling
     useEffect(() => {
-        if (route.params?.barcode && products.length > 0) {
-            const barcode = String(route.params.barcode).toLowerCase().trim();
+        const processBarcode = (code: string) => {
+            const bc = String(code).toLowerCase().trim();
             const product = products.find(p => {
-                const b = barcode.toLowerCase().trim();
+                const b = bc.toLowerCase().trim();
                 return String(p.product_code || "").toLowerCase() === b || 
-                       String(p.barcode || "").toLowerCase() === b || 
-                       String(p.name || "").toLowerCase().includes(b);
+                       String(p.barcode || "").toLowerCase() === b;
             });
             if (product) {
                 handleProductPress(product);
-                navigation.setParams({ barcode: null });
             } else {
-                Alert.alert("Barcode Not Found", `Item [${barcode}] not in database.`);
+                Alert.alert("Not Found", `Barcode [${bc}] matches no inventory item.`);
+            }
+        };
+
+        if (products.length > 0) {
+            if (route.params?.barcode) {
+                processBarcode(route.params.barcode);
                 navigation.setParams({ barcode: null });
+            } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
+                route.params.barcodes.forEach((v: string) => processBarcode(v));
+                navigation.setParams({ barcodes: null });
             }
         }
-    }, [route.params?.barcode, products]);
+    }, [route.params?.barcode, route.params?.barcodes, products]);
 
     // Data Loading
     useEffect(() => {
@@ -335,6 +342,10 @@ const CreateBilling = () => {
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCart(false)} />
                     <View style={styles.modalSheet}>
+                        <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowCart(false)}>
+                            <Feather name="x" size={20} color="#94a3b8" />
+                        </TouchableOpacity>
+                        
                         <View style={styles.modalPill} />
                         <Text style={styles.modalTitle}>Cart Manifest<Text style={{ color: '#f97316' }}>.</Text></Text>
 
@@ -378,6 +389,10 @@ const CreateBilling = () => {
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowVariantModal(false)} />
                     <View style={styles.variantSheet}>
+                        <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowVariantModal(false)}>
+                            <Feather name="x" size={20} color="#94a3b8" />
+                        </TouchableOpacity>
+                        
                         <View style={styles.modalPill} />
                         <Text style={styles.variantTitle}>{selectedProduct?.name}</Text>
                         
@@ -466,6 +481,7 @@ const styles = StyleSheet.create({
     commitBtn: { width: 60, height: 60, backgroundColor: '#E11D48', borderRadius: 20, alignItems: 'center', justifyContent: 'center', elevation: 8 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
     modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '85%' },
+    modalCloseBtn: { position: 'absolute', top: 20, right: 20, zIndex: 10, width: 36, height: 36, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
     modalPill: { width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
     modalTitle: { fontSize: 22, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
     cartScroll: { marginBottom: 20 },

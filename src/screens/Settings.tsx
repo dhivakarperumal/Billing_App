@@ -76,10 +76,7 @@ const Settings = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Settings<Text style={{ color: '#f97316' }}>.</Text></Text>
-      </View>
-      
+
       <ScrollView style={styles.list}>
           {/* TAX SETTINGS SECTION */}
           <Text style={styles.sectionTitle}>TAX CONFIGURATION</Text>
