@@ -70,7 +70,7 @@ const Settings = () => {
       title: 'Business Info',
       subtitle: 'Manage your store details',
       icon: 'briefcase',
-      onPress: () => {},
+      onPress: () => navigation.navigate('ReceiptSetup' as any),
     },
   ];
 
@@ -125,43 +125,6 @@ const Settings = () => {
                 </View>
             </View>
           )}
-
-          {/* BILLING PREFERENCES SECTION */}
-          <View style={{ height: 10 }} />
-          <Text style={styles.sectionTitle}>BILLING ACTIONS</Text>
-
-          <View style={styles.item}>
-            <View style={styles.itemIcon}>
-              <Feather name="zap" size={20} color="#f97316" />
-            </View>
-            <View style={styles.itemMeta}>
-              <Text style={styles.itemTitle}>Auto-Print Receipt</Text>
-              <Text style={styles.itemSubtitle}>Automatically print after save</Text>
-            </View>
-            <Switch 
-              value={autoPrint} 
-              onValueChange={toggleAutoPrint}
-              trackColor={{ false: '#e2e8f0', true: '#f97316' }}
-            />
-          </View>
-
-          <View style={styles.detailsCard}>
-            <Text style={[styles.inputLabel, { marginBottom: 12 }]}>After Save Action</Text>
-            <View style={styles.typeSelectorRow}>
-                <TouchableOpacity 
-                    style={[styles.typeBtn, afterSaveAction === 'back' && styles.typeBtnActive]}
-                    onPress={() => updateSaveAction('back')}
-                >
-                    <Text style={[styles.typeBtnText, afterSaveAction === 'back' && styles.typeBtnTextActive]}>Back to Menu</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.typeBtn, afterSaveAction === 'stay' && styles.typeBtnActive]}
-                    onPress={() => updateSaveAction('stay')}
-                >
-                    <Text style={[styles.typeBtnText, afterSaveAction === 'stay' && styles.typeBtnTextActive]}>New Bill</Text>
-                </TouchableOpacity>
-            </View>
-          </View>
 
           <View style={{ height: 20 }} />
           <Text style={styles.sectionTitle}>SYSTEM SETTINGS</Text>

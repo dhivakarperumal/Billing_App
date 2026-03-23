@@ -8,6 +8,7 @@ import CreateBilling from '../screens/CreateBilling';
 import ScannerScreen from '../screens/ScannerScreen';
 import PrinterSettings from '../screens/PrinterSettings';
 import DiagnosticsScreen from '../screens/Diagnostics';
+import ReceiptSetup from '../screens/ReceiptSetup';
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +22,7 @@ export default function RootNavigator() {
       <Stack.Screen name="ScannerScreen" component={ScannerScreen} />
       <Stack.Screen name="PrinterSettings" component={PrinterSettings} />
       <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} />
+      <Stack.Screen name="ReceiptSetup" component={ReceiptSetup} />
     </Stack.Navigator>
   );
 }
