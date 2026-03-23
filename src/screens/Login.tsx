@@ -1,3 +1,6 @@
+// #7A0C2E (a bit brighter)
+// #6B0028 (a bit darker)
+
 import React, { useState } from "react";
 import {
   View,
@@ -11,6 +14,7 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useAuth } from "../contexts/AuthContext";
 import { ImageBackground } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const Login = ({ onSwitchToRegister }) => {
   const { signIn, loading } = useAuth();
@@ -28,7 +32,12 @@ const Login = ({ onSwitchToRegister }) => {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <KeyboardAwareScrollView
+  enableOnAndroid={true}
+  extraScrollHeight={40}
+  keyboardShouldPersistTaps="handled"
+  contentContainerStyle={{ flexGrow: 1 }}
+>
       <StatusBar barStyle="light-content" />
 
       {/* IMAGE HEADER (TOP HALF) */}
@@ -135,7 +144,7 @@ const Login = ({ onSwitchToRegister }) => {
         </Text>
 
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 };
 
