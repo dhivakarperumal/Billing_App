@@ -10,7 +10,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
-import Voice from '@react-native-voice/voice';
+// import Voice from '@dev-amirzubair/react-native-voice';
 import LinearGradient from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -91,6 +91,7 @@ const CreateBilling = () => {
     }, [route.params?.barcode, products]);
 
     // Voice Setup
+    /*
     useEffect(() => {
         Voice.onSpeechResults = (e: any) => {
             if (e.value && e.value.length > 0) {
@@ -117,8 +118,11 @@ const CreateBilling = () => {
             } catch (err) {}
         };
     }, []);
+    */
 
     const startListening = async () => {
+        Alert.alert("Feature Disabled", "Voice feature is temporarily disabled for build debugging.");
+        /*
         // Safe check for the native module to avoid 'of null' errors
         const VoiceModule = (Voice as any)._nativeModule || Voice; 
         if (!VoiceModule) {
@@ -153,10 +157,11 @@ const CreateBilling = () => {
                 Alert.alert('Module Sync', 'Voice module is linking. Restarting app after build is required.');
             }
         }
+        */
     };
 
     const stopListening = async () => {
-        try { await Voice.stop(); } catch (e) {}
+        // try { await Voice.stop(); } catch (e) {}
         setIsListening(false);
     };
 
