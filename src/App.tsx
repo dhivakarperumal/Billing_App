@@ -17,9 +17,19 @@ import "../global.css"
 
 const AuthStack = createNativeStackNavigator();
 
+import { View, ActivityIndicator } from 'react-native';
+
 function AppContent() {
-  const { token } = useAuth();
+  const { token, loading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
+  }
 
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>

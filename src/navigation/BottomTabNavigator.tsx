@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,9 +45,10 @@ function HeaderBackground() {
   );
 }
 
-function HeaderRight({ navigation }: any) {
+function HeaderRight() {
   const { user, signOut } = useAuth();
   const [showMenu, setShowMenu] = React.useState(false);
+  const navigation = useNavigation<any>();
 
   const handleLogout = () => {
     setShowMenu(false);
@@ -78,22 +80,22 @@ function HeaderRight({ navigation }: any) {
             style={styles.dropdownItem}
             onPress={() => {
               setShowMenu(false);
-              Alert.alert('Profile', 'Profile screen coming soon');
+              navigation.navigate('Settings');
             }}
           >
-            <Icon name="user" size={14} color="#0f172a" />
-            <Text style={styles.dropdownText}>Profile</Text>
+            <Icon name="cog" size={14} color="#0f172a" />
+            <Text style={styles.dropdownText}>Settings</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.dropdownItem}
             onPress={() => {
               setShowMenu(false);
-              navigation.navigate('Settings');
+              navigation.navigate('PrinterSettings');
             }}
           >
-            <Icon name="cog" size={14} color="#0f172a" />
-            <Text style={styles.dropdownText}>Settings</Text>
+            <Icon name="print" size={14} color="#0f172a" />
+            <Text style={styles.dropdownText}>Printers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
@@ -126,7 +128,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     Bills: 'Bills',
     CreateBill: 'New',
     Products: 'Items',
-    Settings: 'Menu',
+    Settings: 'Settings',
   };
 
   const QuickBtn = ({ icon, label, colors, onPress }: any) => (
@@ -299,8 +301,8 @@ export default function BottomTabNavigator() {
           letterSpacing: 0.5,
           textTransform: 'uppercase',
         },
-        headerRight: ({ navigation }) => (
-          <HeaderRight navigation={navigation} />
+        headerRight: () => (
+          <HeaderRight />
         ),
         headerStyle: {
           height: Platform.OS === 'ios' ? 110 : 80,

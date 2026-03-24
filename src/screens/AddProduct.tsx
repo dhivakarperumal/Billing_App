@@ -181,22 +181,49 @@ const AddProduct = () => {
       return;
     }
 
-    const result = await launchImageLibrary({
+    Alert.alert(
+      'Upload Product Image',
+      'Pick a source:',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => openPicker('camera'),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => openPicker('gallery'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const openPicker = async (type: 'camera' | 'gallery') => {
+    const options: any = {
       mediaType: 'photo',
       selectionLimit: 5 - formData.images.length,
       includeBase64: true,
-    });
+      quality: 0.8,
+    };
 
-    if (result.assets) {
-      const newImages = result.assets
-        .filter((asset: any) => asset.base64)
-        .map((asset: any) => `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`);
-      
-      setFormData((prev: any) => ({
-        ...prev,
-        images: [...(prev.images || []), ...newImages],
-      }));
-    }
+    const method = type === 'camera' ? import('react-native-image-picker').then(m => m.launchCamera) : import('react-native-image-picker').then(m => m.launchImageLibrary);
+    
+    // Using import for dynamic or just the imported ones
+    const picker = type === 'camera' ? (await import('react-native-image-picker')).launchCamera : (await import('react-native-image-picker')).launchImageLibrary;
+
+    picker(options, (result: any) => {
+      if (result.assets) {
+        const newImages = result.assets
+          .filter((asset: any) => asset.base64)
+          .map((asset: any) => `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`);
+        
+        setFormData((prev: any) => ({
+          ...prev,
+          images: [...(prev.images || []), ...newImages],
+        }));
+      }
+    });
   };
 
   const removeImage = (index: number) => {
