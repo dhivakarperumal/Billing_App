@@ -8,9 +8,7 @@ import ScannerScreen from '../screens/ScannerScreen';
 import PrinterSettings from '../screens/PrinterSettings';
 import DiagnosticsScreen from '../screens/Diagnostics';
 import ReceiptSetup from '../screens/ReceiptSetup';
-
 import PrinterConfig from '../Settings/PrinterConfig';
-import PrinterSettings from '../Settings/PrinterSettings';
 import GSTSettings from '../Settings/GSTSettings';
 
 const Stack = createNativeStackNavigator();
