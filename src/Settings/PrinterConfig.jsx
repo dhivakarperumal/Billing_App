@@ -34,7 +34,7 @@ const PrinterConfig = () => {
       <BackButton title="Printer Configuration" />
 
       {/* 🔥 MAIN CARD */}
-      <View className="mx-4 bg-white rounded-[32px] p-6 
+      <View className="mx-4 mt-6 bg-white rounded-[32px] p-6 
         shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100">
 
         {/* ICON HEADER */}
