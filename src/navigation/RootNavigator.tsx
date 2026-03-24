@@ -26,7 +26,6 @@ export default function RootNavigator() {
       <Stack.Screen name="ReceiptSetup" component={ReceiptSetup} />
       
       <Stack.Screen name="PrinterConfig" component={PrinterConfig} />
-      <Stack.Screen name="PrinterSettings" component={PrinterSettings} />
       <Stack.Screen name="GSTSettings" component={GSTSettings} />
     </Stack.Navigator>
   );
