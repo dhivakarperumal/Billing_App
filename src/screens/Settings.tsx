@@ -89,6 +89,18 @@ const Settings = () => {
       onPress: () => navigation.navigate('ReceiptSetup' as any),
     },
     {
+      title: 'Add New Stock',
+      subtitle: 'Add to existing variant quantities',
+      icon: 'plus-circle',
+      onPress: () => navigation.navigate('AddStock'),
+    },
+    {
+      title: 'Stock Management',
+      subtitle: 'Update inventory for all variants',
+      icon: 'box',
+      onPress: () => navigation.navigate('StockManagement'),
+    },
+    {
       title: 'Reports',
       subtitle: 'View and export billing history',
       icon: 'file-text',

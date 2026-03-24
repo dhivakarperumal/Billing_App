@@ -11,6 +11,8 @@ import ReceiptSetup from '../screens/ReceiptSetup';
 import PrinterConfig from '../Settings/PrinterConfig';
 import GSTSettings from '../Settings/GSTSettings';
 import Reports from '../screens/Reports';
+import StockManagement from '../screens/StockManagement';
+import AddStock from '../screens/AddStock';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +31,8 @@ export default function RootNavigator() {
       <Stack.Screen name="PrinterConfig" component={PrinterConfig} />
       <Stack.Screen name="GSTSettings" component={GSTSettings} />
       <Stack.Screen name="Reports" component={Reports} />
+      <Stack.Screen name="StockManagement" component={StockManagement} />
+      <Stack.Screen name="AddStock" component={AddStock} />
     </Stack.Navigator>
   );
 }
