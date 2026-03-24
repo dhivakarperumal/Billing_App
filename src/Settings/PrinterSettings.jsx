@@ -73,7 +73,7 @@ const PrinterSettings = () => {
       <BackButton title="Printer Settings" />
 
       {/* ================= SHOP DETAILS ================= */}
-      <View className="mx-4 bg-white rounded-3xl p-5 mb-4 shadow-sm">
+      <View className="mx-4 mt-6 bg-white rounded-3xl p-5 mb-4 shadow-sm">
         <Text className="font-black text-slate-800 mb-4">
           Shop Details
         </Text>
