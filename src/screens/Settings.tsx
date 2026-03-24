@@ -72,6 +72,12 @@ const Settings = () => {
       icon: 'briefcase',
       onPress: () => navigation.navigate('ReceiptSetup' as any),
     },
+    {
+      title: 'Transaction Reports',
+      subtitle: 'View and export billing history',
+      icon: 'file-text',
+      onPress: () => navigation.navigate('Bills'),
+    },
   ];
 
   return (

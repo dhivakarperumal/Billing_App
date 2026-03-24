@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
   Image,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ const Bills = () => {
   const [loading, setLoading] = useState(true);
 
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [businessInfo, setBusinessInfo] = useState<any>(null);
@@ -104,6 +106,16 @@ const Bills = () => {
     return Array.isArray(items) ? items : [];
   }, [selectedBill]);
 
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order: any) => {
+      const customer = (order.customer_name || '').toLowerCase();
+      const orderId = String(order.id || order.order_number || '').toLowerCase();
+      const amount = String(order.total_amount || order.total || '').toLowerCase();
+      const search = searchTerm.toLowerCase().trim();
+      return customer.includes(search) || orderId.includes(search) || amount.includes(search);
+    });
+  }, [orders, searchTerm]);
+
   const BillCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       className="bg-white rounded-3xl p-4 mb-3 border border-slate-100 flex-row justify-between"
@@ -157,9 +169,13 @@ const Bills = () => {
       >
         <View className="flex-row items-center bg-white px-4 h-11 rounded-xl space-x-2">
           <Feather name="search" size={14} color="#64748b" />
-          <Text className="text-[11px] font-bold text-slate-500">
-            Search transaction records...
-          </Text>
+          <TextInput
+            placeholder="Search by ID, customer or amount..."
+            placeholderTextColor="#64748b"
+            style={{ fontSize: 11, fontWeight: '700', flex: 1, color: '#0f172a' }}
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+          />
         </View>
       </LinearGradient>
 
@@ -172,7 +188,7 @@ const Bills = () => {
         </View>
       ) : (
         <FlatList
-          data={orders}
+          data={filteredOrders}
           contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
           keyExtractor={item => String(item.id)}
           showsVerticalScrollIndicator={false}

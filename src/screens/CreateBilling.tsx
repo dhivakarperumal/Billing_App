@@ -656,9 +656,9 @@ const CreateBilling = () => {
                             </>
                         )}
                         
-                        <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
+                        {/* <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
                            <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         <TouchableOpacity onPress={() => setShowVariantModal(false)}><Text style={styles.cancelTxt}>CANCEL</Text></TouchableOpacity>
                     </View>
