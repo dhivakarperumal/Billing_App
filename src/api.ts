@@ -80,6 +80,7 @@ export type Product = {
   product_code?: string;
   name: string;
   name_tamil?: string;
+  name_tanglish?: string;
   description?: string;
   category?: string;
   subcategory?: string;

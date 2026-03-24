@@ -14,6 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { printReceipt, PrintData } from "../utils/printer";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+import { tanglishMatchesTamil } from '../utils/transliterate';
 
 const { width } = Dimensions.get('window');
 
@@ -113,9 +114,13 @@ const CreateBilling = () => {
 
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-    const [voiceLang, setVoiceLang] = useState<'en' | 'ta'>('en');
-    const voiceLangRef = useRef<'en' | 'ta'>('en');
+    const [voiceLang, setVoiceLang] = useState<'en' | 'ta' | 'tgl'>('en');
+    const voiceLangRef = useRef<'en' | 'ta' | 'tgl'>('en');
     useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
+
+    const cycleVoiceLang = () => {
+        setVoiceLang(prev => prev === 'en' ? 'ta' : prev === 'ta' ? 'tgl' : 'en');
+    };
 
     // ─── Voice Search ──────────────────────────────────────────
     const [isListening, setIsListening] = useState(false);
@@ -140,16 +145,20 @@ const CreateBilling = () => {
 
     const matchVoiceToProduct = (text: string, productList: Product[]) => {
         const q = text.toLowerCase().trim();
-        // Exact name or Tamil name match
+        // Exact match: English name, Tamil name, Tanglish name, or Tamil→Tanglish
         let found = productList.find(p => 
             (p.name || '').toLowerCase() === q || 
-            (p.name_tamil || '').toLowerCase() === q
+            (p.name_tamil || '').toLowerCase() === q ||
+            (p.name_tanglish || '').toLowerCase() === q ||
+            tanglishMatchesTamil(q, p.name_tamil || '')
         );
         // Partial match
         if (!found) {
             found = productList.find(p => 
                 (p.name || '').toLowerCase().includes(q) || 
-                (p.name_tamil || '').toLowerCase().includes(q)
+                (p.name_tamil || '').toLowerCase().includes(q) ||
+                (p.name_tanglish || '').toLowerCase().includes(q) ||
+                tanglishMatchesTamil(q, p.name_tamil || '')
             );
         }
         // Word-level match
@@ -157,7 +166,9 @@ const CreateBilling = () => {
             const words = q.split(' ').filter(w => w.length > 1);
             found = productList.find(p => words.some(w => 
                 (p.name || '').toLowerCase().includes(w) || 
-                (p.name_tamil || '').toLowerCase().includes(w)
+                (p.name_tamil || '').toLowerCase().includes(w) ||
+                (p.name_tanglish || '').toLowerCase().includes(w) ||
+                tanglishMatchesTamil(w, p.name_tamil || '')
             ));
         }
         return found;
@@ -173,7 +184,8 @@ const CreateBilling = () => {
             console.log('Voice Error: ', e.error);
             setIsListening(false);
             stopMicPulse();
-            setVoiceStatus(voiceLang === 'ta' ? 'குரல் பிழை. மீண்டும் முயல்க.' : 'Voice error. Try again.');
+            const errMsg = voiceLang === 'ta' ? 'குரல் பிழை. மீண்டும் முயல்க.' : 'Voice error. Try again.';
+            setVoiceStatus(errMsg);
             setTimeout(() => setVoiceStatus(''), 2000);
         };
         return () => {
@@ -195,17 +207,20 @@ const CreateBilling = () => {
         }
 
         setIsListening(true);
-        setVoiceStatus(voiceLang === 'ta' ? 'கவனிக்கிறேன்...' : 'Listening...');
+        const listeningMsg = voiceLang === 'ta' ? 'கவனிக்கிறேன்...' : 'Listening...';
+        setVoiceStatus(listeningMsg);
         startMicPulse();
 
         try {
+            // Tanglish uses English speech recognition since it's Tamil spoken in English
             const locale = voiceLang === 'ta' ? 'ta-IN' : 'en-IN';
             await Voice.start(locale);
         } catch (e) {
             console.log('Voice Start Fail: ', e);
             setIsListening(false);
             stopMicPulse();
-            setVoiceStatus(voiceLang === 'ta' ? 'குரல் தொடங்கவில்லை' : 'Could not start voice');
+            const failMsg = voiceLang === 'ta' ? 'குரல் தொடங்கவில்லை' : 'Could not start voice';
+            setVoiceStatus(failMsg);
             setTimeout(() => setVoiceStatus(''), 2500);
         }
     };
@@ -221,14 +236,16 @@ const CreateBilling = () => {
         stopVoiceSearch();
         
         const q = text.toLowerCase().trim();
-        setVoiceStatus(voiceLang === 'ta' ? `கேட்கப்பட்டது: "${text}"` : `Heard: "${text}"`);
+        const heardMsg = voiceLang === 'ta' ? `கேட்கப்பட்டது: "${text}"` : `Heard: "${text}"`;
+        setVoiceStatus(heardMsg);
         const matched = matchVoiceToProduct(text, products);
         
         if (matched) {
             setProductSearchTerm(matched.name); // Filter the list to show current products
             
             setTimeout(() => {
-                setVoiceStatus(voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`);
+                const foundMsg = voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`;
+                setVoiceStatus(foundMsg);
                 
                 // If product has variants, show variety picker (current products details)
                 if (matched.variants && matched.variants.length > 0) {
@@ -241,7 +258,8 @@ const CreateBilling = () => {
             }, 600);
         } else {
             setProductSearchTerm(text);
-            setVoiceStatus(voiceLang === 'ta' ? `"${text}" - பொருத்தம் இல்லை` : `"${text}" - No match`);
+            const noMatchMsg = voiceLang === 'ta' ? `"${text}" - பொருத்தம் இல்லை` : `"${text}" - No match`;
+            setVoiceStatus(noMatchMsg);
             setTimeout(() => setVoiceStatus(''), 4000);
         }
     };
@@ -366,10 +384,20 @@ const CreateBilling = () => {
         return products.filter(p => {
             const matchCat = selectedCategory === "All" || p.category === selectedCategory;
             const term = (productSearchTerm || "").toLowerCase();
+            if (!term) return matchCat;
             const pName = (p.name || "").toLowerCase();
             const pTamil = (p.name_tamil || "").toLowerCase();
+            const pTanglish = (p.name_tanglish || "").toLowerCase();
             const pCode = (p.product_code || String(p.id || "")).toLowerCase();
-            return matchCat && (pName.includes(term) || pTamil.includes(term) || pCode.includes(term));
+            // Also auto-transliterate Tamil script to handle Tanglish search
+            const tamilAsRoman = tanglishMatchesTamil(term, p.name_tamil || '');
+            return matchCat && (
+                pName.includes(term) ||
+                pTamil.includes(term) ||
+                pTanglish.includes(term) ||
+                pCode.includes(term) ||
+                tamilAsRoman
+            );
         });
     }, [products, selectedCategory, productSearchTerm, voiceLang]);
 
@@ -476,7 +504,7 @@ const CreateBilling = () => {
                 <View style={styles.searchBarContainer}>
                     <Feather name="search" size={16} color="#94a3b8" />
                     <TextInput 
-                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : "Search Inventory..."} 
+                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : voiceLang === 'tgl' ? "Tanglish la thedi..." : "Search Inventory..."} 
                         style={styles.searchInput}
                         placeholderTextColor="#475569"
                         value={productSearchTerm}
@@ -485,11 +513,14 @@ const CreateBilling = () => {
                     
                     {/* Language Toggle */}
                     <TouchableOpacity 
-                        onPress={() => setVoiceLang(prev => prev === 'en' ? 'ta' : 'en')}
-                        style={{ paddingHorizontal: 10, paddingVertical: 4, marginRight: 5, backgroundColor: voiceLang === 'ta' ? '#e11d48' : '#f1f5f9', borderRadius: 8 }}
+                        onPress={cycleVoiceLang}
+                        style={{ 
+                            paddingHorizontal: 10, paddingVertical: 4, marginRight: 5, borderRadius: 8,
+                            backgroundColor: voiceLang === 'ta' ? '#e11d48' : voiceLang === 'tgl' ? '#7c3aed' : '#f1f5f9'
+                        }}
                     >
-                        <Text style={{ fontSize: 9, fontWeight: '900', color: voiceLang === 'ta' ? '#fff' : '#475569' }}>
-                            {voiceLang === 'ta' ? 'TAM' : 'ENG'}
+                        <Text style={{ fontSize: 9, fontWeight: '900', color: voiceLang !== 'en' ? '#fff' : '#475569' }}>
+                            {voiceLang === 'ta' ? 'TAM' : voiceLang === 'tgl' ? 'TGL' : 'ENG'}
                         </Text>
                     </TouchableOpacity>
 
@@ -534,7 +565,11 @@ const CreateBilling = () => {
                         <View style={styles.imageContainer}>
                             {item.image || item.images?.[0] ? <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} /> : <Feather name="package" size={24} color="#cbd5e1" />}
                         </View>
-                        <Text style={styles.itemName} numberOfLines={1}>{voiceLang === 'ta' && item.name_tamil ? item.name_tamil : item.name}</Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                            {voiceLang === 'ta' && item.name_tamil ? item.name_tamil
+                            : voiceLang === 'tgl' && item.name_tanglish ? item.name_tanglish
+                            : item.name}
+                        </Text>
                         <View style={styles.itemFooter}>
                             <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString()}</Text>
                             <View style={styles.stockBadge}><Text style={styles.stockText}>{item.total_stock || 0} U</Text></View>

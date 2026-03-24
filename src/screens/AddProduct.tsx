@@ -46,6 +46,7 @@ const AddProduct = () => {
     product_code: '',
     name: '',
     name_tamil: '',
+    name_tanglish: '',
     description: '',
     rating: '',
     category: '',
@@ -300,6 +301,12 @@ const AddProduct = () => {
             value={formData.name_tamil} 
             onChangeText={(v: string) => handleChange('name_tamil', v)} 
             placeholder="ஆர்கானிக் அரிசி" 
+          />
+          <FormInput 
+            label="Tanglish Name (Tamil in English)" 
+            value={formData.name_tanglish} 
+            onChangeText={(v: string) => handleChange('name_tanglish', v)} 
+            placeholder="e.g. Organic Arisi" 
           />
           <FormInput 
             label="Product Code" 
