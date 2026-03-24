@@ -13,6 +13,7 @@ import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayl
 import LinearGradient from 'react-native-linear-gradient';
 import { printReceipt, PrintData } from "../utils/printer";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
 const { width } = Dimensions.get('window');
 
@@ -112,8 +113,9 @@ const CreateBilling = () => {
 
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Sync ref for callbacks - Legacy
+    const [voiceLang, setVoiceLang] = useState<'en' | 'ta'>('en');
     const voiceLangRef = useRef<'en' | 'ta'>('en');
+    useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
 
     // ─── Voice Search ──────────────────────────────────────────
     const [isListening, setIsListening] = useState(false);
@@ -138,17 +140,46 @@ const CreateBilling = () => {
 
     const matchVoiceToProduct = (text: string, productList: Product[]) => {
         const q = text.toLowerCase().trim();
-        // Exact name match first
-        let found = productList.find(p => (p.name || '').toLowerCase() === q);
-        // Partial name match
-        if (!found) found = productList.find(p => (p.name || '').toLowerCase().includes(q));
+        // Exact name or Tamil name match
+        let found = productList.find(p => 
+            (p.name || '').toLowerCase() === q || 
+            (p.name_tamil || '').toLowerCase() === q
+        );
+        // Partial match
+        if (!found) {
+            found = productList.find(p => 
+                (p.name || '').toLowerCase().includes(q) || 
+                (p.name_tamil || '').toLowerCase().includes(q)
+            );
+        }
         // Word-level match
         if (!found) {
-            const words = q.split(' ').filter(w => w.length > 2);
-            found = productList.find(p => words.some(w => (p.name || '').toLowerCase().includes(w)));
+            const words = q.split(' ').filter(w => w.length > 1);
+            found = productList.find(p => words.some(w => 
+                (p.name || '').toLowerCase().includes(w) || 
+                (p.name_tamil || '').toLowerCase().includes(w)
+            ));
         }
         return found;
     };
+
+    useEffect(() => {
+        Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+            if (e.value && e.value.length > 0) {
+                processVoiceResult(e.value[0]);
+            }
+        };
+        Voice.onSpeechError = (e: SpeechErrorEvent) => {
+            console.log('Voice Error: ', e.error);
+            setIsListening(false);
+            stopMicPulse();
+            setVoiceStatus(voiceLang === 'ta' ? 'குரல் பிழை. மீண்டும் முயல்க.' : 'Voice error. Try again.');
+            setTimeout(() => setVoiceStatus(''), 2000);
+        };
+        return () => {
+            Voice.destroy().then(Voice.removeAllListeners);
+        };
+    }, [voiceLang]);
 
     const startVoiceSearch = async () => {
         // Request mic permission
@@ -164,142 +195,127 @@ const CreateBilling = () => {
         }
 
         setIsListening(true);
-        setVoiceStatus('Listening...');
+        setVoiceStatus(voiceLang === 'ta' ? 'கவனிக்கிறேன்...' : 'Listening...');
         startMicPulse();
 
         try {
-            // Use Android SpeechRecognizer intent via NativeModules
-            const { SpeechRecognizer } = NativeModules;
-            if (SpeechRecognizer && SpeechRecognizer.startListening) {
-                // If a native module exists
-                SpeechRecognizer.startListening('en-IN', (result: string, error: string) => {
-                    setIsListening(false);
-                    stopMicPulse();
-                    if (error || !result) {
-                        setVoiceStatus('Could not hear. Try again.');
-                        setTimeout(() => setVoiceStatus(''), 2000);
-                        return;
-                    }
-                    processVoiceResult(result);
-                });
-            } else {
-                // Fallback: simulate with keyboard search
-                setVoiceStatus('Voice module unavailable — use keyboard search');
-                setTimeout(() => { setVoiceStatus(''); setIsListening(false); stopMicPulse(); }, 2500);
-            }
+            const locale = voiceLang === 'ta' ? 'ta-IN' : 'en-IN';
+            await Voice.start(locale);
         } catch (e) {
+            console.log('Voice Start Fail: ', e);
             setIsListening(false);
             stopMicPulse();
-            setVoiceStatus('Voice error. Use keyboard search.');
+            setVoiceStatus(voiceLang === 'ta' ? 'குரல் தொடங்கவில்லை' : 'Could not start voice');
             setTimeout(() => setVoiceStatus(''), 2500);
         }
+    };
+
+    const stopVoiceSearch = async () => {
+        setIsListening(false);
+        stopMicPulse();
+        try { await Voice.stop(); } catch (e) {}
     };
 
     const processVoiceResult = (text: string) => {
-        setVoiceStatus(`Heard: "${text}"`);
+        // Stop listening immediately after getting a result
+        stopVoiceSearch();
+        
+        const q = text.toLowerCase().trim();
+        setVoiceStatus(voiceLang === 'ta' ? `கேட்கப்பட்டது: "${text}"` : `Heard: "${text}"`);
         const matched = matchVoiceToProduct(text, products);
+        
         if (matched) {
+            setProductSearchTerm(matched.name); // Filter the list to show current products
+            
             setTimeout(() => {
-                setVoiceStatus('');
-                setProductSearchTerm(matched.name);
-                handleProductPress(matched);
+                setVoiceStatus(voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`);
+                
+                // If product has variants, show variety picker (current products details)
+                if (matched.variants && matched.variants.length > 0) {
+                    handleProductPress(matched);
+                } else {
+                    addToCartDirectly(matched);
+                }
+                
+                setTimeout(() => setVoiceStatus(''), 3000);
             }, 600);
         } else {
-            // Fall back to showing search results
             setProductSearchTerm(text);
-            setTimeout(() => setVoiceStatus(''), 2500);
+            setVoiceStatus(voiceLang === 'ta' ? `"${text}" - பொருத்தம் இல்லை` : `"${text}" - No match`);
+            setTimeout(() => setVoiceStatus(''), 4000);
         }
     };
 
-    // Barcode Handling
-    useEffect(() => {
-        // Add a product directly to cart (used for batch scan, no modal)
-        const addProductDirectly = (product: Product) => {
-            const variant = product.variants?.[0];
-            const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
-            const price = variant
-                ? Number(variant.sellingPrice || variant.mrp || 0)
-                : Number(product.offer_price || product.price || 0);
-            const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
+    const addToCartDirectly = (product: Product) => {
+        const variant = product.variants?.[0];
+        const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
+        const price = variant
+            ? Number(variant.sellingPrice || variant.mrp || 0)
+            : Number(product.offer_price || product.price || 0);
+        const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
 
-            setCart(prev => {
-                const exists = prev.find(item => item.id === itemId);
-                if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
-                return [...prev, {
-                    id: itemId,
-                    product_id: product.id,
-                    name,
-                    price,
-                    quantity: 1,
-                    image: product.image || product.images?.[0] || null
-                }];
-            });
-        };
+        setCart(prev => {
+            const exists = prev.find(item => item.id === itemId);
+            if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
+            return [...prev, {
+                id: itemId,
+                product_id: product.id,
+                name,
+                price,
+                quantity: 1,
+                image: product.image || product.images?.[0] || null
+            }];
+        });
+    };
 
-        const addCustomUpiItem = (url: string) => {
-            try {
-                const upiUrl = new URL(url);
-                const params = new URLSearchParams(upiUrl.search);
-                const amount = params.get('am');
-                const name = params.get('pn') || 'QR Payment';
+    // ─── Barcode & Helpers ─────────────────────────────────────
+    const findProductByBarcode = (code: string) => {
+        const bc = String(code).toLowerCase().trim();
+        return products.find(p =>
+            String(p.product_code || "").toLowerCase() === bc ||
+            String((p as any).barcode || "").toLowerCase() === bc
+        );
+    };
+
+    const addCustomUpiItem = (url: string) => {
+        try {
+            // Use regex for UPI extraction to avoid URL API issues in React Native
+            if (url.includes('am=')) {
+                const amountMatch = url.match(/[?&]am=([0-9.]+)/);
+                const nameMatch = url.match(/[?&]pn=([^&]+)/);
                 
-                if (amount) {
-                    const price = parseFloat(amount);
+                if (amountMatch && amountMatch[1]) {
+                    const price = parseFloat(amountMatch[1]);
+                    const name = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : 'QR Payment';
                     const itemId = `upi-${Date.now()}`;
                     
                     setCart(prev => [...prev, {
                         id: itemId,
                         product_id: 0,
-                        name: `QR: ${decodeURIComponent(name)}`,
+                        name: `QR: ${name}`,
                         price: price,
                         quantity: 1,
                         image: null
                     }]);
                     return true;
                 }
-            } catch (e) {
-                // Fallback for non-standard or malformed URLs
-                if (url.includes('am=')) {
-                    const match = url.match(/am=([0-9.]+)/);
-                    if (match && match[1]) {
-                        const price = parseFloat(match[1]);
-                        const itemId = `upi-${Date.now()}`;
-                        setCart(prev => [...prev, {
-                            id: itemId,
-                            product_id: 0,
-                            name: 'QR Amount',
-                            price: price,
-                            quantity: 1,
-                            image: null
-                        }]);
-                        return true;
-                    }
-                }
             }
-            return false;
-        };
+        } catch (e) {
+            console.log("UPI Parse Error:", e);
+        }
+        return false;
+    };
 
-        const findProductByBarcode = (code: string) => {
-            const bc = String(code).toLowerCase().trim();
-            return products.find(p =>
-                String(p.product_code || "").toLowerCase() === bc ||
-                String((p as any).barcode || "").toLowerCase() === bc
-            );
-        };
-
+    useEffect(() => {
         if (products.length > 0) {
             if (route.params?.barcode) {
                 const code = route.params.barcode;
-                
-                // Check if it's a UPI QR first
                 if (code.startsWith('upi://') || code.includes('am=')) {
                     if (addCustomUpiItem(code)) {
                         navigation.setParams({ barcode: null });
                         return;
                     }
                 }
-
-                // Single scan → open modal for variant/quantity selection
                 const product = findProductByBarcode(code);
                 if (product) {
                     handleProductPress(product);
@@ -308,17 +324,14 @@ const CreateBilling = () => {
                 }
                 navigation.setParams({ barcode: null });
             } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
-                // Batch multi-scan
                 const notFound: string[] = [];
                 route.params.barcodes.forEach((code: string) => {
-                    // Check for UPI QR in batch
                     if (code.startsWith('upi://') || code.includes('am=')) {
                         if (addCustomUpiItem(code)) return;
                     }
-
                     const product = findProductByBarcode(code);
                     if (product) {
-                        addProductDirectly(product);
+                        addToCartDirectly(product);
                     } else {
                         notFound.push(code);
                     }
@@ -354,22 +367,17 @@ const CreateBilling = () => {
             const matchCat = selectedCategory === "All" || p.category === selectedCategory;
             const term = (productSearchTerm || "").toLowerCase();
             const pName = (p.name || "").toLowerCase();
+            const pTamil = (p.name_tamil || "").toLowerCase();
             const pCode = (p.product_code || String(p.id || "")).toLowerCase();
-            return matchCat && (pName.includes(term) || pCode.includes(term));
+            return matchCat && (pName.includes(term) || pTamil.includes(term) || pCode.includes(term));
         });
-    }, [products, selectedCategory, productSearchTerm]);
+    }, [products, selectedCategory, productSearchTerm, voiceLang]);
 
     const [customQty, setCustomQty] = useState('1');
 
     const handleProductPress = (product: Product) => {
-        setCustomQty('1'); // Reset
-        if (product && product.variants && product.variants.length > 0) {
-            setSelectedProduct(product);
-            setShowVariantModal(true);
-        } else if (product) {
-            // Even if no variants, maybe we want to ask "How many/much?"
-            // But for now behavior is immediate add. 
-            // I'll show the modal for EVERY product to allow quantity selection if needed
+        setCustomQty('1'); 
+        if (product) {
             setSelectedProduct(product);
             setShowVariantModal(true);
         }
@@ -461,19 +469,30 @@ const CreateBilling = () => {
                         <Feather name="arrow-left" size={20} color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.headerTitleWrap}>
-                        <Text style={styles.headerTitle}>BILLING<Text style={{ color: '#f97316' }}>.</Text></Text>
+                        <Text style={styles.headerTitle}>BILLING<Text style={{ color: '#f97316' }}></Text></Text>
                     </View>
                 </View>
 
                 <View style={styles.searchBarContainer}>
                     <Feather name="search" size={16} color="#94a3b8" />
                     <TextInput 
-                        placeholder="Search Inventory..." 
+                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : "Search Inventory..."} 
                         style={styles.searchInput}
                         placeholderTextColor="#475569"
                         value={productSearchTerm}
                         onChangeText={setProductSearchTerm}
                     />
+                    
+                    {/* Language Toggle */}
+                    <TouchableOpacity 
+                        onPress={() => setVoiceLang(prev => prev === 'en' ? 'ta' : 'en')}
+                        style={{ paddingHorizontal: 10, paddingVertical: 4, marginRight: 5, backgroundColor: voiceLang === 'ta' ? '#e11d48' : '#f1f5f9', borderRadius: 8 }}
+                    >
+                        <Text style={{ fontSize: 9, fontWeight: '900', color: voiceLang === 'ta' ? '#fff' : '#475569' }}>
+                            {voiceLang === 'ta' ? 'TAM' : 'ENG'}
+                        </Text>
+                    </TouchableOpacity>
+
                     {/* Voice Button */}
                     <TouchableOpacity onPress={startVoiceSearch} style={styles.voiceBtn} disabled={isListening}>
                         <Animated.View style={{ transform: [{ scale: micAnim }] }}>
@@ -515,7 +534,7 @@ const CreateBilling = () => {
                         <View style={styles.imageContainer}>
                             {item.image || item.images?.[0] ? <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} /> : <Feather name="package" size={24} color="#cbd5e1" />}
                         </View>
-                        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.itemName} numberOfLines={1}>{voiceLang === 'ta' && item.name_tamil ? item.name_tamil : item.name}</Text>
                         <View style={styles.itemFooter}>
                             <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString()}</Text>
                             <View style={styles.stockBadge}><Text style={styles.stockText}>{item.total_stock || 0} U</Text></View>
@@ -597,7 +616,7 @@ const CreateBilling = () => {
                         </TouchableOpacity>
                         
                         <View style={styles.modalPill} />
-                        <Text style={styles.variantTitle}>{selectedProduct?.name}</Text>
+                        <Text style={styles.variantTitle}>{voiceLang === 'ta' && selectedProduct?.name_tamil ? selectedProduct.name_tamil : selectedProduct?.name}</Text>
                         
                         <View style={styles.qtyPicker}>
                            <Text style={styles.pickerLabel}>Set Quantity/Weight</Text>
@@ -767,16 +786,16 @@ const styles = StyleSheet.create({
     headerGradient: { paddingHorizontal: 20, paddingTop: 30, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
     headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    headerTitleWrap: { flex: 1, alignItems: 'center' },
+    headerTitleWrap: { flex: 1,alignItems: 'flex-start'},
     headerTitle: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 5 },
-    searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a', paddingLeft: 10 },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 25 },
+    searchInput: { flex: 1, height: 55, fontSize: 13, fontWeight: '700', color: '#0f172a', paddingLeft: 10},
     voiceBtn: { padding: 6, marginRight: 4 },
     inlineScanner: { padding: 5 },
-    voiceStatusBar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 10 },
+    voiceStatusBar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 20 },
     voiceStatusTxt: { fontSize: 11, fontWeight: '800', color: 'white', flex: 1 },
     customerFormRow: { flexDirection: 'row', gap: 10 },
-    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 40 },
+    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 50 },
     miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: 'rgba(0, 0, 0, 0.78)' },
     listContent: { padding: 12, paddingBottom: 120 },
     card: { backgroundColor: '#fff', borderRadius: 24, margin: 6, padding: 12, flex: 1, borderWidth: 1, borderColor: '#f1f5f9' },
