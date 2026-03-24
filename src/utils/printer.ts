@@ -27,6 +27,10 @@ export interface BusinessInfo {
   address: string;
   gstNumber: string;
   footerMessage: string;
+  showLogo?: boolean;
+  logoBase64?: string;
+  upiId?: string;
+  showQRCode?: boolean;
 }
 
 export const printReceipt = async (data: PrintData) => {
@@ -65,6 +69,13 @@ const printBluetooth = async (data: PrintData, bInfo: BusinessInfo) => {
   try {
     await BluetoothEscposPrinter.printerInit();
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+
+    // Print Logo if enabled
+    if (bInfo.showLogo && bInfo.logoBase64) {
+      await BluetoothEscposPrinter.printPic(bInfo.logoBase64, { width: 200, left: 0 });
+      await BluetoothEscposPrinter.printText("\n", {});
+    }
+
     await BluetoothEscposPrinter.printText(`${bInfo.storeName}\n`, { fontweight: 1, padding: 0 });
     
     if (bInfo.tagline) await BluetoothEscposPrinter.printText(`${bInfo.tagline}\n`, { fontweight: 0, padding: 0 });
@@ -108,6 +119,16 @@ const printBluetooth = async (data: PrintData, bInfo: BusinessInfo) => {
     
     await BluetoothEscposPrinter.printText(`TOTAL: Rs.${data.totalAmount}\n`, { fontweight: 1 });
     await BluetoothEscposPrinter.printText("\n", {});
+
+    // Print QR Code if enabled
+    if (bInfo.showQRCode && bInfo.upiId) {
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText("Scan to Pay with UPI\n", { fontweight: 0 });
+      const upiUrl = `upi://pay?pa=${bInfo.upiId}&pn=${encodeURIComponent(bInfo.storeName)}&am=${data.totalAmount}&cu=INR`;
+      await BluetoothEscposPrinter.printQRCode(upiUrl, 250, 1);
+      await BluetoothEscposPrinter.printText("\n", {});
+    }
+
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
     await BluetoothEscposPrinter.printText(`${bInfo.footerMessage}\n`, {});
     await BluetoothEscposPrinter.printText("\n\n\n", {});
