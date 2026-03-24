@@ -5,28 +5,49 @@ import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import BottomTabNavigator from './navigation/BottomTabNavigator';
+import RootNavigator from './navigation/RootNavigator';
+import Toast from 'react-native-toast-message';
 
 import "../global.css"
 
+const AuthStack = createNativeStackNavigator();
+
+import { View, ActivityIndicator } from 'react-native';
+
 function AppContent() {
-  const { token } = useAuth();
+  const { token, loading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
 
-  // If user is not logged in, show Login/Register
-  if (!token) {
-    return showRegister ? (
-      <Register onSwitchToLogin={() => setShowRegister(false)} />
-    ) : (
-      <Login onSwitchToRegister={() => setShowRegister(true)} />
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
     );
   }
 
-  // User is logged in, show the main tabs
-  return <BottomTabNavigator />;
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      {!token ? (
+        showRegister ? (
+          <AuthStack.Screen name="Register">
+            {props => <Register {...props} onSwitchToLogin={() => setShowRegister(false)} />}
+          </AuthStack.Screen>
+        ) : (
+          <AuthStack.Screen name="Login">
+            {props => <Login {...props} onSwitchToRegister={() => setShowRegister(true)} />}
+          </AuthStack.Screen>
+        )
+      ) : (
+        <AuthStack.Screen name="Root" component={RootNavigator} />
+      )}
+    </AuthStack.Navigator>
+  );
 }
 
 export default function App() {
@@ -38,6 +59,7 @@ export default function App() {
       <AuthProvider>
         <NavigationContainer>
           <AppContent />
+          <Toast />
         </NavigationContainer>
       </AuthProvider>
     </SafeAreaProvider>

@@ -1,310 +1,317 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   FlatList,
   TextInput,
   TouchableOpacity,
-  Modal,
   ActivityIndicator,
-  Alert,
-  SafeAreaView,
   StatusBar,
+  Image,
+  Animated,
+  StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  fetchProducts, 
-  createProduct, 
-  createCategory, 
-  Product 
-} from '../api';
+import { fetchProducts, Product } from '../api';
+
+const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
 
 const Products = () => {
   const { token } = useAuth();
-  
-  // Data State - Always initialize as empty array
+  const navigation = useNavigation<any>();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modal States
-  const [isFABExpanded, setIsFABExpanded] = useState(false);
-  const [isProductModalVisible, setProductModalVisible] = useState(false);
-  const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [isFABOpen, setIsFABOpen] = useState(false);
 
-  // Form States
-  const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState('');
-  const [newCategory, setNewCategory] = useState('');
-  const [saving, setSaving] = useState(false);
+  // Animation refs
+  const fabAnim      = useRef(new Animated.Value(0)).current;
+  const anim1        = useRef(new Animated.Value(0)).current;
+  const anim2        = useRef(new Animated.Value(0)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  const openFAB = () => {
+    setIsFABOpen(true);
+    Animated.parallel([
+      Animated.spring(fabAnim,      { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(backdropAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.sequence([
+        Animated.delay(40),
+        Animated.spring(anim2, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
+      ]),
+      Animated.sequence([
+        Animated.delay(100),
+        Animated.spring(anim1, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
+      ]),
+    ]).start();
+  };
+
+  const closeFAB = () => {
+    Animated.parallel([
+      Animated.spring(fabAnim,      { toValue: 0, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(backdropAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(anim1,        { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
+      Animated.spring(anim2,        { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
+    ]).start(() => setIsFABOpen(false));
+  };
+
+  const toggleFAB = () => (isFABOpen ? closeFAB() : openFAB());
+
+  const navigateTo = (screen: string) => {
+    closeFAB();
+    setTimeout(() => navigation.navigate(screen), 200);
+  };
+
+  const fabRotate    = fabAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
+  const makeSubStyle = (anim: Animated.Value) => ({
+    opacity: anim,
+    transform: [
+      { scale: anim },
+      { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+    ],
+  });
 
   const loadData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const data: any = await fetchProducts(token);
-      // Robust check: ensure we always have an array
-      if (Array.isArray(data)) {
-        setProducts(data);
-      } else if (data && Array.isArray(data.products)) {
-        setProducts(data.products);
-      } else {
-        setProducts([]);
-      }
+      const resp: any = await fetchProducts(token);
+      const items = Array.isArray(resp) ? resp : resp?.products || resp?.data || [];
+      setProducts(items);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to sync inventory');
-      setProducts([]); // Fallback to empty on error
+      console.error('Fetch error:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const handleCreateProduct = async () => {
-    if (!newName.trim() || !newPrice.trim()) {
-      return Alert.alert('Essentials missing!', 'Name and price are required.');
-    }
-    setSaving(true);
-    try {
-      await createProduct({ 
-        name: newName.trim(), 
-        price: Number(newPrice) 
-      }, token);
-      setProductModalVisible(false);
-      setNewName('');
-      setNewPrice('');
-      loadData();
-      Alert.alert('Success', 'Inventory updated live!');
-    } catch (error: any) {
-      Alert.alert('Process failed', error?.message || 'Check your inputs.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCreateCategory = async () => {
-    if (!newCategory.trim()) return;
-    setSaving(true);
-    try {
-      await createCategory({ name: newCategory.trim() }, token);
-      setCategoryModalVisible(false);
-      setNewCategory('');
-      Alert.alert('Success', 'New category added to vault.');
-    } catch (error: any) {
-      Alert.alert('Error', 'Failed to create category.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Safe filter logic
-  const getSafeProducts = () => {
-    return Array.isArray(products) ? products : [];
-  };
-
-  const filteredProducts = getSafeProducts().filter(p => 
-    p?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const StatCard = ({ label, value, colorClass }: any) => (
-    <View className={`p-4 rounded-3xl ${colorClass} flex-1 shadow-sm`}>
-      <Text className="text-[10px] font-black text-black/40 uppercase tracking-widest">{label}</Text>
-      <Text className="text-xl font-black text-slate-900 mt-1">{value || 0}</Text>
-    </View>
-  );
+  const filteredProducts = products.filter((p: Product) => {
+    const name   = (p.name || '').toLowerCase();
+    const code   = (p.product_code || String(p.id) || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return name.includes(search) || code.includes(search);
+  });
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
-      
-      {/* Premium Header */}
-      <View className="px-6 pt-6 pb-4 bg-white shadow-sm rounded-b-[40px]">
-        <View className="flex-row items-center justify-between mb-6">
-          <View>
-             <Text className="text-3xl font-black italic text-slate-900 lowercase leading-tight">
-               inventory<Text className="text-rose-600">.</Text>
-             </Text>
-             <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Vault Control</Text>
-          </View>
-          <TouchableOpacity className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-             <Feather name="filter" size={18} color="#94a3b8" />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={['left', 'right']}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
 
-        {/* Search Bar */}
-        <View className="relative">
-          <View className="absolute left-4 top-1/2 -mt-2.5 z-10">
-            <Feather name="search" size={16} color="#cbd5e1" />
-          </View>
+      {/* HEADER */}
+      <LinearGradient colors={HEADER_GRADIENT} className="px-6 pt-4 pb-8 rounded-b-[35px]">
+        <View className="flex-row items-center bg-white rounded-xl px-4 h-12">
+          <Feather name="search" size={15} color="#64748b" />
           <TextInput
-            placeholder="Search by name or code..."
-            placeholderTextColor="#cbd5e1"
-            className="bg-gray-50/50 border border-gray-100 px-12 py-3 rounded-2xl font-bold text-slate-800 text-xs"
+            placeholder="Search products or codes..."
+            placeholderTextColor="#64748b"
+            className="flex-1 ml-2 text-[13px] font-bold text-slate-900"
             value={searchTerm}
             onChangeText={setSearchTerm}
           />
+          {searchTerm.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchTerm('')}>
+              <Feather name="x" size={14} color="#94a3b8" />
+            </TouchableOpacity>
+          )}
         </View>
+      </LinearGradient>
 
-        {/* Stats Row */}
-        <View className="flex-row gap-3 mt-6 mb-2">
-            <StatCard label="Total" value={getSafeProducts().length} colorClass="bg-rose-50" />
-            <StatCard label="Active" value={getSafeProducts().filter(p => (p.price || 0) > 0).length} colorClass="bg-emerald-50" />
-            <StatCard label="Warning" value="02" colorClass="bg-amber-50" />
-        </View>
-      </View>
-
+      {/* LIST */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator color="#E11D48" size="large" />
-          <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Syncing Vault...</Text>
+          <ActivityIndicator color="#f97316" size="large" />
+          <Text className="mt-3 text-[10px] font-black text-slate-400 tracking-widest">
+            SYNCING VAULT...
+          </Text>
         </View>
       ) : (
         <FlatList
           data={filteredProducts}
-          contentContainerStyle={{ padding: 24, paddingBottom: 150 }}
           keyExtractor={(item) => String(item.id)}
+          numColumns={2}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16, paddingBottom: 130 }}
+          columnWrapperStyle={{ justifyContent: 'space-between' }}
           renderItem={({ item }) => (
-            <TouchableOpacity className="bg-white p-5 rounded-[32px] mb-4 border border-gray-100 shadow-sm flex-row items-center justify-between overflow-hidden">
-                <View className="flex-row items-center space-x-4">
-                  <View className="w-14 h-14 bg-rose-50 rounded-2xl items-center justify-center">
-                    <Feather name="box" size={24} color="#E11D48" />
-                  </View>
-                  <View>
-                    <Text className="text-sm font-black text-slate-800 tracking-tight">{item.name}</Text>
-                    <View className="flex-row items-center space-x-2 mt-1">
-                      <Text className="text-[9px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md uppercase">PRD-{item.id}</Text>
-                      <Text className="text-[9px] font-bold text-gray-300 uppercase italic">Active Listing</Text>
-                    </View>
-                  </View>
-                </View>
-                <View className="items-end">
-                  <Text className="text-sm font-black text-slate-900 tracking-tighter">
-                    ₹{(item.price || 0).toLocaleString()}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('AddProduct', { id: item.id })}
+              activeOpacity={0.85}
+              className="bg-white w-[48%] mb-4 rounded-2xl p-3 border border-slate-100"
+              style={{ elevation: 2 }}
+            >
+              <View className="h-28 bg-slate-100 rounded-xl items-center justify-center overflow-hidden mb-3">
+                {item.image || item.images?.[0] ? (
+                  <Image
+                    source={{ uri: item.image || item.images?.[0] }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Feather name="box" size={24} color="#f97316" />
+                )}
+              </View>
+
+              <Text className="text-[12px] font-black text-slate-900" numberOfLines={1}>
+                {item.name}
+              </Text>
+
+              <View className="flex-row flex-wrap mt-1 gap-1">
+                <Text className="text-[8px] font-black text-orange-500 bg-orange-100 px-2 py-[2px] rounded-md">
+                  ID-{item.id}
+                </Text>
+                {item.category && (
+                  <Text className="text-[8px] font-black text-slate-500 bg-slate-100 px-2 py-[2px] rounded-md">
+                    {item.category}
                   </Text>
-                </View>
+                )}
+              </View>
+
+              <Text className="mt-2 text-[14px] font-black text-slate-900">
+                ₹{Number(
+                  item.offer_price ||
+                  item.price ||
+                  item.variants?.[0]?.sellingPrice ||
+                  item.variants?.[0]?.mrp ||
+                  0
+                ).toLocaleString('en-IN')}
+              </Text>
+
+              <View className="mt-1 bg-green-50 self-start px-2 py-[2px] rounded-md">
+                <Text className="text-[8px] font-black text-green-600">
+                  {item.total_stock || 0} UNIT
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
           ListEmptyComponent={() => (
             <View className="items-center py-20">
               <Feather name="package" size={40} color="#e5e7eb" />
-              <Text className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">No Items in Vault</Text>
+              <Text className="mt-3 text-[10px] font-black text-slate-300 tracking-widest">
+                NO ASSETS FOUND IN VAULT
+              </Text>
             </View>
           )}
         />
       )}
 
-      {/* --- FLOATING ACTION BUTTON (FAB) --- */}
-      <View className="absolute bottom-8 right-8 items-end z-50">
-        {isFABExpanded && (
-          <View className="mb-4 space-y-3 items-end">
-            <TouchableOpacity 
-              onPress={() => { setCategoryModalVisible(true); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
-            >
-              <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">New Category</Text>
-              <Feather name="tag" size={16} color="#E11D48" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={() => { setProductModalVisible(true); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white border border-gray-100 py-3 px-5 rounded-2xl shadow-xl"
-            >
-              <Text className="text-[10px] font-black text-slate-800 uppercase tracking-widest mr-3">List Product</Text>
-              <Feather name="plus-square" size={16} color="#E11D48" />
-            </TouchableOpacity>
-          </View>
-        )}
-        
-        <TouchableOpacity 
-          onPress={() => setIsFABExpanded(!isFABExpanded)}
-          style={{ elevation: 15 }}
-          className={`w-16 h-16 rounded-[24px] items-center justify-center shadow-2xl transition-all ${isFABExpanded ? 'bg-slate-900' : 'bg-rose-600'}`}
+      {/* ─── SPEED-DIAL FAB ──────────────────────────────────── */}
+
+      {/* Dimmed backdrop */}
+      {isFABOpen && (
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: 'rgba(15,23,42,0.4)' },
+            { opacity: backdropAnim },
+          ]}
         >
-          <Feather name={isFABExpanded ? 'x' : 'plus'} size={32} color="white" />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeFAB}
+            activeOpacity={1}
+          />
+        </Animated.View>
+      )}
+
+      <View style={styles.fabContainer} pointerEvents="box-none">
+        {/* Sub — Add Category */}
+        <Animated.View style={[styles.fabRow, makeSubStyle(anim1)]}>
+          <View style={styles.fabLabel}>
+            <Text style={styles.fabLabelText}>Add Category</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.fabMini, { backgroundColor: '#7c3aed' }]}
+            onPress={() => navigateTo('AddCategory')}
+            activeOpacity={0.85}
+          >
+            <Feather name="tag" size={18} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Sub — Add Product */}
+        <Animated.View style={[styles.fabRow, makeSubStyle(anim2)]}>
+          <View style={styles.fabLabel}>
+            <Text style={styles.fabLabelText}>Add Product</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.fabMini, { backgroundColor: '#f97316' }]}
+            onPress={() => navigateTo('AddProduct')}
+            activeOpacity={0.85}
+          >
+            <Feather name="box" size={18} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Main FAB */}
+        <TouchableOpacity onPress={toggleFAB} style={styles.fabMain} activeOpacity={0.9}>
+          <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
+            <Feather name="plus" size={28} color="#fff" />
+          </Animated.View>
         </TouchableOpacity>
       </View>
-
-      {/* ADD PRODUCT MODAL */}
-      <Modal visible={isProductModalVisible} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/40">
-           <View className="bg-white rounded-t-[50px] p-8 pb-12 shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-black italic text-slate-900 uppercase">List Product</Text>
-                <TouchableOpacity onPress={() => setProductModalVisible(false)} className="p-2">
-                  <Feather name="x" size={24} color="#94a3b8" />
-                </TouchableOpacity>
-              </View>
-              
-              <View className="space-y-4">
-                 <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Product Identity</Text>
-                    <TextInput 
-                      className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800"
-                      placeholder="e.g. Traditional Wedding Silk"
-                      value={newName}
-                      onChangeText={setNewName}
-                    />
-                 </View>
-                 <View>
-                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Price Component (₹)</Text>
-                    <TextInput 
-                      className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800"
-                      placeholder="2999"
-                      keyboardType="numeric"
-                      value={newPrice}
-                      onChangeText={setNewPrice}
-                    />
-                 </View>
-
-                 <TouchableOpacity 
-                   onPress={handleCreateProduct}
-                   disabled={saving}
-                   className="bg-rose-600 p-6 rounded-3xl items-center mt-4 shadow-xl shadow-rose-200"
-                 >
-                    {saving ? <ActivityIndicator color="white" /> : (
-                      <Text className="text-white font-black uppercase tracking-widest">Sync to Cloud</Text>
-                    )}
-                 </TouchableOpacity>
-              </View>
-           </View>
-        </View>
-      </Modal>
-
-      {/* ADD CATEGORY MODAL */}
-      <Modal visible={isCategoryModalVisible} animationType="fade" transparent>
-        <TouchableOpacity 
-          activeOpacity={1} 
-          onPress={() => setCategoryModalVisible(false)}
-          className="flex-1 justify-center px-6 bg-black/60"
-        >
-           <View className="bg-white rounded-[40px] p-8 shadow-2xl overflow-hidden" onStartShouldSetResponder={() => true}>
-              <Text className="text-xl font-black text-slate-900 uppercase italic">Add Category</Text>
-              <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 mb-6">Inventory Taxonomies</Text>
-              
-              <TextInput 
-                className="bg-gray-50 p-5 rounded-2xl font-bold text-slate-800 mb-6"
-                placeholder="Category Name"
-                value={newCategory}
-                onChangeText={setNewCategory}
-                autoFocus
-              />
-
-              <TouchableOpacity 
-                onPress={handleCreateCategory}
-                className="bg-slate-900 p-5 rounded-2xl items-center"
-              >
-                <Text className="text-white font-black uppercase tracking-widest text-xs">Register Category</Text>
-              </TouchableOpacity>
-           </View>
-        </TouchableOpacity>
-      </Modal>
-
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  fabContainer: {
+    position: 'absolute',
+    bottom: 95,
+    right: 20,
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  fabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fabLabel: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  fabLabelText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1e293b',
+  },
+  fabMini: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  fabMain: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+});
 
 export default Products;

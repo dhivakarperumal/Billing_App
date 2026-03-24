@@ -1,0 +1,38 @@
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import BottomTabNavigator from './BottomTabNavigator';
+import AddProduct from '../screens/AddProduct';
+import AddCategory from '../screens/AddCategory';
+import CreateBilling from '../screens/CreateBilling';
+import ScannerScreen from '../screens/ScannerScreen';
+import PrinterSettings from '../screens/PrinterSettings';
+import DiagnosticsScreen from '../screens/Diagnostics';
+import ReceiptSetup from '../screens/ReceiptSetup';
+import PrinterConfig from '../Settings/PrinterConfig';
+import GSTSettings from '../Settings/GSTSettings';
+import Reports from '../screens/Reports';
+import StockManagement from '../screens/StockManagement';
+import AddStock from '../screens/AddStock';
+
+const Stack = createNativeStackNavigator();
+
+export default function RootNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={BottomTabNavigator} />
+      <Stack.Screen name="AddProduct" component={AddProduct} />
+      <Stack.Screen name="AddCategory" component={AddCategory} />
+      <Stack.Screen name="CreateBilling" component={CreateBilling} />
+      <Stack.Screen name="ScannerScreen" component={ScannerScreen} />
+      <Stack.Screen name="PrinterSettings" component={PrinterSettings} />
+      <Stack.Screen name="Diagnostics" component={DiagnosticsScreen} />
+      <Stack.Screen name="ReceiptSetup" component={ReceiptSetup} />
+      
+      <Stack.Screen name="PrinterConfig" component={PrinterConfig} />
+      <Stack.Screen name="GSTSettings" component={GSTSettings} />
+      <Stack.Screen name="Reports" component={Reports} />
+      <Stack.Screen name="StockManagement" component={StockManagement} />
+      <Stack.Screen name="AddStock" component={AddStock} />
+    </Stack.Navigator>
+  );
+}
