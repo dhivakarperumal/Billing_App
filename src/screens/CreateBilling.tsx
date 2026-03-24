@@ -39,6 +39,9 @@ const CreateBilling = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [showCart, setShowCart] = useState(false);
+    const [showPostSavePreview, setShowPostSavePreview] = useState(false);
+    const [savedPrintData, setSavedPrintData] = useState<PrintData | null>(null);
+    const [businessInfo, setBusinessInfo] = useState<any>(null);
 
     // Form State
     const [customerName, setCustomerName] = useState("");
@@ -62,8 +65,31 @@ const CreateBilling = () => {
                 if (type) setGstType(type as any);
             } catch (e) {}
         };
+        const loadBusinessInfo = async () => {
+            try {
+                const data = await AsyncStorage.getItem('business_info');
+                if (data) setBusinessInfo(JSON.parse(data));
+            } catch (e) {}
+        };
         loadTaxConfig();
+        loadBusinessInfo();
     }, []);
+
+    const finalizeUI = async () => {
+        try {
+            const afterA = await AsyncStorage.getItem('after_save_action') || 'stay';
+            if (afterA === 'back') {
+                navigation.goBack();
+            } else {
+                setCart([]);
+                setCustomerName("");
+                setCustomerPhone("");
+                setShowPostSavePreview(false);
+            }
+        } catch (e) {
+            navigation.goBack();
+        }
+    };
 
     // ─── Calculations ──────────────────────────────────────────
     const { subtotal, gstAmount, cartTotal } = useMemo(() => {
@@ -390,18 +416,7 @@ const CreateBilling = () => {
             // Load Post-Save Preferences
             const autoP = await AsyncStorage.getItem('auto_print') === 'true';
             const afterA = await AsyncStorage.getItem('after_save_action') || 'back';
-
-            const finalizeUI = () => {
-                setCart([]);
-                setCustomerName("");
-                setCustomerPhone("");
-                if (afterA === 'back') {
-                    navigation.goBack();
-                } else {
-                    Alert.alert("Success", "Bill saved. Ready for next transaction.");
-                }
-            };
-
+            
             const printData: PrintData = {
                 customerName,
                 customerPhone,
@@ -417,23 +432,8 @@ const CreateBilling = () => {
                 await printReceipt(printData);
                 finalizeUI();
             } else {
-                Alert.alert(
-                    "Success", 
-                    "Transaction finalized and uploaded.",
-                    [
-                        {
-                            text: "Print Receipt",
-                            onPress: async () => {
-                                await printReceipt(printData);
-                                finalizeUI();
-                            }
-                        },
-                        {
-                            text: "Done",
-                            onPress: () => finalizeUI()
-                        }
-                    ]
-                );
+                setSavedPrintData(printData);
+                setShowPostSavePreview(true);
             }
         } catch (err: any) {
             Alert.alert("Upload Failed", err?.message || "Check network connection.");
@@ -645,6 +645,115 @@ const CreateBilling = () => {
                     </View>
                 </View>
             </Modal>
+
+            {/* 🔥 POST-SAVE RECEIPT PREVIEW BOTTOM SHEET */}
+            <Modal visible={showPostSavePreview} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalSheet, { maxHeight: '95%', borderTopRightRadius: 40, borderTopLeftRadius: 40, padding: 0 }]}>
+                        {/* Drag Indicator */}
+                        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                            <View style={{ width: 48, height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, alignSelf: 'center' }} />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 30, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                            <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b', letterSpacing: 2, textTransform: 'uppercase' }}>Final Receipt</Text>
+                            <TouchableOpacity onPress={() => finalizeUI()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                <Feather name="x" size={20} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 25, paddingBottom: 40 }}>
+                            {savedPrintData && (
+                                <View style={{ backgroundColor: '#fff', borderRadius: 4, padding: 30, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 5, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                    {/* Header */}
+                                    <View style={{ alignItems: 'center', marginBottom: 25 }}>
+                                        {businessInfo?.showLogo && businessInfo?.logoBase64 && (
+                                            <View style={{ marginBottom: 15, padding: 8, backgroundColor: '#f8fafc', borderRadius: 16 }}>
+                                                <Image source={{ uri: `data:image/png;base64,${businessInfo.logoBase64}` }} style={{ width: 90, height: 90 }} resizeMode="contain" />
+                                            </View>
+                                        )}
+                                        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', textAlign: 'center' }}>{businessInfo?.storeName || 'BILLING APP'}</Text>
+                                        {businessInfo?.tagline && <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', textAlign: 'center', marginTop: 4, fontStyle: 'italic' }}>{businessInfo.tagline}</Text>}
+                                        
+                                        <View style={{ marginTop: 15, alignItems: 'center' }}>
+                                            {businessInfo?.address && <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '600', textAlign: 'center' }}>{businessInfo.address}</Text>}
+                                            {businessInfo?.phone && <Text style={{ fontSize: 10, color: '#475569', fontWeight: '900', textAlign: 'center', marginTop: 4 }}>Ph: {businessInfo.phone}</Text>}
+                                        </View>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+                                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1 }}>ORD-#{savedPrintData.billId}</Text>
+                                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1 }}>{savedPrintData.date}</Text>
+                                    </View>
+
+                                    <View style={{ height: 1, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', borderStyle: 'dashed', marginBottom: 25 }} />
+
+                                    {/* Items */}
+                                    <View style={{ gap: 15, marginBottom: 25 }}>
+                                        {savedPrintData.items.map((item, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <View style={{ flex: 1, paddingRight: 20 }}>
+                                                    <Text style={{ fontSize: 13, fontWeight: '900', color: '#1e293b' }}>{item.name}</Text>
+                                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', marginTop: 2 }}>{item.quantity} x ₹{item.price}</Text>
+                                                </View>
+                                                <Text style={{ fontSize: 13, fontWeight: '900', color: '#0f172a' }}>₹{(item.price * item.quantity).toFixed(2)}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    <View style={{ height: 1.5, backgroundColor: '#0f172a', marginVertical: 25 }} />
+
+                                    {/* Totals */}
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Text style={{ fontSize: 16, fontWeight: '900', color: '#0f172a' }}>PAID AMOUNT</Text>
+                                        <Text style={{ fontSize: 22, fontWeight: '900', color: '#f97316' }}>₹{savedPrintData.totalAmount}</Text>
+                                    </View>
+
+                                    {/* QR Section */}
+                                    {businessInfo?.showQRCode && businessInfo?.upiId && (
+                                        <View style={{ alignItems: 'center', marginTop: 30, backgroundColor: '#f8fafc', padding: 25, borderRadius: 30, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, marginBottom: 20 }}>VERIFY PAYMENT VIA UPI</Text>
+                                            <View style={{ backgroundColor: '#fff', padding: 15, borderRadius: 24, elevation: 2 }}>
+                                                <Image 
+                                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${businessInfo.upiId}&pn=${businessInfo.storeName}&am=${savedPrintData.totalAmount}&cu=INR`)}` }} 
+                                                    style={{ width: 140, height: 140 }} 
+                                                />
+                                            </View>
+                                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 20, backgroundColor: '#fff', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>{businessInfo.upiId}</Text>
+                                        </View>
+                                    )}
+
+                                    {/* Footer */}
+                                    <View style={{ marginTop: 35, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 25, alignItems: 'center' }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{businessInfo?.footerMessage || 'Thank You!'}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 25, opacity: 0.3 }}>
+                                            <View style={{ height: 1, flex: 1, backgroundColor: '#cbd5e1' }} />
+                                            <Text style={{ fontSize: 8, fontWeight: '900', color: '#94a3b8', marginHorizontal: 12, letterSpacing: 2 }}>VERIFIED BY ZIPKART</Text>
+                                            <View style={{ height: 1, flex: 1, backgroundColor: '#cbd5e1' }} />
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={{ paddingHorizontal: 30, paddingBottom: 50, paddingTop: 20, backgroundColor: '#fff', flexDirection: 'row', gap: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
+                            <TouchableOpacity onPress={() => finalizeUI()} style={{ flex: 1, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9', paddingVertical: 18, borderRadius: 22, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#64748b', letterSpacing: 1 }}>DONE</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={async () => {
+                                    if (savedPrintData) await printReceipt(savedPrintData);
+                                    finalizeUI();
+                                }} 
+                                style={{ flex: 2, backgroundColor: '#f97316', paddingVertical: 18, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 8, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 10 }}
+                            >
+                                <Feather name="printer" size={20} color="white" />
+                                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }}>PRINT RECEIPT</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -717,4 +826,25 @@ const styles = StyleSheet.create({
     vQty: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
     vPrice: { fontSize: 11, fontWeight: '800', color: '#E11D48', marginTop: 4 },
     cancelTxt: { fontSize: 11, fontWeight: '900', color: '#94a3b8' },
+
+    /* Thermal Preview UI */
+    previewCloseBtn: { width: 40, height: 40, backgroundColor: '#f1f5f9', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    thermalPreview: { backgroundColor: '#fff', padding: 25, borderRadius: 2, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 5 },
+    previewLogo: { width: 70, height: 70, marginBottom: 10 },
+    previewStoreName: { fontSize: 18, fontWeight: '900', color: '#000', textAlign: 'center', textTransform: 'uppercase' },
+    previewSub: { fontSize: 9, fontWeight: '700', color: '#64748b', textAlign: 'center', marginTop: 2 },
+    receiptDivider: { height: 1, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', borderStyle: 'dashed', marginVertical: 15 },
+    previewInfo: { fontSize: 11, fontWeight: '700', color: '#000' },
+    previewItemName: { fontSize: 12, fontWeight: '900', color: '#000' },
+    previewItemQty: { fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 2 },
+    previewItemTotal: { fontSize: 12, fontWeight: '900', color: '#000' },
+    previewGrandTotalLabel: { fontSize: 14, fontWeight: '900', color: '#000' },
+    previewGrandTotalVal: { fontSize: 20, fontWeight: '900', color: '#f97316' },
+    previewQRTitle: { fontSize: 10, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase' },
+    previewUPIText: { fontSize: 8, fontWeight: '700', color: '#cbd5e1', marginTop: 8 },
+    previewActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    skipBtn: { flex: 1, height: 55, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+    skipBtnTxt: { color: '#64748b', fontWeight: '900', fontSize: 13 },
+    printActionBtn: { flex: 2, height: 55, borderRadius: 18, backgroundColor: '#f97316', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 3 },
+    printActionTxt: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 });
