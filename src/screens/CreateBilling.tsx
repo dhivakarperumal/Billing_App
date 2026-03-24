@@ -210,6 +210,49 @@ const CreateBilling = () => {
             });
         };
 
+        const addCustomUpiItem = (url: string) => {
+            try {
+                const upiUrl = new URL(url);
+                const params = new URLSearchParams(upiUrl.search);
+                const amount = params.get('am');
+                const name = params.get('pn') || 'QR Payment';
+                
+                if (amount) {
+                    const price = parseFloat(amount);
+                    const itemId = `upi-${Date.now()}`;
+                    
+                    setCart(prev => [...prev, {
+                        id: itemId,
+                        product_id: 0,
+                        name: `QR: ${decodeURIComponent(name)}`,
+                        price: price,
+                        quantity: 1,
+                        image: null
+                    }]);
+                    return true;
+                }
+            } catch (e) {
+                // Fallback for non-standard or malformed URLs
+                if (url.includes('am=')) {
+                    const match = url.match(/am=([0-9.]+)/);
+                    if (match && match[1]) {
+                        const price = parseFloat(match[1]);
+                        const itemId = `upi-${Date.now()}`;
+                        setCart(prev => [...prev, {
+                            id: itemId,
+                            product_id: 0,
+                            name: 'QR Amount',
+                            price: price,
+                            quantity: 1,
+                            image: null
+                        }]);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
         const findProductByBarcode = (code: string) => {
             const bc = String(code).toLowerCase().trim();
             return products.find(p =>
@@ -220,18 +263,33 @@ const CreateBilling = () => {
 
         if (products.length > 0) {
             if (route.params?.barcode) {
+                const code = route.params.barcode;
+                
+                // Check if it's a UPI QR first
+                if (code.startsWith('upi://') || code.includes('am=')) {
+                    if (addCustomUpiItem(code)) {
+                        navigation.setParams({ barcode: null });
+                        return;
+                    }
+                }
+
                 // Single scan → open modal for variant/quantity selection
-                const product = findProductByBarcode(route.params.barcode);
+                const product = findProductByBarcode(code);
                 if (product) {
                     handleProductPress(product);
                 } else {
-                    Alert.alert("Not Found", `Barcode [${route.params.barcode}] matches no inventory item.`);
+                    Alert.alert("Not Found", `Barcode [${code}] matches no inventory item.`);
                 }
                 navigation.setParams({ barcode: null });
             } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
-                // Batch multi-scan → add all directly to cart (qty 1 each, first variant)
+                // Batch multi-scan
                 const notFound: string[] = [];
                 route.params.barcodes.forEach((code: string) => {
+                    // Check for UPI QR in batch
+                    if (code.startsWith('upi://') || code.includes('am=')) {
+                        if (addCustomUpiItem(code)) return;
+                    }
+
                     const product = findProductByBarcode(code);
                     if (product) {
                         addProductDirectly(product);

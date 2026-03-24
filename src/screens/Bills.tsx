@@ -8,13 +8,16 @@ import {
   StatusBar,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
+import { printReceipt } from '../utils/printer';
 
 const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
 
@@ -26,6 +29,7 @@ const Bills = () => {
 
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [businessInfo, setBusinessInfo] = useState<any>(null);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -42,7 +46,37 @@ const Bills = () => {
 
   useEffect(() => {
     loadData();
+    loadBusinessInfo();
   }, [loadData]);
+
+  const loadBusinessInfo = async () => {
+    try {
+      const data = await AsyncStorage.getItem('business_info');
+      if (data) setBusinessInfo(JSON.parse(data));
+    } catch (e) {}
+  };
+
+  const handlePrint = async () => {
+    if (!selectedBill) return;
+    
+    const items = billItems.map((item: any) => ({
+      name: item.name || `Product ${item.product_id}`,
+      quantity: item.quantity || 1,
+      price: item.price || 0
+    }));
+
+    const total = selectedBill.total_amount || selectedBill.total || 0;
+
+    await printReceipt({
+      customerName: selectedBill.customer_name || 'Walk-in Guest',
+      customerPhone: selectedBill.customer_phone || 'N/A',
+      items,
+      totalAmount: total,
+      billId: selectedBill.id,
+      date: new Date(selectedBill.created_at).toLocaleDateString()
+    });
+    setModalVisible(false);
+  };
 
   const handleOpenBill = (item: any) => {
     setSelectedBill(item);
@@ -304,6 +338,24 @@ const Bills = () => {
                       </Text>
                     </View>
 
+                    {/* 🔥 UPI QR Code */}
+                    {businessInfo?.showQRCode && businessInfo?.upiId && (
+                      <View className="items-center bg-white border border-slate-100 p-6 rounded-3xl mb-6 shadow-sm">
+                        <Text className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                          Scan to Pay
+                        </Text>
+                        <Image
+                          source={{
+                            uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${businessInfo.upiId}&pn=${businessInfo.storeName || 'Merchant'}&am=${selectedBill.total_amount || selectedBill.total || 0}&cu=INR`)}`,
+                          }}
+                          className="w-44 h-44"
+                        />
+                        <Text className="text-[10px] font-bold text-slate-500 mt-4">
+                          {businessInfo.upiId}
+                        </Text>
+                      </View>
+                    )}
+
                     {/* 🔥 BUTTONS */}
                     <View className="flex-row gap-3">
                       <TouchableOpacity
@@ -315,10 +367,10 @@ const Bills = () => {
 
                       <TouchableOpacity
                         className="flex-1 p-4 rounded-xl bg-orange-500 flex-row justify-center items-center space-x-2"
-                        onPress={() => setModalVisible(false)}
+                        onPress={handlePrint}
                       >
                         <Feather name="printer" size={16} color="#fff" />
-                        <Text className="text-white font-black">Print</Text>
+                        <Text className="text-white font-black">Print Bill</Text>
                       </TouchableOpacity>
                     </View>
                   </>

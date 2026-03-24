@@ -247,7 +247,7 @@ const ReceiptSetup = () => {
                 {showQRCode && upiId !== '' && (
                     <View style={styles.qrContainer}>
                         <Image 
-                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}` }} 
+                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=10.00&cu=INR`)}` }} 
                             style={styles.qrPreview} 
                         />
                         <Text style={styles.qrLabel}>UPI Payment QR Preview</Text>
@@ -306,7 +306,7 @@ const ReceiptSetup = () => {
                             <View style={styles.previewQRSection}>
                                 <Text style={styles.previewQRText}>Scan to Pay</Text>
                                 <Image 
-                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}` }} 
+                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=350.00&cu=INR`)}` }} 
                                     style={styles.previewQRImage} 
                                 />
                                 <Text style={styles.previewUPI}>{upiId}</Text>
