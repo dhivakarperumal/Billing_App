@@ -18,13 +18,16 @@ import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  fetchCategories, 
-  createProduct, 
-  updateProduct, 
+import {
+  fetchCategories,
+  createProduct,
+  updateProduct,
   fetchProductById,
+  fetchNextProductId,
   ProductData
 } from '../api';
+import { getTamilProductName } from '../utils/tamilProductNames';
+import { transliterateToTamil } from '../utils/tamilPhonetic';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -89,11 +92,23 @@ const AddProduct = () => {
             total_stock: product.total_stock || 0,
             expiry: product.expiry || { mfgDate: '', expDate: '', batchNo: '' },
             supplier: product.supplier || { name: '', contact: '' },
-            variants: product.variants?.length ? product.variants : formData.variants,
+            variants: product.variants?.length
+              ? product.variants
+              : [{ quantity: '', unit: 'kg', mrp: '', discount: '', sellingPrice: '', stock: '' }],
           });
           if (product.category) {
             const cat = cats.find((c: any) => c.name === product.category);
             setSelectedCategory(cat);
+          }
+        } else {
+          // New Product - Fetch Next ID
+          try {
+            const res = await fetchNextProductId(token);
+            if (res.nextId) {
+              setFormData((prev: any) => ({ ...prev, product_code: res.nextId }));
+            }
+          } catch (e) {
+            console.error('Error fetching next product ID:', e);
           }
         }
       } catch (err) {
@@ -113,6 +128,11 @@ const AddProduct = () => {
         next[section] = { ...prev[section], [name]: value };
       } else {
         next[name] = value;
+      }
+
+      // Auto Tamil translation when name is typed
+      if (name === 'name') {
+        next.name_tamil = getTamilProductName(value) || transliterateToTamil(value);
       }
 
       // Auto calculation for top level
@@ -137,7 +157,16 @@ const AddProduct = () => {
   const handleVariantChange = (i: number, field: string, value: string) => {
     setFormData((prev: any) => {
       const updatedVariants = [...prev.variants];
+      const prevWeight = updatedVariants[i].quantity;
       updatedVariants[i] = { ...updatedVariants[i], [field]: value };
+
+      // Auto-fill stock from weight (quantity) if stock is empty/zero or matches previous weight
+      if (field === 'quantity') {
+        const currentStock = updatedVariants[i].stock;
+        if (currentStock === '' || currentStock === '0' || currentStock === prevWeight) {
+          updatedVariants[i].stock = value;
+        }
+      }
 
       // Calculate selling price for this variant
       if (field === 'mrp' || field === 'discount') {
@@ -209,7 +238,7 @@ const AddProduct = () => {
     };
 
     const method = type === 'camera' ? import('react-native-image-picker').then(m => m.launchCamera) : import('react-native-image-picker').then(m => m.launchImageLibrary);
-    
+
     // Using import for dynamic or just the imported ones
     const picker = type === 'camera' ? (await import('react-native-image-picker')).launchCamera : (await import('react-native-image-picker')).launchImageLibrary;
 
@@ -218,7 +247,7 @@ const AddProduct = () => {
         const newImages = result.assets
           .filter((asset: any) => asset.base64)
           .map((asset: any) => `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`);
-        
+
         setFormData((prev: any) => ({
           ...prev,
           images: [...(prev.images || []), ...newImages],
@@ -290,36 +319,79 @@ const AddProduct = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ... */}
         <FormSection title="Core Details" icon="info">
-          <FormInput 
-            label="Product Name" 
-            value={formData.name} 
-            onChangeText={(v: string) => handleChange('name', v)} 
-            placeholder="e.g. Organic Brown Rice" 
+          {isEdit && formData.id ? (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Product ID</Text>
+              <View style={[styles.input, { backgroundColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center' }]}>
+                <Icon name="hash" size={13} color="#94a3b8" style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 14, fontWeight: '900', color: '#64748b' }}>{formData.id}</Text>
+              </View>
+            </View>
+          ) : null}
+          <FormInput
+            label="Product Name"
+            value={formData.name}
+            onChangeText={(v: string) => handleChange('name', v)}
+            placeholder="e.g. Organic Brown Rice"
           />
-          <FormInput 
-            label="Tamil Name" 
-            value={formData.name_tamil} 
-            onChangeText={(v: string) => handleChange('name_tamil', v)} 
-            placeholder="ஆர்கானிக் அரிசி" 
+          <FormInput
+            label="Tamil Name"
+            value={formData.name_tamil}
+            onChangeText={(v: string) => handleChange('name_tamil', v)}
+            placeholder="ஆர்கானிக் அரிசி"
           />
-          <FormInput 
-            label="Tanglish Name (Tamil in English)" 
-            value={formData.name_tanglish} 
-            onChangeText={(v: string) => handleChange('name_tanglish', v)} 
-            placeholder="e.g. Organic Arisi" 
+          <FormInput
+            label="Tanglish Name (Tamil in English)"
+            value={formData.name_tanglish}
+            onChangeText={(v: string) => handleChange('name_tanglish', v)}
+            placeholder="e.g. Organic Arisi"
           />
-          <FormInput 
-            label="Product Code" 
-            value={formData.product_code} 
-            onChangeText={(v: string) => handleChange('product_code', v)} 
-            placeholder="PB001" 
-          />
-          <FormInput 
-            label="Description" 
-            value={formData.description} 
-            onChangeText={(v: string) => handleChange('description', v)} 
-            placeholder="Product details..." 
-            multiline 
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Product Code / Barcode</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingRight: 4 }}>
+              <TextInput
+                style={[styles.input, { flex: 1, backgroundColor: 'transparent' }]}
+                value={formData.product_code}
+                onChangeText={(v: string) => handleChange('product_code', v)}
+                placeholder="PB001"
+                placeholderTextColor="#cbd5e1"
+                keyboardType="default"
+              />
+              <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="maximize" size={14} color="#f97316" />
+              </View>
+            </View>
+          </View>
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.label}>Generated Barcode Preview</Text>
+            <View style={styles.barcodePreviewContainer}>
+              {formData.product_code ? (
+                <>
+                  <Image
+                    source={{
+                      uri: `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(
+                        formData.product_code,
+                      )}&scale=5&rotate=N&includetext=true`,
+                    }}
+                    style={styles.barcodeImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.barcodeHint}>Scan code for product lookup</Text>
+                </>
+              ) : (
+                <View style={styles.barcodePlaceholder}>
+                  <Icon name="slash" size={24} color="#e2e8f0" />
+                  <Text style={styles.barcodeHint}>Identify product with custom code</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <FormInput
+            label="Description"
+            value={formData.description}
+            onChangeText={(v: string) => handleChange('description', v)}
+            placeholder="Product details..."
+            multiline
             numberOfLines={4}
           />
           <View style={styles.row}>
@@ -327,8 +399,8 @@ const AddProduct = () => {
               <Text style={styles.label}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
                 {categories.map((c: any) => (
-                  <TouchableOpacity 
-                    key={c.id} 
+                  <TouchableOpacity
+                    key={c.id}
                     onPress={() => handleChange('category', c.name)}
                     style={[styles.chip, formData.category === c.name && styles.chipActive]}
                   >
@@ -343,8 +415,8 @@ const AddProduct = () => {
               <Text style={styles.label}>Sub-Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
                 {selectedCategory.subcategories.map((s: string, idx: number) => (
-                  <TouchableOpacity 
-                    key={idx} 
+                  <TouchableOpacity
+                    key={idx}
                     onPress={() => handleChange('subcategory', s)}
                     style={[styles.chip, formData.subcategory === s && styles.chipActiveSub]}
                   >
@@ -357,26 +429,26 @@ const AddProduct = () => {
 
           <View style={[styles.row, { marginTop: 16 }]}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <FormInput 
-                label="Rating (1-5)" 
-                value={formData.rating} 
-                onChangeText={(v: string) => handleChange('rating', v)} 
-                placeholder="4.5" 
+              <FormInput
+                label="Rating (1-5)"
+                value={formData.rating}
+                onChangeText={(v: string) => handleChange('rating', v)}
+                placeholder="4.5"
                 keyboardType="numeric"
               />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Status</Text>
               <View style={styles.pickerContainer}>
-                 {['Active', 'Inactive', 'Out of Stock'].map((st) => (
-                   <TouchableOpacity 
-                     key={st} 
-                     onPress={() => handleChange('status', st)}
-                     style={[styles.statusChip, formData.status === st && styles.statusActive]}
-                   >
-                     <Text style={[styles.statusText, formData.status === st && styles.statusTextActive]}>{st}</Text>
-                   </TouchableOpacity>
-                 ))}
+                {['Active', 'Inactive', 'Out of Stock'].map((st) => (
+                  <TouchableOpacity
+                    key={st}
+                    onPress={() => handleChange('status', st)}
+                    style={[styles.statusChip, formData.status === st && styles.statusActive]}
+                  >
+                    <Text style={[styles.statusText, formData.status === st && styles.statusTextActive]}>{st}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </View>
@@ -385,34 +457,34 @@ const AddProduct = () => {
         <FormSection title="Pricing & Media" icon="image">
           <View style={styles.row}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <FormInput 
-                label="MRP" 
-                value={formData.mrp} 
-                onChangeText={(v: string) => handleChange('mrp', v)} 
-                placeholder="0.00" 
+              <FormInput
+                label="MRP"
+                value={formData.mrp}
+                onChangeText={(v: string) => handleChange('mrp', v)}
+                placeholder="0.00"
                 keyboardType="numeric"
               />
             </View>
             <View style={{ flex: 0.8, marginRight: 8 }}>
-              <FormInput 
-                label="Off %" 
-                value={formData.discount} 
-                onChangeText={(v: string) => handleChange('discount', v)} 
-                placeholder="0" 
+              <FormInput
+                label="Off %"
+                value={formData.discount}
+                onChangeText={(v: string) => handleChange('discount', v)}
+                placeholder="0"
                 keyboardType="numeric"
               />
             </View>
             <View style={{ flex: 1 }}>
-              <FormInput 
-                label="Offer Price" 
-                value={formData.offer_price} 
+              <FormInput
+                label="Offer Price"
+                value={formData.offer_price}
                 editable={false}
-                placeholder="0.00" 
+                placeholder="0.00"
                 style={[styles.input, { backgroundColor: '#f1f5f9', color: '#64748b' }]}
               />
             </View>
           </View>
-          
+
           <Text style={styles.label}>Product Images (Max 5)</Text>
           <ScrollView horizontal style={styles.imageScroll}>
             <TouchableOpacity style={styles.addImage} onPress={handlePickImage}>
@@ -431,8 +503,8 @@ const AddProduct = () => {
 
         <FormSection title="Variants" icon="box">
           <View style={styles.totalStockBadge}>
-             <Text style={styles.totalStockLabel}>Total Distributed Stock:</Text>
-             <Text style={styles.totalStockValue}>{formData.total_stock || 0} Units</Text>
+            <Text style={styles.totalStockLabel}>Total Distributed Stock:</Text>
+            <Text style={styles.totalStockValue}>{formData.total_stock || 0} Units</Text>
           </View>
           {formData.variants.map((v: any, i: number) => (
             <View key={i} style={styles.variantCard}>
@@ -448,21 +520,21 @@ const AddProduct = () => {
               <View style={styles.grid}>
                 <View style={styles.gridCol}>
                   <Text style={styles.miniLabel}>Qty / Weight</Text>
-                  <TextInput 
-                    style={styles.variantInput} 
-                    placeholder="e.g. 500" 
+                  <TextInput
+                    style={styles.variantInput}
+                    placeholder="e.g. 500"
                     placeholderTextColor="#cbd5e1"
-                    value={v.quantity} 
+                    value={v.quantity}
                     onChangeText={(val) => handleVariantChange(i, 'quantity', val)}
                   />
                 </View>
                 <View style={styles.gridCol}>
                   <Text style={styles.miniLabel}>Unit</Text>
-                  <TextInput 
-                    style={styles.variantInput} 
-                    placeholder="e.g. Grams" 
+                  <TextInput
+                    style={styles.variantInput}
+                    placeholder="e.g. Grams"
                     placeholderTextColor="#cbd5e1"
-                    value={v.unit} 
+                    value={v.unit}
                     onChangeText={(val) => handleVariantChange(i, 'unit', val)}
                   />
                 </View>
@@ -471,22 +543,22 @@ const AddProduct = () => {
               <View style={[styles.grid, { marginTop: 12 }]}>
                 <View style={styles.gridCol}>
                   <Text style={styles.miniLabel}>MRP (₹)</Text>
-                  <TextInput 
-                    style={styles.variantInput} 
-                    placeholder="0.00" 
+                  <TextInput
+                    style={styles.variantInput}
+                    placeholder="0.00"
                     placeholderTextColor="#cbd5e1"
-                    value={v.mrp} 
+                    value={v.mrp}
                     onChangeText={(val) => handleVariantChange(i, 'mrp', val)}
                     keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.gridCol}>
                   <Text style={styles.miniLabel}>Discount (%)</Text>
-                  <TextInput 
-                    style={styles.variantInput} 
-                    placeholder="0" 
+                  <TextInput
+                    style={styles.variantInput}
+                    placeholder="0"
                     placeholderTextColor="#cbd5e1"
-                    value={v.discount} 
+                    value={v.discount}
                     onChangeText={(val) => handleVariantChange(i, 'discount', val)}
                     keyboardType="numeric"
                   />
@@ -496,11 +568,11 @@ const AddProduct = () => {
               <View style={[styles.grid, { marginTop: 12 }]}>
                 <View style={styles.gridCol}>
                   <Text style={styles.miniLabel}>Availability (Stock)</Text>
-                  <TextInput 
-                    style={styles.variantInput} 
-                    placeholder="0" 
+                  <TextInput
+                    style={styles.variantInput}
+                    placeholder="0"
                     placeholderTextColor="#cbd5e1"
-                    value={v.stock} 
+                    value={v.stock}
                     onChangeText={(val) => handleVariantChange(i, 'stock', val)}
                     keyboardType="numeric"
                   />
@@ -520,78 +592,78 @@ const AddProduct = () => {
         </FormSection>
 
         <FormSection title="Shelf Life & Supplier" icon="truck">
-           <View style={styles.grid}>
-             <View style={styles.gridCol}>
-               <Text style={styles.miniLabel}>MFG Date</Text>
-               <TouchableOpacity 
-                 onPress={() => setShowMfgPicker(true)}
-                 style={styles.dateButton}
-               >
-                 <Text style={styles.dateButtonText}>{formData.expiry.mfgDate || 'Select Date'}</Text>
-                 <Icon name="calendar" size={14} color="#F43F5E" />
-               </TouchableOpacity>
-               {showMfgPicker && (
-                 <DateTimePicker
-                   value={formData.expiry.mfgDate ? new Date(formData.expiry.mfgDate) : new Date()}
-                   mode="date"
-                   display="default"
-                   onChange={(event, date) => {
-                     setShowMfgPicker(false);
-                     if (date) handleChange('mfgDate', date.toISOString().split('T')[0], 'expiry');
-                   }}
-                 />
-               )}
-             </View>
-             <View style={styles.gridCol}>
-               <Text style={styles.miniLabel}>EXP Date</Text>
-               <TouchableOpacity 
-                 onPress={() => setShowExpPicker(true)}
-                 style={styles.dateButton}
-               >
-                 <Text style={styles.dateButtonText}>{formData.expiry.expDate || 'Select Date'}</Text>
-                 <Icon name="calendar" size={14} color="#F43F5E" />
-               </TouchableOpacity>
-               {showExpPicker && (
-                 <DateTimePicker
-                   value={formData.expiry.expDate ? new Date(formData.expiry.expDate) : new Date()}
-                   mode="date"
-                   display="default"
-                   onChange={(event, date) => {
-                     setShowExpPicker(false);
-                     if (date) handleChange('expDate', date.toISOString().split('T')[0], 'expiry');
-                   }}
-                 />
-               )}
-             </View>
-           </View>
+          <View style={styles.grid}>
+            <View style={styles.gridCol}>
+              <Text style={styles.miniLabel}>MFG Date</Text>
+              <TouchableOpacity
+                onPress={() => setShowMfgPicker(true)}
+                style={styles.dateButton}
+              >
+                <Text style={styles.dateButtonText}>{formData.expiry.mfgDate || 'Select Date'}</Text>
+                <Icon name="calendar" size={14} color="#F43F5E" />
+              </TouchableOpacity>
+              {showMfgPicker && (
+                <DateTimePicker
+                  value={formData.expiry.mfgDate ? new Date(formData.expiry.mfgDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowMfgPicker(false);
+                    if (date) handleChange('mfgDate', date.toISOString().split('T')[0], 'expiry');
+                  }}
+                />
+              )}
+            </View>
+            <View style={styles.gridCol}>
+              <Text style={styles.miniLabel}>EXP Date</Text>
+              <TouchableOpacity
+                onPress={() => setShowExpPicker(true)}
+                style={styles.dateButton}
+              >
+                <Text style={styles.dateButtonText}>{formData.expiry.expDate || 'Select Date'}</Text>
+                <Icon name="calendar" size={14} color="#F43F5E" />
+              </TouchableOpacity>
+              {showExpPicker && (
+                <DateTimePicker
+                  value={formData.expiry.expDate ? new Date(formData.expiry.expDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowExpPicker(false);
+                    if (date) handleChange('expDate', date.toISOString().split('T')[0], 'expiry');
+                  }}
+                />
+              )}
+            </View>
+          </View>
 
-           <View style={{ marginTop: 12 }}>
-             <FormInput 
-               label="Batch Number" 
-               value={formData.expiry.batchNo} 
-               onChangeText={(v: string) => handleChange('batchNo', v, 'expiry')} 
-               placeholder="B-882-X" 
-             />
-           </View>
+          <View style={{ marginTop: 12 }}>
+            <FormInput
+              label="Batch Number"
+              value={formData.expiry.batchNo}
+              onChangeText={(v: string) => handleChange('batchNo', v, 'expiry')}
+              placeholder="B-882-X"
+            />
+          </View>
 
-           <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }}>
-             <FormInput 
-               label="Supplier Name" 
-               value={formData.supplier.name} 
-               onChangeText={(v: string) => handleChange('name', v, 'supplier')} 
-               placeholder="Full Distribution Co." 
-             />
-             <FormInput 
-               label="Contact Info" 
-               value={formData.supplier.contact} 
-               onChangeText={(v: string) => handleChange('contact', v, 'supplier')} 
-               placeholder="+91 98765 43210" 
-             />
-           </View>
+          <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }}>
+            <FormInput
+              label="Supplier Name"
+              value={formData.supplier.name}
+              onChangeText={(v: string) => handleChange('name', v, 'supplier')}
+              placeholder="Full Distribution Co."
+            />
+            <FormInput
+              label="Contact Info"
+              value={formData.supplier.contact}
+              onChangeText={(v: string) => handleChange('contact', v, 'supplier')}
+              placeholder="+91 98765 43210"
+            />
+          </View>
         </FormSection>
 
-        <TouchableOpacity 
-          style={[styles.submitButton, saving && { opacity: 0.7 }]} 
+        <TouchableOpacity
+          style={[styles.submitButton, saving && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={saving}
         >
@@ -615,8 +687,8 @@ const FormSection = ({ title, icon, children }: any) => (
 const FormInput = ({ label, ...props }: any) => (
   <View style={styles.inputContainer}>
     <Text style={styles.label}>{label}</Text>
-    <TextInput 
-      style={[styles.input, props.multiline && { height: 100, textAlignVertical: 'top' }]} 
+    <TextInput
+      style={[styles.input, props.multiline && { height: 100, textAlignVertical: 'top' }]}
       placeholderTextColor="#cbd5e1"
       {...props}
     />
@@ -677,6 +749,34 @@ const styles = StyleSheet.create({
   addVariantText: { color: '#F43F5E', fontWeight: '900', fontSize: 12 },
   submitButton: { backgroundColor: '#F43F5E', borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 16, elevation: 4 },
   submitText: { color: 'white', fontWeight: '900', fontSize: 14 },
+  barcodePreviewContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180,
+    marginTop: 8,
+  },
+  barcodeImage: {
+    width: '100%',
+    height: 120,
+  },
+  barcodeHint: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 12,
+  },
+  barcodePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
 });
 
 export default AddProduct;

@@ -194,7 +194,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 icon="ellipsis-h"
                 label="Reports"
                 colors={['#64748b', '#475569']}
-                onPress={() => navigation.navigate('Bills')}
+                onPress={() => navigation.navigate('Reports')}
               />
             </View>
 

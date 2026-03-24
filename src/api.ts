@@ -78,6 +78,7 @@ export type Customer = {
 export type Product = {
   id: string | number;
   product_code?: string;
+  barcode?: string;
   name: string;
   name_tamil?: string;
   name_tanglish?: string;
@@ -222,4 +223,7 @@ export async function fetchCategories(token?: string | null) {
 
 export async function fetchOrders(token?: string | null) {
   return request<any[]>(`/orders`, { method: 'GET' }, token);
+}
+export async function fetchNextProductId(token?: string | null) {
+  return request<{ nextId: string }>(`/products/next-id`, { method: 'GET' }, token);
 }
