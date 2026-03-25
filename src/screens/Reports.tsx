@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,13 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { BluetoothEscposPrinter } from 'react-native-bluetooth-escpos-printer';
+import { generatePDF } from 'react-native-html-to-pdf';
+import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +100,182 @@ const Reports = ({ navigation }: any) => {
     );
   }, [filteredOrders]);
 
+  const handleExportExcel = async () => {
+    if (filteredOrders.length === 0) {
+      Alert.alert('No Data', 'No transactions found for this period.');
+      return;
+    }
+
+    try {
+      const header = 'Date,Order ID,Customer,Total\n';
+      const rows = filteredOrders.map(order => {
+        const date = new Date(order.created_at || order.date).toLocaleDateString();
+        const id = order.id || 'N/A';
+        const cust = order.customer_name || 'Walk-in';
+        const total = order.total_amount || 0;
+        return `"${date}","${id}","${cust}","${total}"`;
+      }).join('\n');
+
+      const csvContent = header + rows;
+      const fileName = `Report_${activeFilter}_${Date.now()}.csv`;
+      // Use CachesDirectoryPath as it's generally more accessible for temporary sharing
+      const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
+
+      await RNFS.writeFile(path, csvContent, 'utf8');
+      
+      // Strategy 1: Share via file path (most common)
+      // Strategy 2: Share via base64 (fallback for some restrictive environments)
+      const base64Data = await RNFS.readFile(path, 'base64');
+
+      try {
+        await Share.open({
+          url: path.startsWith('file://') ? path : `file://${path}`,
+          type: 'text/csv',
+          filename: fileName,
+          subject: 'Transaction Report',
+          failOnCancel: false,
+        });
+      } catch (shareErr: any) {
+        // If file path fails, try base64 as fallback
+        if (shareErr.message && shareErr.message !== 'User did not share') {
+           await Share.open({
+            url: `data:text/csv;base64,${base64Data}`,
+            type: 'text/csv',
+            filename: fileName,
+            subject: 'Transaction Report',
+            failOnCancel: false,
+          });
+        }
+      }
+    } catch (error: any) {
+      if (error.message !== 'User did not share') {
+        Alert.alert('Excel Export Failed', error.message);
+      }
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filteredOrders.length === 0) {
+      Alert.alert('No Data', 'No transactions found for this period.');
+      return;
+    }
+
+    let results: any = null;
+    setLoading(true);
+    try {
+      const rowsHtml = filteredOrders.map(order => `
+        <tr>
+          <td>${new Date(order.created_at || order.date).toLocaleString()}</td>
+          <td>#${order.id}</td>
+          <td>${order.customer_name || 'Walk-in'}</td>
+          <td style="text-align: right;">Rs.${Number(order.total_amount).toLocaleString()}</td>
+        </tr>
+      `).join('');
+
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica', sans-serif; padding: 20px; color: #333; }
+              h1 { color: #f43f5e; margin-bottom: 5px; }
+              .summary { margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+              table { width: 100%; border-collapse: collapse; }
+              th { background-color: #f8fafc; text-align: left; padding: 12px; border-bottom: 1px solid #e1e8f0; }
+              td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+              .total-row { font-weight: bold; background-color: #f0fdf4; }
+            </style>
+          </head>
+          <body>
+            <h1>Transaction Report</h1>
+            <div class="summary">
+              <p><strong>Period:</strong> ${activeFilter.toUpperCase().replace('_', ' ')}</p>
+              <p><strong>Total Bills:</strong> ${summary.count}</p>
+              <p><strong>Total Revenue:</strong> Rs.${summary.total.toLocaleString()}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date/Time</th>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                <tr class="total-row">
+                  <td colspan="3">GRAND TOTAL</td>
+                  <td style="text-align: right;">Rs.${summary.total.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const options: any = {
+        html,
+        fileName: `Report_${activeFilter}_${Date.now()}`,
+      };
+
+      try {
+        results = await generatePDF(options);
+      } catch (pdfErr) {
+        console.error('PDF Conversion Error:', pdfErr);
+        throw pdfErr;
+      }
+      
+      if (!results) {
+        throw new Error('PDF generation failed: No result returned from native module');
+      }
+
+      const fPath = results.filePath || (results as any).path;
+
+      if (!fPath) {
+        throw new Error('PDF generation failed: filePath is missing from response');
+      }
+
+      const shareOptions: any = {
+        type: 'application/pdf',
+        subject: 'Transaction Report',
+        filename: `Report_${activeFilter}_${Date.now()}.pdf`,
+        url: fPath.startsWith('file://') ? fPath : `file://${fPath}`,
+        failOnCancel: false,
+      };
+
+      await Share.open(shareOptions);
+    } catch (error: any) {
+      if (error.message !== 'User did not share') {
+        const detail = results ? JSON.stringify(results) : 'No results';
+        Alert.alert('PDF Export Error (DEBUG-V2)', `${error.message}\n\nData: ${detail}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrintReport = async () => {
+    if (filteredOrders.length === 0) return;
+    try {
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText(`\nTRANSACTION REPORT\n`, { encoding: 'GBK', codepage: 0, widthtimes: 1, heigthtimes: 1, fonttype: 1 });
+      await BluetoothEscposPrinter.printText(`Period: ${activeFilter.toUpperCase()}\n`, {});
+      await BluetoothEscposPrinter.printText(`------------------------------\n`, {});
+      await BluetoothEscposPrinter.printText(`Total Bills: ${summary.count}\n`, {});
+      await BluetoothEscposPrinter.printText(`Total Revenue: Rs.${summary.total.toLocaleString()}\n`, {});
+      await BluetoothEscposPrinter.printText(`------------------------------\n\n`, {});
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
+      
+      for (const order of filteredOrders.slice(0, 20)) {
+         const date = new Date(order.created_at || order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+         await BluetoothEscposPrinter.printText(`${date}  #${String(order.id).slice(-4)}  Rs.${order.total_amount}\n`, {});
+      }
+      await BluetoothEscposPrinter.printText(`\n\n\n`, {});
+    } catch (e: any) {
+      Alert.alert('Printer Error', 'Please ensure your printer is connected in Settings.');
+    }
+  };
+
   const FilterChip = ({ label, id }: { label: string; id: DateFilter }) => (
     <TouchableOpacity
       onPress={() => setActiveFilter(id)}
@@ -152,10 +333,20 @@ const Reports = ({ navigation }: any) => {
 
             <View style={styles.transactionsHeader}>
               <Text style={styles.sectionTitle}>Transactions</Text>
-              <TouchableOpacity style={styles.exportButton}>
-                <Icon name="download" size={16} color="#f43f5e" />
-                <Text style={styles.exportText}>Export PDF</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#f0fdf4' }]} onPress={handlePrintReport}>
+                  <Icon name="printer" size={12} color="#10b981" />
+                  <Text style={[styles.exportText, { color: '#10b981', fontSize: 10 }]}>Print</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#eff6ff' }]} onPress={handleExportPDF}>
+                  <Icon name="file" size={12} color="#3b82f6" />
+                  <Text style={[styles.exportText, { color: '#3b82f6', fontSize: 10 }]}>PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#f0fdf4' }]} onPress={handleExportExcel}>
+                  <Icon name="grid" size={12} color="#22c55e" />
+                  <Text style={[styles.exportText, { color: '#22c55e', fontSize: 10 }]}>Excel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {filteredOrders.length === 0 ? (
