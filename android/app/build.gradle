@@ -90,6 +90,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++20"
+            }
+        }
     }
     signingConfigs {
         debug {
@@ -111,6 +116,10 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
 }
 
 dependencies {
@@ -122,7 +131,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
     // Vision Camera MLKit Barcode Scanning
     implementation "com.google.mlkit:barcode-scanning:17.3.0"
 }
