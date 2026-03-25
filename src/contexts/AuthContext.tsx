@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login as apiLogin, register as apiRegister } from '../api';
 
 export type AuthUser = {
@@ -33,26 +32,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadAuthData = async () => {
-      try {
-        const storedToken = await AsyncStorage.getItem('auth_token');
-        const storedUser = await AsyncStorage.getItem('auth_user');
-        
-        if (storedToken) {
-          setToken(storedToken);
-          if (storedUser) setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error('Failed to load auth date:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadAuthData();
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const signIn = async (identifier: string, password: string) => {
     setLoading(true);
@@ -60,9 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { token: newToken, user: apiUser } = await apiLogin({ identifier, password });
       setToken(newToken);
       setUser(apiUser ?? null);
-      
-      await AsyncStorage.setItem('auth_token', newToken);
-      if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
     } catch (error: any) {
       const message = error?.message ?? 'Unknown error';
       const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
@@ -83,9 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setToken(newToken);
       setUser(apiUser ?? null);
-      
-      await AsyncStorage.setItem('auth_token', newToken);
-      if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
     } catch (error: any) {
       const message = error?.message ?? 'Unknown error';
       const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
@@ -96,13 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = async () => {
+  const signOut = () => {
     setToken(null);
     setUser(null);
-    try {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('auth_user');
-    } catch (e) {}
   };
 
   const value = useMemo(
