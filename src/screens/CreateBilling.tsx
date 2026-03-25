@@ -13,6 +13,8 @@ import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayl
 import LinearGradient from 'react-native-linear-gradient';
 import { printReceipt, PrintData } from "../utils/printer";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+import { tanglishMatchesTamil } from '../utils/transliterate';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +41,9 @@ const CreateBilling = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [showCart, setShowCart] = useState(false);
+    const [showPostSavePreview, setShowPostSavePreview] = useState(false);
+    const [savedPrintData, setSavedPrintData] = useState<PrintData | null>(null);
+    const [businessInfo, setBusinessInfo] = useState<any>(null);
 
     // Form State
     const [customerName, setCustomerName] = useState("");
@@ -62,8 +67,31 @@ const CreateBilling = () => {
                 if (type) setGstType(type as any);
             } catch (e) {}
         };
+        const loadBusinessInfo = async () => {
+            try {
+                const data = await AsyncStorage.getItem('business_info');
+                if (data) setBusinessInfo(JSON.parse(data));
+            } catch (e) {}
+        };
         loadTaxConfig();
+        loadBusinessInfo();
     }, []);
+
+    const finalizeUI = async () => {
+        try {
+            const afterA = await AsyncStorage.getItem('after_save_action') || 'stay';
+            if (afterA === 'back') {
+                navigation.goBack();
+            } else {
+                setCart([]);
+                setCustomerName("");
+                setCustomerPhone("");
+                setShowPostSavePreview(false);
+            }
+        } catch (e) {
+            navigation.goBack();
+        }
+    };
 
     // ─── Calculations ──────────────────────────────────────────
     const { subtotal, gstAmount, cartTotal } = useMemo(() => {
@@ -86,8 +114,13 @@ const CreateBilling = () => {
 
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Sync ref for callbacks - Legacy
-    const voiceLangRef = useRef<'en' | 'ta'>('en');
+    const [voiceLang, setVoiceLang] = useState<'en' | 'ta' | 'tgl'>('en');
+    const voiceLangRef = useRef<'en' | 'ta' | 'tgl'>('en');
+    useEffect(() => { voiceLangRef.current = voiceLang; }, [voiceLang]);
+
+    const cycleVoiceLang = () => {
+        setVoiceLang(prev => prev === 'en' ? 'ta' : prev === 'ta' ? 'tgl' : 'en');
+    };
 
     // ─── Voice Search ──────────────────────────────────────────
     const [isListening, setIsListening] = useState(false);
@@ -112,17 +145,53 @@ const CreateBilling = () => {
 
     const matchVoiceToProduct = (text: string, productList: Product[]) => {
         const q = text.toLowerCase().trim();
-        // Exact name match first
-        let found = productList.find(p => (p.name || '').toLowerCase() === q);
-        // Partial name match
-        if (!found) found = productList.find(p => (p.name || '').toLowerCase().includes(q));
+        // Exact match: English name, Tamil name, Tanglish name, or Tamil→Tanglish
+        let found = productList.find(p => 
+            (p.name || '').toLowerCase() === q || 
+            (p.name_tamil || '').toLowerCase() === q ||
+            (p.name_tanglish || '').toLowerCase() === q ||
+            tanglishMatchesTamil(q, p.name_tamil || '')
+        );
+        // Partial match
+        if (!found) {
+            found = productList.find(p => 
+                (p.name || '').toLowerCase().includes(q) || 
+                (p.name_tamil || '').toLowerCase().includes(q) ||
+                (p.name_tanglish || '').toLowerCase().includes(q) ||
+                tanglishMatchesTamil(q, p.name_tamil || '')
+            );
+        }
         // Word-level match
         if (!found) {
-            const words = q.split(' ').filter(w => w.length > 2);
-            found = productList.find(p => words.some(w => (p.name || '').toLowerCase().includes(w)));
+            const words = q.split(' ').filter(w => w.length > 1);
+            found = productList.find(p => words.some(w => 
+                (p.name || '').toLowerCase().includes(w) || 
+                (p.name_tamil || '').toLowerCase().includes(w) ||
+                (p.name_tanglish || '').toLowerCase().includes(w) ||
+                tanglishMatchesTamil(w, p.name_tamil || '')
+            ));
         }
         return found;
     };
+
+    useEffect(() => {
+        Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+            if (e.value && e.value.length > 0) {
+                processVoiceResult(e.value[0]);
+            }
+        };
+        Voice.onSpeechError = (e: SpeechErrorEvent) => {
+            console.log('Voice Error: ', e.error);
+            setIsListening(false);
+            stopMicPulse();
+            const errMsg = voiceLang === 'ta' ? 'குரல் பிழை. மீண்டும் முயல்க.' : 'Voice error. Try again.';
+            setVoiceStatus(errMsg);
+            setTimeout(() => setVoiceStatus(''), 2000);
+        };
+        return () => {
+            Voice.destroy().then(Voice.removeAllListeners);
+        };
+    }, [voiceLang]);
 
     const startVoiceSearch = async () => {
         // Request mic permission
@@ -138,103 +207,149 @@ const CreateBilling = () => {
         }
 
         setIsListening(true);
-        setVoiceStatus('Listening...');
+        const listeningMsg = voiceLang === 'ta' ? 'கவனிக்கிறேன்...' : 'Listening...';
+        setVoiceStatus(listeningMsg);
         startMicPulse();
 
         try {
-            // Use Android SpeechRecognizer intent via NativeModules
-            const { SpeechRecognizer } = NativeModules;
-            if (SpeechRecognizer && SpeechRecognizer.startListening) {
-                // If a native module exists
-                SpeechRecognizer.startListening('en-IN', (result: string, error: string) => {
-                    setIsListening(false);
-                    stopMicPulse();
-                    if (error || !result) {
-                        setVoiceStatus('Could not hear. Try again.');
-                        setTimeout(() => setVoiceStatus(''), 2000);
-                        return;
-                    }
-                    processVoiceResult(result);
-                });
-            } else {
-                // Fallback: simulate with keyboard search
-                setVoiceStatus('Voice module unavailable — use keyboard search');
-                setTimeout(() => { setVoiceStatus(''); setIsListening(false); stopMicPulse(); }, 2500);
-            }
+            // Tanglish uses English speech recognition since it's Tamil spoken in English
+            const locale = voiceLang === 'ta' ? 'ta-IN' : 'en-IN';
+            await Voice.start(locale);
         } catch (e) {
+            console.log('Voice Start Fail: ', e);
             setIsListening(false);
             stopMicPulse();
-            setVoiceStatus('Voice error. Use keyboard search.');
+            const failMsg = voiceLang === 'ta' ? 'குரல் தொடங்கவில்லை' : 'Could not start voice';
+            setVoiceStatus(failMsg);
             setTimeout(() => setVoiceStatus(''), 2500);
         }
+    };
+
+    const stopVoiceSearch = async () => {
+        setIsListening(false);
+        stopMicPulse();
+        try { await Voice.stop(); } catch (e) {}
     };
 
     const processVoiceResult = (text: string) => {
-        setVoiceStatus(`Heard: "${text}"`);
+        // Stop listening immediately after getting a result
+        stopVoiceSearch();
+        
+        const q = text.toLowerCase().trim();
+        const heardMsg = voiceLang === 'ta' ? `கேட்கப்பட்டது: "${text}"` : `Heard: "${text}"`;
+        setVoiceStatus(heardMsg);
         const matched = matchVoiceToProduct(text, products);
+        
         if (matched) {
+            setProductSearchTerm(matched.name); // Filter the list to show current products
+            
             setTimeout(() => {
-                setVoiceStatus('');
-                setProductSearchTerm(matched.name);
-                handleProductPress(matched);
+                const foundMsg = voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`;
+                setVoiceStatus(foundMsg);
+                
+                // If product has variants, show variety picker (current products details)
+                if (matched.variants && matched.variants.length > 0) {
+                    handleProductPress(matched);
+                } else {
+                    addToCartDirectly(matched);
+                }
+                
+                setTimeout(() => setVoiceStatus(''), 3000);
             }, 600);
         } else {
-            // Fall back to showing search results
             setProductSearchTerm(text);
-            setTimeout(() => setVoiceStatus(''), 2500);
+            const noMatchMsg = voiceLang === 'ta' ? `"${text}" - பொருத்தம் இல்லை` : `"${text}" - No match`;
+            setVoiceStatus(noMatchMsg);
+            setTimeout(() => setVoiceStatus(''), 4000);
         }
     };
 
-    // Barcode Handling
+    const addToCartDirectly = (product: Product) => {
+        const variant = product.variants?.[0];
+        const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
+        const price = variant
+            ? Number(variant.sellingPrice || variant.mrp || 0)
+            : Number(product.offer_price || product.price || 0);
+        const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
+
+        setCart(prev => {
+            const exists = prev.find(item => item.id === itemId);
+            if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
+            return [...prev, {
+                id: itemId,
+                product_id: product.id,
+                name,
+                price,
+                quantity: 1,
+                image: product.image || product.images?.[0] || null
+            }];
+        });
+    };
+
+    // ─── Barcode & Helpers ─────────────────────────────────────
+    const findProductByBarcode = (code: string) => {
+        const bc = String(code).toLowerCase().trim();
+        return products.find(p =>
+            String(p.product_code || "").toLowerCase() === bc ||
+            String((p as any).barcode || "").toLowerCase() === bc
+        );
+    };
+
+    const addCustomUpiItem = (url: string) => {
+        try {
+            // Use regex for UPI extraction to avoid URL API issues in React Native
+            if (url.includes('am=')) {
+                const amountMatch = url.match(/[?&]am=([0-9.]+)/);
+                const nameMatch = url.match(/[?&]pn=([^&]+)/);
+                
+                if (amountMatch && amountMatch[1]) {
+                    const price = parseFloat(amountMatch[1]);
+                    const name = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : 'QR Payment';
+                    const itemId = `upi-${Date.now()}`;
+                    
+                    setCart(prev => [...prev, {
+                        id: itemId,
+                        product_id: 0,
+                        name: `QR: ${name}`,
+                        price: price,
+                        quantity: 1,
+                        image: null
+                    }]);
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.log("UPI Parse Error:", e);
+        }
+        return false;
+    };
+
     useEffect(() => {
-        // Add a product directly to cart (used for batch scan, no modal)
-        const addProductDirectly = (product: Product) => {
-            const variant = product.variants?.[0];
-            const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
-            const price = variant
-                ? Number(variant.sellingPrice || variant.mrp || 0)
-                : Number(product.offer_price || product.price || 0);
-            const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
-
-            setCart(prev => {
-                const exists = prev.find(item => item.id === itemId);
-                if (exists) return prev.map(item => item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item);
-                return [...prev, {
-                    id: itemId,
-                    product_id: product.id,
-                    name,
-                    price,
-                    quantity: 1,
-                    image: product.image || product.images?.[0] || null
-                }];
-            });
-        };
-
-        const findProductByBarcode = (code: string) => {
-            const bc = String(code).toLowerCase().trim();
-            return products.find(p =>
-                String(p.product_code || "").toLowerCase() === bc ||
-                String((p as any).barcode || "").toLowerCase() === bc
-            );
-        };
-
         if (products.length > 0) {
             if (route.params?.barcode) {
-                // Single scan → open modal for variant/quantity selection
-                const product = findProductByBarcode(route.params.barcode);
+                const code = route.params.barcode;
+                if (code.startsWith('upi://') || code.includes('am=')) {
+                    if (addCustomUpiItem(code)) {
+                        navigation.setParams({ barcode: null });
+                        return;
+                    }
+                }
+                const product = findProductByBarcode(code);
                 if (product) {
                     handleProductPress(product);
                 } else {
-                    Alert.alert("Not Found", `Barcode [${route.params.barcode}] matches no inventory item.`);
+                    Alert.alert("Not Found", `Barcode [${code}] matches no inventory item.`);
                 }
                 navigation.setParams({ barcode: null });
             } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
-                // Batch multi-scan → add all directly to cart (qty 1 each, first variant)
                 const notFound: string[] = [];
                 route.params.barcodes.forEach((code: string) => {
+                    if (code.startsWith('upi://') || code.includes('am=')) {
+                        if (addCustomUpiItem(code)) return;
+                    }
                     const product = findProductByBarcode(code);
                     if (product) {
-                        addProductDirectly(product);
+                        addToCartDirectly(product);
                     } else {
                         notFound.push(code);
                     }
@@ -269,23 +384,28 @@ const CreateBilling = () => {
         return products.filter(p => {
             const matchCat = selectedCategory === "All" || p.category === selectedCategory;
             const term = (productSearchTerm || "").toLowerCase();
+            if (!term) return matchCat;
             const pName = (p.name || "").toLowerCase();
+            const pTamil = (p.name_tamil || "").toLowerCase();
+            const pTanglish = (p.name_tanglish || "").toLowerCase();
             const pCode = (p.product_code || String(p.id || "")).toLowerCase();
-            return matchCat && (pName.includes(term) || pCode.includes(term));
+            // Also auto-transliterate Tamil script to handle Tanglish search
+            const tamilAsRoman = tanglishMatchesTamil(term, p.name_tamil || '');
+            return matchCat && (
+                pName.includes(term) ||
+                pTamil.includes(term) ||
+                pTanglish.includes(term) ||
+                pCode.includes(term) ||
+                tamilAsRoman
+            );
         });
-    }, [products, selectedCategory, productSearchTerm]);
+    }, [products, selectedCategory, productSearchTerm, voiceLang]);
 
     const [customQty, setCustomQty] = useState('1');
 
     const handleProductPress = (product: Product) => {
-        setCustomQty('1'); // Reset
-        if (product && product.variants && product.variants.length > 0) {
-            setSelectedProduct(product);
-            setShowVariantModal(true);
-        } else if (product) {
-            // Even if no variants, maybe we want to ask "How many/much?"
-            // But for now behavior is immediate add. 
-            // I'll show the modal for EVERY product to allow quantity selection if needed
+        setCustomQty('1'); 
+        if (product) {
             setSelectedProduct(product);
             setShowVariantModal(true);
         }
@@ -332,18 +452,7 @@ const CreateBilling = () => {
             // Load Post-Save Preferences
             const autoP = await AsyncStorage.getItem('auto_print') === 'true';
             const afterA = await AsyncStorage.getItem('after_save_action') || 'back';
-
-            const finalizeUI = () => {
-                setCart([]);
-                setCustomerName("");
-                setCustomerPhone("");
-                if (afterA === 'back') {
-                    navigation.goBack();
-                } else {
-                    Alert.alert("Success", "Bill saved. Ready for next transaction.");
-                }
-            };
-
+            
             const printData: PrintData = {
                 customerName,
                 customerPhone,
@@ -359,23 +468,8 @@ const CreateBilling = () => {
                 await printReceipt(printData);
                 finalizeUI();
             } else {
-                Alert.alert(
-                    "Success", 
-                    "Transaction finalized and uploaded.",
-                    [
-                        {
-                            text: "Print Receipt",
-                            onPress: async () => {
-                                await printReceipt(printData);
-                                finalizeUI();
-                            }
-                        },
-                        {
-                            text: "Done",
-                            onPress: () => finalizeUI()
-                        }
-                    ]
-                );
+                setSavedPrintData(printData);
+                setShowPostSavePreview(true);
             }
         } catch (err: any) {
             Alert.alert("Upload Failed", err?.message || "Check network connection.");
@@ -403,19 +497,33 @@ const CreateBilling = () => {
                         <Feather name="arrow-left" size={20} color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.headerTitleWrap}>
-                        <Text style={styles.headerTitle}>BILLING<Text style={{ color: '#f97316' }}>.</Text></Text>
+                        <Text style={styles.headerTitle}>BILLING<Text style={{ color: '#f97316' }}></Text></Text>
                     </View>
                 </View>
 
                 <View style={styles.searchBarContainer}>
                     <Feather name="search" size={16} color="#94a3b8" />
                     <TextInput 
-                        placeholder="Search Inventory..." 
+                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : voiceLang === 'tgl' ? "Tanglish la thedi..." : "Search Inventory..."} 
                         style={styles.searchInput}
                         placeholderTextColor="#475569"
                         value={productSearchTerm}
                         onChangeText={setProductSearchTerm}
                     />
+                    
+                    {/* Language Toggle */}
+                    <TouchableOpacity 
+                        onPress={cycleVoiceLang}
+                        style={{ 
+                            paddingHorizontal: 10, paddingVertical: 4, marginRight: 5, borderRadius: 8,
+                            backgroundColor: voiceLang === 'ta' ? '#e11d48' : voiceLang === 'tgl' ? '#7c3aed' : '#f1f5f9'
+                        }}
+                    >
+                        <Text style={{ fontSize: 9, fontWeight: '900', color: voiceLang !== 'en' ? '#fff' : '#475569' }}>
+                            {voiceLang === 'ta' ? 'TAM' : voiceLang === 'tgl' ? 'TGL' : 'ENG'}
+                        </Text>
+                    </TouchableOpacity>
+
                     {/* Voice Button */}
                     <TouchableOpacity onPress={startVoiceSearch} style={styles.voiceBtn} disabled={isListening}>
                         <Animated.View style={{ transform: [{ scale: micAnim }] }}>
@@ -457,7 +565,11 @@ const CreateBilling = () => {
                         <View style={styles.imageContainer}>
                             {item.image || item.images?.[0] ? <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} /> : <Feather name="package" size={24} color="#cbd5e1" />}
                         </View>
-                        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                            {voiceLang === 'ta' && item.name_tamil ? item.name_tamil
+                            : voiceLang === 'tgl' && item.name_tanglish ? item.name_tanglish
+                            : item.name}
+                        </Text>
                         <View style={styles.itemFooter}>
                             <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString()}</Text>
                             <View style={styles.stockBadge}><Text style={styles.stockText}>{item.total_stock || 0} U</Text></View>
@@ -539,7 +651,7 @@ const CreateBilling = () => {
                         </TouchableOpacity>
                         
                         <View style={styles.modalPill} />
-                        <Text style={styles.variantTitle}>{selectedProduct?.name}</Text>
+                        <Text style={styles.variantTitle}>{voiceLang === 'ta' && selectedProduct?.name_tamil ? selectedProduct.name_tamil : selectedProduct?.name}</Text>
                         
                         <View style={styles.qtyPicker}>
                            <Text style={styles.pickerLabel}>Set Quantity/Weight</Text>
@@ -579,11 +691,120 @@ const CreateBilling = () => {
                             </>
                         )}
                         
-                        <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
+                        {/* <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
                            <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
 
                         <TouchableOpacity onPress={() => setShowVariantModal(false)}><Text style={styles.cancelTxt}>CANCEL</Text></TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* 🔥 POST-SAVE RECEIPT PREVIEW BOTTOM SHEET */}
+            <Modal visible={showPostSavePreview} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalSheet, { maxHeight: '95%', borderTopRightRadius: 40, borderTopLeftRadius: 40, padding: 0 }]}>
+                        {/* Drag Indicator */}
+                        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                            <View style={{ width: 48, height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, alignSelf: 'center' }} />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 30, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                            <Text style={{ fontSize: 14, fontWeight: '900', color: '#1e293b', letterSpacing: 2, textTransform: 'uppercase' }}>Final Receipt</Text>
+                            <TouchableOpacity onPress={() => finalizeUI()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                <Feather name="x" size={20} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 25, paddingBottom: 40 }}>
+                            {savedPrintData && (
+                                <View style={{ backgroundColor: '#fff', borderRadius: 4, padding: 30, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 5, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                    {/* Header */}
+                                    <View style={{ alignItems: 'center', marginBottom: 25 }}>
+                                        {businessInfo?.showLogo && businessInfo?.logoBase64 && (
+                                            <View style={{ marginBottom: 15, padding: 8, backgroundColor: '#f8fafc', borderRadius: 16 }}>
+                                                <Image source={{ uri: `data:image/png;base64,${businessInfo.logoBase64}` }} style={{ width: 90, height: 90 }} resizeMode="contain" />
+                                            </View>
+                                        )}
+                                        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', textAlign: 'center' }}>{businessInfo?.storeName || 'BILLING APP'}</Text>
+                                        {businessInfo?.tagline && <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', textAlign: 'center', marginTop: 4, fontStyle: 'italic' }}>{businessInfo.tagline}</Text>}
+                                        
+                                        <View style={{ marginTop: 15, alignItems: 'center' }}>
+                                            {businessInfo?.address && <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '600', textAlign: 'center' }}>{businessInfo.address}</Text>}
+                                            {businessInfo?.phone && <Text style={{ fontSize: 10, color: '#475569', fontWeight: '900', textAlign: 'center', marginTop: 4 }}>Ph: {businessInfo.phone}</Text>}
+                                        </View>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
+                                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1 }}>ORD-#{savedPrintData.billId}</Text>
+                                        <Text style={{ fontSize: 9, fontWeight: '900', color: '#cbd5e1', letterSpacing: 1 }}>{savedPrintData.date}</Text>
+                                    </View>
+
+                                    <View style={{ height: 1, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', borderStyle: 'dashed', marginBottom: 25 }} />
+
+                                    {/* Items */}
+                                    <View style={{ gap: 15, marginBottom: 25 }}>
+                                        {savedPrintData.items.map((item, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <View style={{ flex: 1, paddingRight: 20 }}>
+                                                    <Text style={{ fontSize: 13, fontWeight: '900', color: '#1e293b' }}>{item.name}</Text>
+                                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', marginTop: 2 }}>{item.quantity} x ₹{item.price}</Text>
+                                                </View>
+                                                <Text style={{ fontSize: 13, fontWeight: '900', color: '#0f172a' }}>₹{(item.price * item.quantity).toFixed(2)}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    <View style={{ height: 1.5, backgroundColor: '#0f172a', marginVertical: 25 }} />
+
+                                    {/* Totals */}
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Text style={{ fontSize: 16, fontWeight: '900', color: '#0f172a' }}>PAID AMOUNT</Text>
+                                        <Text style={{ fontSize: 22, fontWeight: '900', color: '#f97316' }}>₹{savedPrintData.totalAmount}</Text>
+                                    </View>
+
+                                    {/* QR Section */}
+                                    {businessInfo?.showQRCode && businessInfo?.upiId && (
+                                        <View style={{ alignItems: 'center', marginTop: 30, backgroundColor: '#f8fafc', padding: 25, borderRadius: 30, borderWidth: 1, borderColor: '#f1f5f9' }}>
+                                            <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, marginBottom: 20 }}>VERIFY PAYMENT VIA UPI</Text>
+                                            <View style={{ backgroundColor: '#fff', padding: 15, borderRadius: 24, elevation: 2 }}>
+                                                <Image 
+                                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${businessInfo.upiId}&pn=${businessInfo.storeName}&am=${savedPrintData.totalAmount}&cu=INR`)}` }} 
+                                                    style={{ width: 140, height: 140 }} 
+                                                />
+                                            </View>
+                                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 20, backgroundColor: '#fff', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>{businessInfo.upiId}</Text>
+                                        </View>
+                                    )}
+
+                                    {/* Footer */}
+                                    <View style={{ marginTop: 35, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 25, alignItems: 'center' }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '900', color: '#1e293b', textAlign: 'center' }}>{businessInfo?.footerMessage || 'Thank You!'}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 25, opacity: 0.3 }}>
+                                            <View style={{ height: 1, flex: 1, backgroundColor: '#cbd5e1' }} />
+                                            <Text style={{ fontSize: 8, fontWeight: '900', color: '#94a3b8', marginHorizontal: 12, letterSpacing: 2 }}>VERIFIED BY ZIPKART</Text>
+                                            <View style={{ height: 1, flex: 1, backgroundColor: '#cbd5e1' }} />
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={{ paddingHorizontal: 30, paddingBottom: 50, paddingTop: 20, backgroundColor: '#fff', flexDirection: 'row', gap: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
+                            <TouchableOpacity onPress={() => finalizeUI()} style={{ flex: 1, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9', paddingVertical: 18, borderRadius: 22, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#64748b', letterSpacing: 1 }}>DONE</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={async () => {
+                                    if (savedPrintData) await printReceipt(savedPrintData);
+                                    finalizeUI();
+                                }} 
+                                style={{ flex: 2, backgroundColor: '#f97316', paddingVertical: 18, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 8, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 10 }}
+                            >
+                                <Feather name="printer" size={20} color="white" />
+                                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }}>PRINT RECEIPT</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -600,16 +821,16 @@ const styles = StyleSheet.create({
     headerGradient: { paddingHorizontal: 20, paddingTop: 30, paddingBottom: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
     headerIconBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    headerTitleWrap: { flex: 1, alignItems: 'center' },
+    headerTitleWrap: { flex: 1,alignItems: 'flex-start'},
     headerTitle: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 5 },
-    searchInput: { flex: 1, height: 45, fontSize: 13, fontWeight: '700', color: '#0f172a', paddingLeft: 10 },
+    searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 15, paddingHorizontal: 15, marginBottom: 25 },
+    searchInput: { flex: 1, height: 55, fontSize: 13, fontWeight: '700', color: '#0f172a', paddingLeft: 10},
     voiceBtn: { padding: 6, marginRight: 4 },
     inlineScanner: { padding: 5 },
-    voiceStatusBar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 10 },
+    voiceStatusBar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 20 },
     voiceStatusTxt: { fontSize: 11, fontWeight: '800', color: 'white', flex: 1 },
     customerFormRow: { flexDirection: 'row', gap: 10 },
-    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 40 },
+    miniInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, height: 50 },
     miniInput: { flex: 1, marginLeft: 8, fontSize: 11, fontWeight: '700', color: 'rgba(0, 0, 0, 0.78)' },
     listContent: { padding: 12, paddingBottom: 120 },
     card: { backgroundColor: '#fff', borderRadius: 24, margin: 6, padding: 12, flex: 1, borderWidth: 1, borderColor: '#f1f5f9' },
@@ -659,4 +880,25 @@ const styles = StyleSheet.create({
     vQty: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
     vPrice: { fontSize: 11, fontWeight: '800', color: '#E11D48', marginTop: 4 },
     cancelTxt: { fontSize: 11, fontWeight: '900', color: '#94a3b8' },
+
+    /* Thermal Preview UI */
+    previewCloseBtn: { width: 40, height: 40, backgroundColor: '#f1f5f9', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    thermalPreview: { backgroundColor: '#fff', padding: 25, borderRadius: 2, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 5 },
+    previewLogo: { width: 70, height: 70, marginBottom: 10 },
+    previewStoreName: { fontSize: 18, fontWeight: '900', color: '#000', textAlign: 'center', textTransform: 'uppercase' },
+    previewSub: { fontSize: 9, fontWeight: '700', color: '#64748b', textAlign: 'center', marginTop: 2 },
+    receiptDivider: { height: 1, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', borderStyle: 'dashed', marginVertical: 15 },
+    previewInfo: { fontSize: 11, fontWeight: '700', color: '#000' },
+    previewItemName: { fontSize: 12, fontWeight: '900', color: '#000' },
+    previewItemQty: { fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 2 },
+    previewItemTotal: { fontSize: 12, fontWeight: '900', color: '#000' },
+    previewGrandTotalLabel: { fontSize: 14, fontWeight: '900', color: '#000' },
+    previewGrandTotalVal: { fontSize: 20, fontWeight: '900', color: '#f97316' },
+    previewQRTitle: { fontSize: 10, fontWeight: '900', color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase' },
+    previewUPIText: { fontSize: 8, fontWeight: '700', color: '#cbd5e1', marginTop: 8 },
+    previewActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    skipBtn: { flex: 1, height: 55, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+    skipBtnTxt: { color: '#64748b', fontWeight: '900', fontSize: 13 },
+    printActionBtn: { flex: 2, height: 55, borderRadius: 18, backgroundColor: '#f97316', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 3 },
+    printActionTxt: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
 });

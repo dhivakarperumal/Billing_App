@@ -4,7 +4,7 @@ import {
     StatusBar, Dimensions, Animated, Easing, Modal
 } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 'react-native-vision-camera';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,6 +12,8 @@ const { width, height } = Dimensions.get('window');
 
 const ScannerScreen = () => {
     const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const target = route.params?.target;
     const { hasPermission, requestPermission } = useCameraPermission();
     const device = useCameraDevice('back');
 
@@ -105,7 +107,11 @@ const ScannerScreen = () => {
 
     const handleFinishBatch = () => {
         dismissPopup(false);
-        navigation.navigate('CreateBilling', { barcodes: barcodesRef.current });
+        if (target === 'AddStock') {
+            navigation.navigate('AddStock', { barcode: barcodesRef.current[0] });
+        } else {
+            navigation.navigate('CreateBilling', { barcodes: barcodesRef.current });
+        }
     };
 
     const codeScanner = useCodeScanner({
@@ -203,10 +209,16 @@ const ScannerScreen = () => {
                         </TouchableOpacity>
                         {scannedCount > 0 ? (
                             <TouchableOpacity
-                                onPress={() => navigation.navigate('CreateBilling', { barcodes: scannedBarcodes })}
+                                onPress={() => {
+                                    if (target === 'AddStock') {
+                                        navigation.navigate('AddStock', { barcode: scannedBarcodes[0] });
+                                    } else {
+                                        navigation.navigate('CreateBilling', { barcodes: scannedBarcodes });
+                                    }
+                                }}
                                 style={styles.completeBtn}
                             >
-                                <Text style={styles.completeBtnTxt}>ADD {scannedCount} TO BILL</Text>
+                                <Text style={styles.completeBtnTxt}>{target === 'AddStock' ? 'USE BARCODE' : `ADD ${scannedCount} TO BILL`}</Text>
                                 <Feather name="check" size={18} color="white" />
                             </TouchableOpacity>
                         ) : (
