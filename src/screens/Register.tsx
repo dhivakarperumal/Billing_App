@@ -1,208 +1,262 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   ActivityIndicator,
   Alert,
-  StatusBar,
-  ImageBackground,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { useAuth } from "../contexts/AuthContext";
-import Toast from "react-native-toast-message";
+} from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+import { useAuth } from '../contexts/AuthContext';
 
-const Register = ({ onSwitchToLogin }) => {
+type Props = {
+  onSwitchToLogin: () => void;
+};
+
+const Register = ({ onSwitchToLogin }: Props) => {
   const { signUp, loading } = useAuth();
-
+  
   const [form, setForm] = useState({
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleChange = (name, value) => {
+  const handleChange = (name: string, value: string) => {
     setForm({ ...form, [name]: value });
   };
 
   const handleRegister = async () => {
     const name = form.username.trim();
     const email = form.email.trim();
-    const phone = form.phone.trim();
     const password = form.password.trim();
 
-    if (!name || !email || !password || !phone) {
-      Alert.alert("Error", "All fields required");
+    if (!name || !email || !password) {
+      Alert.alert('Validation Error', 'Name, email, and password are required.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address.');
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert('Validation Error', 'Passwords do not match.');
       return;
     }
 
-    await signUp(name, email, password, phone);
-
-    Toast.show({
-      type: "success",
-      text1: "Registration Successful",
-    });
-
-    onSwitchToLogin();
+    await signUp(name, email, password);
   };
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>
+            Join our premium collection store
+          </Text>
 
-      {/* IMAGE HEADER */}
-      <ImageBackground
-        source={require("../assets/billing-bg.jpg")}
-        className="h-[30%] justify-center items-center px-6"
-        resizeMode="cover"
-      >
-        <View className="absolute inset-0 bg-blue-900/70" />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#9ca3af"
+              value={form.username}
+              onChangeText={(val) => handleChange('username', val)}
+            />
 
-        <View className="w-20 h-20 bg-blue-500 rounded-full justify-center items-center mb-4">
-          <Icon name="user-plus" size={26} color="#fff" />
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              placeholderTextColor="#9ca3af"
+              keyboardType="email-address"
+              value={form.email}
+              onChangeText={(val) => handleChange('email', val)}
+              autoCapitalize="none"
+            />
+
+            <View style={styles.passwordRow}>
+              <View style={[styles.passwordContainer, { marginRight: 8 }]}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  placeholderTextColor="#9ca3af"
+                  secureTextEntry={!showPassword}
+                  value={form.password}
+                  onChangeText={(val) => handleChange('password', val)}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon
+                    name={showPassword ? 'eye-slash' : 'eye'}
+                    size={16}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirm"
+                  placeholderTextColor="#9ca3af"
+                  secureTextEntry={!showConfirmPassword}
+                  value={form.confirmPassword}
+                  onChangeText={(val) => handleChange('confirmPassword', val)}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Icon
+                    name={showConfirmPassword ? 'eye-slash' : 'eye'}
+                    size={16}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                loading && styles.registerButtonDisabled,
+              ]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>Register</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.footerText}>
+              Already have an account?{' '}
+              <Text style={styles.footerLink} onPress={onSwitchToLogin}>
+                Sign in
+              </Text>
+            </Text>
+          </View>
         </View>
-
-        <Text className="text-blue-200 text-base mb-2 text-center">
-          Q-Techx Billing
-        </Text>
-
-        {/* <Text className="text-white text-3xl font-extrabold text-center">
-          Create Your{"\n"}Account
-        </Text> */}
-
-        <Text className="text-blue-100 text-base text-center mt-3 px-4">
-          Start managing your business with ease.
-        </Text>
-      </ImageBackground>
-
-      {/* FORM */}
-<ScrollView className="flex-1 bg-white rounded-t-[30px] px-6 pt-6">
-
-  <Text className="text-gray-400 text-center mb-6">
-    Register to continue
-  </Text>
-
-  {/* Username */}
-  <Text className="text-gray-500 mb-1">Username</Text>
-  <TextInput
-    className="border-b border-blue-200 pb-2 mb-5 text-black"
-    placeholder="Enter username"
-    value={form.username}
-    onChangeText={(val) => handleChange("username", val)}
-  />
-
-  {/* Email */}
-  <Text className="text-gray-500 mb-1">Email Address</Text>
-  <TextInput
-    className="border-b border-blue-200 pb-2 mb-5 text-black"
-    placeholder="Enter email"
-    value={form.email}
-    onChangeText={(val) => handleChange("email", val)}
-  />
-
-  {/* Phone */}
-  <Text className="text-gray-500 mb-1">Phone Number</Text>
-  <TextInput
-    className="border-b border-blue-200 pb-2 mb-5 text-black"
-    placeholder="Enter phone number"
-    keyboardType="phone-pad"
-    value={form.phone}
-    onChangeText={(val) => handleChange("phone", val)}
-  />
-
-  {/* Password */}
-  <Text className="text-gray-500 mb-1">Password</Text>
-  <View className="border-b border-blue-200 flex-row items-center mb-5">
-    <TextInput
-      className="flex-1 pb-2 text-black"
-      placeholder="Password"
-      secureTextEntry={!showPassword}
-      value={form.password}
-      onChangeText={(val) => handleChange("password", val)}
-    />
-    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-      <Icon
-        name={showPassword ? "eye-slash" : "eye"}
-        size={16}
-        color="#6b7280"
-      />
-    </TouchableOpacity>
-  </View>
-
-  {/* Confirm Password */}
-  <Text className="text-gray-500 mb-1">Confirm Password</Text>
-  <View className="border-b border-blue-200 flex-row items-center mb-5">
-    <TextInput
-      className="flex-1 pb-2 text-black"
-      placeholder="Confirm password"
-      secureTextEntry={!showConfirmPassword}
-      value={form.confirmPassword}
-      onChangeText={(val) =>
-        handleChange("confirmPassword", val)
-      }
-    />
-    <TouchableOpacity
-      onPress={() =>
-        setShowConfirmPassword(!showConfirmPassword)
-      }
-    >
-      <Icon
-        name={showConfirmPassword ? "eye-slash" : "eye"}
-        size={16}
-        color="#6b7280"
-      />
-    </TouchableOpacity>
-  </View>
-
-  {/* Button (same as login) */}
-  <TouchableOpacity
-    className={`bg-blue-600 py-4 rounded-xl items-center mt-6 ${
-      loading ? "opacity-70" : ""
-    }`}
-    onPress={handleRegister}
-    disabled={loading}
-  >
-    {loading ? (
-      <ActivityIndicator color="#fff" />
-    ) : (
-      <Text className="text-white font-bold text-base">
-        REGISTER
-      </Text>
-    )}
-  </TouchableOpacity>
-
-  {/* Footer */}
-  <Text className="text-center text-gray-400 mt-6 mb-6">
-    Already have an account?{" "}
-    <Text
-      className="text-blue-600 font-semibold"
-      onPress={onSwitchToLogin}
-    >
-      LOGIN
-    </Text>
-  </Text>
-
-</ScrollView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#4c8bf5', // Primary gradient fallback
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4c8bf5',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  form: {
+    gap: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#111',
+  },
+  passwordRow: {
+    flexDirection: 'row',
+  },
+  passwordContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 16,
+    color: '#111',
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  registerButton: {
+    backgroundColor: '#4c8bf5',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#4c8bf5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  registerButtonDisabled: {
+    opacity: 0.7,
+  },
+  registerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footerText: {
+    textAlign: 'center',
+    color: '#6b7280',
+    marginTop: 16,
+    fontSize: 14,
+  },
+  footerLink: {
+    color: '#4c8bf5',
+    fontWeight: '600',
+  },
+});
 
 export default Register;

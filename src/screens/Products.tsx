@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
-  Image
+  Image,
+  Animated,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -25,14 +27,61 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFABExpanded, setIsFABExpanded] = useState(false);
+  const [isFABOpen, setIsFABOpen] = useState(false);
+
+  // Animation refs
+  const fabAnim      = useRef(new Animated.Value(0)).current;
+  const anim1        = useRef(new Animated.Value(0)).current;
+  const anim2        = useRef(new Animated.Value(0)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  const openFAB = () => {
+    setIsFABOpen(true);
+    Animated.parallel([
+      Animated.spring(fabAnim,      { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(backdropAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.sequence([
+        Animated.delay(40),
+        Animated.spring(anim2, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
+      ]),
+      Animated.sequence([
+        Animated.delay(100),
+        Animated.spring(anim1, { toValue: 1, useNativeDriver: true, tension: 70, friction: 8 }),
+      ]),
+    ]).start();
+  };
+
+  const closeFAB = () => {
+    Animated.parallel([
+      Animated.spring(fabAnim,      { toValue: 0, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(backdropAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 8 }),
+      Animated.spring(anim1,        { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
+      Animated.spring(anim2,        { toValue: 0, useNativeDriver: true, tension: 70, friction: 8 }),
+    ]).start(() => setIsFABOpen(false));
+  };
+
+  const toggleFAB = () => (isFABOpen ? closeFAB() : openFAB());
+
+  const navigateTo = (screen: string) => {
+    closeFAB();
+    setTimeout(() => navigation.navigate(screen), 200);
+  };
+
+  const fabRotate    = fabAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
+  const makeSubStyle = (anim: Animated.Value) => ({
+    opacity: anim,
+    transform: [
+      { scale: anim },
+      { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+    ],
+  });
 
   const loadData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
       const resp: any = await fetchProducts(token);
-      let items = Array.isArray(resp) ? resp : resp?.products || resp?.data || [];
+      const items = Array.isArray(resp) ? resp : resp?.products || resp?.data || [];
       setProducts(items);
     } catch (error: any) {
       console.error('Fetch error:', error);
@@ -42,13 +91,11 @@ const Products = () => {
     }
   }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const filteredProducts = products.filter((p: Product) => {
-    const name = (p.name || '').toLowerCase();
-    const code = (p.product_code || String(p.id) || '').toLowerCase();
+    const name   = (p.name || '').toLowerCase();
+    const code   = (p.product_code || String(p.id) || '').toLowerCase();
     const search = searchTerm.toLowerCase();
     return name.includes(search) || code.includes(search);
   });
@@ -62,16 +109,21 @@ const Products = () => {
         <View className="flex-row items-center bg-white rounded-xl px-4 h-12">
           <Feather name="search" size={15} color="#64748b" />
           <TextInput
-            placeholder="Search assets or product codes..."
+            placeholder="Search products or codes..."
             placeholderTextColor="#64748b"
             className="flex-1 ml-2 text-[13px] font-bold text-slate-900"
             value={searchTerm}
             onChangeText={setSearchTerm}
           />
+          {searchTerm.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchTerm('')}>
+              <Feather name="x" size={14} color="#94a3b8" />
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
-      {/* LOADING */}
+      {/* LIST */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator color="#f97316" size="large" />
@@ -83,17 +135,17 @@ const Products = () => {
         <FlatList
           data={filteredProducts}
           keyExtractor={(item) => String(item.id)}
-          numColumns={2} // ✅ GRID
+          numColumns={2}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 130 }}
           columnWrapperStyle={{ justifyContent: 'space-between' }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => navigation.navigate('AddProduct', { id: item.id })}
               activeOpacity={0.85}
               className="bg-white w-[48%] mb-4 rounded-2xl p-3 border border-slate-100"
+              style={{ elevation: 2 }}
             >
-              {/* IMAGE */}
               <View className="h-28 bg-slate-100 rounded-xl items-center justify-center overflow-hidden mb-3">
                 {item.image || item.images?.[0] ? (
                   <Image
@@ -106,12 +158,10 @@ const Products = () => {
                 )}
               </View>
 
-              {/* NAME */}
               <Text className="text-[12px] font-black text-slate-900" numberOfLines={1}>
                 {item.name}
               </Text>
 
-              {/* BADGES */}
               <View className="flex-row flex-wrap mt-1 gap-1">
                 <Text className="text-[8px] font-black text-orange-500 bg-orange-100 px-2 py-[2px] rounded-md">
                   ID-{item.id}
@@ -123,7 +173,6 @@ const Products = () => {
                 )}
               </View>
 
-              {/* PRICE */}
               <Text className="mt-2 text-[14px] font-black text-slate-900">
                 ₹{Number(
                   item.offer_price ||
@@ -134,7 +183,6 @@ const Products = () => {
                 ).toLocaleString('en-IN')}
               </Text>
 
-              {/* STOCK */}
               <View className="mt-1 bg-green-50 self-start px-2 py-[2px] rounded-md">
                 <Text className="text-[8px] font-black text-green-600">
                   {item.total_stock || 0} UNIT
@@ -153,43 +201,117 @@ const Products = () => {
         />
       )}
 
-      {/* FAB */}
-      <View className="absolute bottom-8 right-6 items-end">
-        {isFABExpanded && (
-          <View className="mb-3 gap-2">
-            <TouchableOpacity
-              onPress={() => { navigation.navigate('AddCategory'); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white px-4 py-2 rounded-xl"
-            >
-              <Text className="text-[9px] font-black text-slate-900 mr-2">New Category</Text>
-              <View className="bg-slate-900 w-8 h-8 rounded-lg items-center justify-center">
-                <Feather name="tag" size={14} color="#fff" />
-              </View>
-            </TouchableOpacity>
+      {/* ─── SPEED-DIAL FAB ──────────────────────────────────── */}
 
-            <TouchableOpacity
-              onPress={() => { navigation.navigate('AddProduct'); setIsFABExpanded(false); }}
-              className="flex-row items-center bg-white px-4 py-2 rounded-xl"
-            >
-              <Text className="text-[9px] font-black text-slate-900 mr-2">List Product</Text>
-              <View className="bg-slate-900 w-8 h-8 rounded-lg items-center justify-center">
-                <Feather name="box" size={14} color="#fff" />
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <TouchableOpacity
-          onPress={() => setIsFABExpanded(!isFABExpanded)}
-          className={`w-14 h-14 rounded-full items-center justify-center ${
-            isFABExpanded ? 'bg-rose-600' : 'bg-slate-900'
-          }`}
+      {/* Dimmed backdrop */}
+      {isFABOpen && (
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: 'rgba(15,23,42,0.4)' },
+            { opacity: backdropAnim },
+          ]}
         >
-          <Feather name={isFABExpanded ? 'x' : 'plus'} size={26} color="white" />
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeFAB}
+            activeOpacity={1}
+          />
+        </Animated.View>
+      )}
+
+      <View style={styles.fabContainer} pointerEvents="box-none">
+        {/* Sub — Add Category */}
+        <Animated.View style={[styles.fabRow, makeSubStyle(anim1)]}>
+          <View style={styles.fabLabel}>
+            <Text style={styles.fabLabelText}>Add Category</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.fabMini, { backgroundColor: '#7c3aed' }]}
+            onPress={() => navigateTo('AddCategory')}
+            activeOpacity={0.85}
+          >
+            <Feather name="tag" size={18} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Sub — Add Product */}
+        <Animated.View style={[styles.fabRow, makeSubStyle(anim2)]}>
+          <View style={styles.fabLabel}>
+            <Text style={styles.fabLabelText}>Add Product</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.fabMini, { backgroundColor: '#f97316' }]}
+            onPress={() => navigateTo('AddProduct')}
+            activeOpacity={0.85}
+          >
+            <Feather name="box" size={18} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Main FAB */}
+        <TouchableOpacity onPress={toggleFAB} style={styles.fabMain} activeOpacity={0.9}>
+          <Animated.View style={{ transform: [{ rotate: fabRotate }] }}>
+            <Feather name="plus" size={28} color="#fff" />
+          </Animated.View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  fabContainer: {
+    position: 'absolute',
+    bottom: 95,
+    right: 20,
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  fabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fabLabel: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  fabLabelText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1e293b',
+  },
+  fabMini: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  fabMain: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+});
 
 export default Products;

@@ -194,12 +194,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                 icon="ellipsis-h"
                 label="Reports"
                 colors={['#64748b', '#475569']}
-                onPress={() =>
-                  Alert.alert(
-                    'Coming Soon',
-                    'Detailed reports feature arriving soon.',
-                  )
-                }
+                onPress={() => navigation.navigate('Reports')}
               />
             </View>
 
