@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Switch, Image } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const HEADER_GRADIENT = ['#2563eb', '#3b82f6'];
 
@@ -64,7 +65,11 @@ const ReceiptSetup = () => {
 
     const saveData = async () => {
         if (!storeName.trim()) {
-            Alert.alert('Required', 'Store Name is required for receipt headers.');
+            Toast.show({
+                type: 'error',
+                text1: 'Required',
+                text2: 'Store Name is required for receipt headers.'
+            });
             return;
         }
 
@@ -82,9 +87,17 @@ const ReceiptSetup = () => {
                 showQRCode,
             };
             await AsyncStorage.setItem('business_info', JSON.stringify(data));
-            Alert.alert('Saved', 'Receipt & Business Info saved successfully. Check the preview below!');
+            Toast.show({
+                type: 'success',
+                text1: 'Saved',
+                text2: 'Receipt & Business Info saved successfully. Check the preview below!'
+            });
         } catch (error) {
-            Alert.alert('Error', 'Failed to save configuration.');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to save configuration.'
+            });
         }
     };
 

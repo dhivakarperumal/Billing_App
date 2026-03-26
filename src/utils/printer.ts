@@ -2,6 +2,7 @@ import { BluetoothEscposPrinter } from 'react-native-bluetooth-escpos-printer';
 import TcpSocket from 'react-native-tcp-socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export interface PrintItem {
   name: string;
@@ -37,7 +38,11 @@ export const printReceipt = async (data: PrintData) => {
   try {
     const configStr = await AsyncStorage.getItem('printer_config');
     if (!configStr) {
-      Alert.alert('Printer Not Configured', 'Please go to Settings > Printer Setup first.');
+      Toast.show({
+        type: 'error',
+        text1: 'Printer Not Configured',
+        text2: 'Go to Settings > Printer Setup',
+      });
       return;
     }
     const config = JSON.parse(configStr);
@@ -57,11 +62,19 @@ export const printReceipt = async (data: PrintData) => {
     } else if (config.type === 'wifi') {
       await printWiFi(data, config.ip, config.port, businessInfo);
     } else {
-      Alert.alert('Unsupported Printer', 'The selected printer type is not supported yet.');
+      Toast.show({
+        type: 'error',
+        text1: 'Unsupported Printer',
+        text2: 'Printer type not supported',
+      });
     }
   } catch (error) {
     console.error('Print error:', error);
-    Alert.alert('Printing Failed', 'An error occurred while trying to print.');
+    Toast.show({
+      type: 'error',
+      text1: 'Printing Failed',
+      text2: 'Something went wrong while printing',
+    });
   }
 };
 
@@ -77,14 +90,14 @@ const printBluetooth = async (data: PrintData, bInfo: BusinessInfo) => {
     }
 
     await BluetoothEscposPrinter.printText(`${bInfo.storeName}\n`, { fontweight: 1, padding: 0 });
-    
+
     if (bInfo.tagline) await BluetoothEscposPrinter.printText(`${bInfo.tagline}\n`, { fontweight: 0, padding: 0 });
     if (bInfo.address) await BluetoothEscposPrinter.printText(`${bInfo.address.replace(/\n/g, ', ')}\n`, { fontweight: 0, padding: 0 });
     if (bInfo.phone) await BluetoothEscposPrinter.printText(`Ph: ${bInfo.phone}\n`, { fontweight: 0, padding: 0 });
     if (bInfo.gstNumber) await BluetoothEscposPrinter.printText(`GSTIN: ${bInfo.gstNumber}\n`, { fontweight: 0, padding: 0 });
-    
+
     await BluetoothEscposPrinter.printText("--------------------------------\n", {});
-    
+
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
     await BluetoothEscposPrinter.printText(`Bill ID : #ORD-${data.billId}\n`, {});
     await BluetoothEscposPrinter.printText(`Date    : ${data.date}\n`, {});
@@ -111,12 +124,12 @@ const printBluetooth = async (data: PrintData, bInfo: BusinessInfo) => {
 
     await BluetoothEscposPrinter.printText("--------------------------------\n", {});
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.RIGHT);
-    
+
     if (data.gstAmount && data.gstAmount > 0) {
-        await BluetoothEscposPrinter.printText(`Subtotal: Rs.${data.subtotal}\n`, {});
-        await BluetoothEscposPrinter.printText(`GST (18%): Rs.${data.gstAmount}\n`, {});
+      await BluetoothEscposPrinter.printText(`Subtotal: Rs.${data.subtotal}\n`, {});
+      await BluetoothEscposPrinter.printText(`GST (18%): Rs.${data.gstAmount}\n`, {});
     }
-    
+
     await BluetoothEscposPrinter.printText(`TOTAL: Rs.${data.totalAmount}\n`, { fontweight: 1 });
     await BluetoothEscposPrinter.printText("\n", {});
 
@@ -160,10 +173,10 @@ const printWiFi = async (data: PrintData, ip: string, port: string, bInfo: Busin
       receipt += `Customer: ${data.customerName}\n`;
       receipt += `Phone   : ${data.customerPhone}\n`;
       receipt += "--------------------------------\n";
-      
+
       receipt += "Item           Qty     Price\n";
       receipt += "--------------------------------\n";
-      
+
       data.items.forEach(item => {
         const name = item.name.substring(0, 14).padEnd(14);
         const qty = String(item.quantity).padStart(5);
@@ -173,12 +186,12 @@ const printWiFi = async (data: PrintData, ip: string, port: string, bInfo: Busin
 
       receipt += "--------------------------------\n";
       receipt += right;
-      
+
       if (data.gstAmount && data.gstAmount > 0) {
-          receipt += `Subtotal: Rs.${data.subtotal}\n`;
-          receipt += `GST (18%): Rs.${data.gstAmount}\n`;
+        receipt += `Subtotal: Rs.${data.subtotal}\n`;
+        receipt += `GST (18%): Rs.${data.gstAmount}\n`;
       }
-      
+
       receipt += boldOn + `TOTAL: Rs.${data.totalAmount}\n` + boldOff + feed;
       receipt += center + bInfo.footerMessage + "\n" + feed + feed + feed + cut;
 
@@ -196,7 +209,7 @@ const printWiFi = async (data: PrintData, ip: string, port: string, bInfo: Busin
       client.destroy();
       reject(new Error('WiFi Print Timeout'));
     });
-    
+
     // Set a timeout
     setTimeout(() => {
       client.destroy();

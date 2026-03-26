@@ -8,7 +8,6 @@ import {
   TextInput,
   ActivityIndicator,
   FlatList,
-  Alert,
   StatusBar,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -16,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, updateProduct, Product } from '../api';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 const StockManagement = () => {
   const { token } = useAuth();
@@ -65,9 +65,17 @@ const StockManagement = () => {
         total_stock: product.total_stock,
       };
       await updateProduct(product.id, payload, token);
-      Alert.alert('Success', `${product.name} stock updated!`);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `${product.name} stock updated`,
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to update stock');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update stock',
+      });
     } finally {
       setUpdatingId(null);
     }

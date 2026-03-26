@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import { BleManager, Device } from 'react-native-ble-plx';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { requestAppPermissions } from '../utils/PermissionsService';
+import Toast from 'react-native-toast-message';
 
 // Note: For Geolocation, we normally use react-native-geolocation-service
 // Since the prompt uses navigator.geolocation, we'll assume it exists or use a placeholder
@@ -54,7 +55,11 @@ const DiagnosticsScreen = ({ navigation }: any) => {
             },
             (err: any) => {
                 console.warn(err);
-                Alert.alert('Location Error', 'Unable to fetch coordinates.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Location Error',
+                    text2: 'Unable to fetch coordinates.'
+                });
                 setLoading(false);
             }
         );

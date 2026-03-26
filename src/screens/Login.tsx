@@ -12,6 +12,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { useAuth } from "../contexts/AuthContext";
 import { ImageBackground } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Toast from 'react-native-toast-message';
 
 const Login = ({ onSwitchToRegister }) => {
   const { signIn, loading } = useAuth();
@@ -22,7 +23,11 @@ const Login = ({ onSwitchToRegister }) => {
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password.trim()) {
-      Alert.alert("Error", "Enter credentials");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Enter credentials'
+      });
       return;
     }
     await signIn(identifier, password);

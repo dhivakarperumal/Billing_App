@@ -12,6 +12,7 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useAuth } from "../contexts/AuthContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Toast from 'react-native-toast-message';
 
 const Register = ({ onSwitchToLogin }) => {
   const { signUp, loading } = useAuth();
@@ -36,12 +37,20 @@ const Register = ({ onSwitchToLogin }) => {
     const password = form.password.trim();
 
     if (!name || !email || !password) {
-      Alert.alert("Error", "All fields required");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'All fields required',
+      });
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Passwords do not match',
+      });
       return;
     }
 

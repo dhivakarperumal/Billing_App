@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { createCustomer, fetchCustomers, Customer } from '../api';
+import Toast from 'react-native-toast-message';
 
 const Customers = () => {
   const { token } = useAuth();
@@ -29,7 +30,11 @@ const Customers = () => {
       const data = await fetchCustomers(token);
       setCustomers(data);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to load customers');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error?.message || 'Failed to load customers'
+      });
     } finally {
       setLoading(false);
     }
@@ -41,7 +46,11 @@ const Customers = () => {
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation', 'Customer name is required.');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation',
+        text2: 'Customer name is required.'
+      });
       return;
     }
 
@@ -60,7 +69,11 @@ const Customers = () => {
       setEmail('');
       setPhone('');
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Failed to create customer');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error?.message || 'Failed to create customer',
+      });
     } finally {
       setCreating(false);
     }
