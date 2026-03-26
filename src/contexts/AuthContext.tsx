@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login as apiLogin, register as apiRegister } from '../api';
 import Toast from 'react-native-toast-message';
@@ -55,59 +54,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadAuthData();
   }, []);
 
-  const signIn = async (identifier: string, password: string) => {
-    setLoading(true);
-    try {
-      const { token: newToken, user: apiUser } = await apiLogin({ identifier, password });
-      setToken(newToken);
-      setUser(apiUser ?? null);
+const signIn = async (identifier: string, password: string) => {
+  setLoading(true);
+  try {
+    const { token: newToken, user: apiUser } = await apiLogin({ identifier, password });
 
-      await AsyncStorage.setItem('auth_token', newToken);
-      if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
-    }
-    catch (error: any) {
-      console.log("FULL ERROR:", error); // 🔥 debug
+    setToken(newToken);
+    setUser(apiUser ?? null);
 
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Something went wrong';
+    await AsyncStorage.setItem('auth_token', newToken);
+    if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
 
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: message,
-      });
+    // ✅ SUCCESS TOAST
+    Toast.show({
+      type: 'success',
+      text1: 'Login Successful 🎉',
+      text2: 'Welcome back!',
+    });
 
-      console.error('Login error:', error);
-    }
-    finally {
-      setLoading(false);
-    }
-  };
+  } catch (error: any) {
+    console.log("FULL ERROR:", error);
 
-  const signUp = async (name: string, email: string, password: string) => {
-    setLoading(true);
-    try {
-      const { token: newToken, user: apiUser } = await apiRegister({
-        name,
-        email,
-        password,
-      });
-      setToken(newToken);
-      setUser(apiUser ?? null);
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Something went wrong';
 
-      await AsyncStorage.setItem('auth_token', newToken);
-      if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
-    } catch (error: any) {
-      const message = error?.message ?? 'Unknown error';
-      const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
-      Alert.alert('Registration failed', `${message}${details}`);
-      console.error('Registration error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // ❌ ERROR TOAST
+    Toast.show({
+      type: 'error',
+      text1: 'Login Failed',
+      text2: message,
+    });
+
+    console.error('Login error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const signUp = async (name: string, email: string, password: string) => {
+  setLoading(true);
+  try {
+    const { token: newToken, user: apiUser } = await apiRegister({
+      name,
+      email,
+      password,
+    });
+
+    setToken(newToken);
+    setUser(apiUser ?? null);
+
+    await AsyncStorage.setItem('auth_token', newToken);
+    if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
+
+    // ✅ SUCCESS TOAST
+    Toast.show({
+      type: 'success',
+      text1: 'Registration Successful 🎉',
+      text2: 'Account created successfully',
+    });
+
+  } catch (error: any) {
+    console.log("FULL ERROR:", error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Something went wrong';
+
+    // ❌ ERROR TOAST
+    Toast.show({
+      type: 'error',
+      text1: 'Registration Failed',
+      text2: message,
+    });
+
+    console.error('Registration error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const signOut = async () => {
     setToken(null);

@@ -21,15 +21,15 @@ function AppContent() {
   const { token, loading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
 
-useEffect(() => {
-  if (Platform.OS === 'android') {
-    const { StatusBarManager } = NativeModules;
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const { StatusBarManager } = NativeModules;
 
-    // Force light background feeling
-    StatusBar.setBarStyle('dark-content'); // black icons
-    StatusBar.setBackgroundColor('#ffffff'); // white bg
-  }
-}, []);
+      // Force light background feeling
+      StatusBar.setBarStyle('dark-content'); // black icons
+      StatusBar.setBackgroundColor('#ffffff'); // white bg
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -61,55 +61,58 @@ useEffect(() => {
 export default function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
-  
+
   const toastConfig = {
-  success: ({ text1, text2 }) => (
-    <View
-      style={{
-        width: '90%',
-        backgroundColor: '#2563eb', // 🔵 BLUE
-        padding: 14,
-        borderRadius: 12,
-        alignSelf: 'center',
-        marginTop: 10,
-      }}
-    >
-      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
-        {text1}
-      </Text>
-      {text2 ? (
-        <Text style={{ color: '#e0f2fe', marginTop: 4 }}>
-          {text2}
+    success: ({ text1, text2 }) => (
+      <View
+        style={{
+          width: '90%',
+          backgroundColor: '#ffffff', // 🤍 WHITE BG
+          padding: 14,
+          borderRadius: 12,
+          alignSelf: 'center',
+          marginTop: 10,
+          borderWidth: 1,
+          borderColor: '#22c55e', // 🟢 green border
+        }}
+      >
+        <Text style={{ color: '#16a34a', fontWeight: 'bold', fontSize: 16 }}>
+          {text1}
         </Text>
-      ) : null}
-    </View>
-  ),
 
-error: ({ text1, text2 }) => (
-  <View
-    style={{
-      width: '90%',
-      backgroundColor: '#ffffff', // 🤍 WHITE BG
-      padding: 14,
-      borderRadius: 12,
-      alignSelf: 'center',
-      marginTop: 10,
-      borderWidth: 1,
-      borderColor: '#2563eb', // 🔵 blue border (nice look)
-    }}
-  >
-    <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 16 }}>
-      {text1}
-    </Text>
+        {text2 ? (
+          <Text style={{ color: '#15803d', marginTop: 4 }}>
+            {text2}
+          </Text>
+        ) : null}
+      </View>
+    ),
 
-    {text2 ? (
-      <Text style={{ color: '#1e3a8a', marginTop: 4 }}>
-        {text2}
-      </Text>
-    ) : null}
-  </View>
-),
-};
+    error: ({ text1, text2 }) => (
+      <View
+        style={{
+          width: '90%',
+          backgroundColor: '#ffffff', // 🤍 WHITE BG
+          padding: 14,
+          borderRadius: 12,
+          alignSelf: 'center',
+          marginTop: 10,
+          borderWidth: 1,
+          borderColor: '#2563eb', // 🔵 blue border (nice look)
+        }}
+      >
+        <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 16 }}>
+          {text1}
+        </Text>
+
+        {text2 ? (
+          <Text style={{ color: '#1e3a8a', marginTop: 4 }}>
+            {text2}
+          </Text>
+        ) : null}
+      </View>
+    ),
+  };
 
   return (
     <SafeAreaProvider>

@@ -46,6 +46,9 @@ const Register = ({ onSwitchToLogin }) => {
     }
 
     await signUp(name, email, password);
+    setTimeout(() => {
+      onSwitchToLogin();
+    }, 1000);
   };
 
   return (
@@ -151,9 +154,8 @@ const Register = ({ onSwitchToLogin }) => {
 
         {/* BUTTON */}
         <TouchableOpacity
-          className={`bg-blue-600 py-4 rounded-xl items-center mt-8 ${
-            loading ? "opacity-70" : ""
-          }`}
+          className={`bg-blue-600 py-4 rounded-xl items-center mt-8 ${loading ? "opacity-70" : ""
+            }`}
           onPress={handleRegister}
           disabled={loading}
         >
