@@ -19,6 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BluetoothManager } from 'react-native-bluetooth-escpos-printer';
+import Toast from 'react-native-toast-message';
 
 const HEADER_GRADIENT = ['#2563eb', '#3b82f6'];
 
@@ -89,6 +90,9 @@ const PrinterSettings = () => {
   const [scanning, setScanning] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
 
+  const [showUnpairModal, setShowUnpairModal] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<BTDevice | null>(null);
+
   const [pairedDevices, setPairedDevices] = useState<BTDevice[]>([]);
   const [availableDevices, setAvailableDevices] = useState<BTDevice[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<BTDevice | null>(null);
@@ -104,6 +108,37 @@ const PrinterSettings = () => {
   useEffect(() => {
     loadSavedConfig();
   }, []);
+
+  const confirmUnpair = async () => {
+    if (!selectedDevice) return;
+
+    try {
+      await (BluetoothManager as any).unpaire(selectedDevice.address);
+
+      setPairedDevices(prev => prev.filter(d => d.address !== selectedDevice.address));
+      setAvailableDevices(prev => [...prev, { ...selectedDevice, paired: false }]);
+
+      if (connectedDevice?.address === selectedDevice.address) {
+        setConnectedDevice(null);
+      }
+
+      Toast.show({
+        type: 'success',
+        text1: 'Unpaired',
+        text2: `${selectedDevice.name} removed`,
+      });
+
+    } catch (e: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: e.message || 'Unpair failed',
+      });
+    } finally {
+      setShowUnpairModal(false);
+      setSelectedDevice(null);
+    }
+  };
 
   const loadSavedConfig = async () => {
     try {
@@ -135,13 +170,21 @@ const PrinterSettings = () => {
   const scanDevices = async () => {
     const hasPermission = await requestPermissions().catch(() => false);
     if (!hasPermission) {
-      Alert.alert('Permission Required', 'Bluetooth and Location permissions are needed to scan devices.');
+      Toast.show({
+        type: 'error',
+        text1: 'Permission Required',
+        text2: 'Enable Bluetooth & Location permissions',
+      });
       return;
     }
 
     const isEnabled = await BluetoothManager.isBluetoothEnabled().catch(() => false);
     if (!isEnabled) {
-      Alert.alert('Bluetooth Off', 'Please turn on Bluetooth and try again.');
+      Toast.show({
+        type: 'error',
+        text1: 'Bluetooth Off',
+        text2: 'Turn on Bluetooth and try again',
+      });
       return;
     }
 
@@ -178,7 +221,11 @@ const PrinterSettings = () => {
       setPairedDevices(paired);
       setAvailableDevices(available);
     } catch (e: any) {
-      Alert.alert('Scan Failed', e.message || 'Error scanning for Bluetooth devices.');
+      Toast.show({
+        type: 'error',
+        text1: 'Scan Failed',
+        text2: e.message || 'Error scanning devices',
+      });
     } finally {
       setScanning(false);
     }
@@ -203,9 +250,17 @@ const PrinterSettings = () => {
       await BluetoothManager.connect(device.address);
       setConnectedDevice(device);
       await AsyncStorage.setItem('printer_config', JSON.stringify({ type: 'bluetooth', name: device.name, address: device.address }));
-      Alert.alert('✅ Connected', `Now using "${device.name}" as printer.`);
+      Toast.show({
+        type: 'success',
+        text1: 'Connected',
+        text2: `${device.name} is ready`,
+      });
     } catch (e: any) {
-      Alert.alert('Connection Error', e.message || 'Could not connect to this device.');
+      Toast.show({
+        type: 'error',
+        text1: 'Connection Failed',
+        text2: e.message || 'Could not connect',
+      });
     } finally {
       setConnecting(null);
     }
@@ -222,38 +277,25 @@ const PrinterSettings = () => {
       setPairedDevices(prev => [...prev, { ...device, paired: true }]);
       setConnectedDevice(device);
       await AsyncStorage.setItem('printer_config', JSON.stringify({ type: 'bluetooth', name: device.name, address: device.address }));
-      Alert.alert('✅ Paired', `"${device.name}" has been paired and connected.`);
+      Toast.show({
+        type: 'success',
+        text1: 'Paired',
+        text2: `${device.name} connected`,
+      });
     } catch (e: any) {
-      Alert.alert('Pairing Error', e.message || 'Could not pair with this device.');
+      Toast.show({
+        type: 'error',
+        text1: 'Pairing Failed',
+        text2: e.message || 'Could not pair device',
+      });
     } finally {
       setConnecting(null);
     }
   };
-
-  const unpairDevice = async (device: BTDevice) => {
+  const unpairDevice = (device: BTDevice) => {
     closeMenu();
-    Alert.alert(
-      'Unpair Device',
-      `Remove "${device.name}" from paired devices?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unpair',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await (BluetoothManager as any).unpaire(device.address);
-              setPairedDevices(prev => prev.filter(d => d.address !== device.address));
-              setAvailableDevices(prev => [...prev, { ...device, paired: false }]);
-              if (connectedDevice?.address === device.address) setConnectedDevice(null);
-              Alert.alert('Unpaired', `"${device.name}" has been removed.`);
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Could not unpair device.');
-            }
-          }
-        }
-      ]
-    );
+    setSelectedDevice(device);
+    setShowUnpairModal(true);
   };
 
   const disconnectCurrent = async () => {
@@ -262,9 +304,19 @@ const PrinterSettings = () => {
   };
 
   const saveWiFiConfig = async () => {
-    if (!ipAddress) { Alert.alert('Invalid', 'Enter a valid IP address.'); return; }
+    if (!ipAddress) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid IP',
+        text2: 'Enter valid IP address',
+      }); return;
+    }
     await AsyncStorage.setItem('printer_config', JSON.stringify({ type: 'wifi', ip: ipAddress, port }));
-    Alert.alert('Saved', 'WiFi printer configuration saved successfully.');
+    Toast.show({
+      type: 'success',
+      text1: 'Saved',
+      text2: 'WiFi configuration saved',
+    });
   };
 
   // ─── Device Row Component ───────────────────────────────────────
@@ -556,6 +608,37 @@ const PrinterSettings = () => {
           </Animated.View>
         </TouchableOpacity>
       </Modal>
+      {showUnpairModal && (
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.unpairModalBox}>
+
+            <Text style={styles.unpairTitle}>Unpair Device</Text>
+
+            <Text style={styles.unpairText}>
+              Remove "{selectedDevice?.name}" from paired devices?
+            </Text>
+
+            <View style={styles.unpairActions}>
+
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setShowUnpairModal(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.unpairBtn}
+                onPress={confirmUnpair}
+              >
+                <Text style={styles.unpairTextBtn}>Unpair</Text>
+              </TouchableOpacity>
+
+            </View>
+
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -1016,6 +1099,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#64748b',
+  },
+  modalOverlayCenter: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  unpairModalBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 20,
+  },
+
+  unpairTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#2563eb',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+
+  unpairText: {
+    textAlign: 'center',
+    color: '#1e3a8a',
+    marginBottom: 20,
+    fontWeight: '600',
+  },
+
+  unpairActions: {
+    flexDirection: 'row',
+  },
+
+  cancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginRight: 8,
+  },
+
+  cancelText: {
+    color: '#2563eb',
+    fontWeight: '800',
+  },
+
+  unpairBtn: {
+    flex: 1,
+    backgroundColor: '#ef4444', // 🔴 red
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+
+  unpairTextBtn: {
+    color: '#fff',
+    fontWeight: '800',
   },
 });
 
