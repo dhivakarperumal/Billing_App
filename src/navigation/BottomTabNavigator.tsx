@@ -165,7 +165,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             onPress={() => setShowQuickActions(false)}
           />
 
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: 24 + insets.bottom }
+            ]}
+          >
             <View style={styles.modalPill} />
             <Text style={styles.modalTitle}>
               Quick Actions<Text style={{ color: ACTIVE_COLOR }}>.</Text>
@@ -511,7 +516,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: 24,
   },
   modalPill: {
     width: 40,
@@ -561,13 +566,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   modalCloseBtn: {
-    backgroundColor: '#0f172a',
+    backgroundColor: 'blue',
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
   },
   modalCloseTxt: {
-    color: '#fff',
+    color: 'white',
     fontWeight: '800',
     fontSize: 14,
     letterSpacing: 0.5,
