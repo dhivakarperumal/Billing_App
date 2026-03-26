@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
-    FlatList, Modal, ActivityIndicator, Alert,
+    FlatList, Modal, ActivityIndicator,
     StatusBar, Dimensions, Platform, Image,
     PermissionsAndroid, StyleSheet, NativeModules, DeviceEventEmitter, Animated, Easing
 } from "react-native";
@@ -15,6 +15,7 @@ import { printReceipt, PrintData } from "../utils/printer";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 import { tanglishMatchesTamil } from '../utils/transliterate';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
@@ -202,7 +203,11 @@ const CreateBilling = () => {
                 { title: 'Mic Permission', message: 'Speak to search products', buttonPositive: 'Allow' }
             );
             if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                Alert.alert('Permission Denied', 'Microphone access is required for voice search.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Permission Denied',
+                    text2: 'Microphone access is required',
+                });
                 return;
             }
         }
@@ -339,7 +344,11 @@ const CreateBilling = () => {
                 if (product) {
                     handleProductPress(product);
                 } else {
-                    Alert.alert("Not Found", `Barcode [${code}] matches no inventory item.`);
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Not Found',
+                        text2: `Barcode ${code} not found`,
+                    });
                 }
                 navigation.setParams({ barcode: null });
             } else if (route.params?.barcodes && Array.isArray(route.params.barcodes)) {
@@ -356,7 +365,11 @@ const CreateBilling = () => {
                     }
                 });
                 if (notFound.length > 0) {
-                    Alert.alert("Some Not Found", `${notFound.length} barcode(s) didn't match any product:\n${notFound.join(', ')}`);
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Some Not Found',
+                        text2: `${notFound.length} items not found`,
+                    });
                 }
                 navigation.setParams({ barcodes: null });
             }
@@ -436,8 +449,16 @@ const CreateBilling = () => {
     };
 
     const handleFinalizeBill = async () => {
-        if (!customerName || !customerPhone) return Alert.alert("Missing Info", "Full name and contact number required.");
-        if (cart.length === 0) return Alert.alert("Empty Manifest", "Add items to the cart first.");
+        if (!customerName || !customerPhone) return Toast.show({
+            type: 'error',
+            text1: 'Missing Info',
+            text2: 'Enter name & phone number',
+        });
+        if (cart.length === 0) return Toast.show({
+            type: 'error',
+            text1: 'Cart Empty',
+            text2: 'Add items first',
+        });
 
         setSaving(true);
         try {
@@ -473,7 +494,11 @@ const CreateBilling = () => {
                 setShowPostSavePreview(true);
             }
         } catch (err: any) {
-            Alert.alert("Upload Failed", err?.message || "Check network connection.");
+            Toast.show({
+                type: 'error',
+                text1: 'Upload Failed',
+                text2: err?.message || 'Check network connection',
+            });
         } finally {
             setSaving(false);
         }
