@@ -18,7 +18,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, Product } from '../api';
 
-const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
+const HEADER_GRADIENT = ['#2563eb', '#1d4ed8'];
 
 const Products = () => {
   const { token } = useAuth();
@@ -102,7 +102,7 @@ const Products = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={['left', 'right']}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
 
       {/* HEADER */}
       <LinearGradient colors={HEADER_GRADIENT} className="px-6 pt-4 pb-8 rounded-b-[35px]">
@@ -126,7 +126,7 @@ const Products = () => {
       {/* LIST */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator color="#f97316" size="large" />
+          <ActivityIndicator color="#2563eb" size="large" />
           <Text className="mt-3 text-[10px] font-black text-slate-400 tracking-widest">
             SYNCING VAULT...
           </Text>
@@ -154,7 +154,7 @@ const Products = () => {
                     resizeMode="cover"
                   />
                 ) : (
-                  <Feather name="box" size={24} color="#f97316" />
+                  <Feather name="box" size={24} color="#2563eb" />
                 )}
               </View>
 
@@ -163,7 +163,7 @@ const Products = () => {
               </Text>
 
               <View className="flex-row flex-wrap mt-1 gap-1">
-                <Text className="text-[8px] font-black text-orange-500 bg-orange-100 px-2 py-[2px] rounded-md">
+                <Text className="text-[8px] font-black text-blue-500 bg-blue-100 px-2 py-[2px] rounded-md">
                   ID-{item.id}
                 </Text>
                 {item.category && (
@@ -228,7 +228,7 @@ const Products = () => {
             <Text style={styles.fabLabelText}>Add Category</Text>
           </View>
           <TouchableOpacity
-            style={[styles.fabMini, { backgroundColor: '#7c3aed' }]}
+            style={[styles.fabMini, { backgroundColor: '#2563eb' }]}
             onPress={() => navigateTo('AddCategory')}
             activeOpacity={0.85}
           >
@@ -242,7 +242,7 @@ const Products = () => {
             <Text style={styles.fabLabelText}>Add Product</Text>
           </View>
           <TouchableOpacity
-            style={[styles.fabMini, { backgroundColor: '#f97316' }]}
+            style={[styles.fabMini, { backgroundColor: '#2563eb' }]}
             onPress={() => navigateTo('AddProduct')}
             activeOpacity={0.85}
           >
@@ -304,11 +304,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 10,
-    shadowColor: '#0f172a',
+    shadowColor: '#2563eb',
     shadowOpacity: 0.4,
     shadowRadius: 12,
   },

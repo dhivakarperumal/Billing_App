@@ -21,6 +21,7 @@ import {
   fetchCategoryById,
   Category
 } from '../api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AddCategory = () => {
   const navigation = useNavigation<any>();
@@ -134,20 +135,20 @@ const AddCategory = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#F43F5E" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+  <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#1e293b" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEdit ? 'Edit Category' : 'Add Category'}</Text>
         <TouchableOpacity onPress={handleSubmit} disabled={saving}>
-          {saving ? <ActivityIndicator size="small" color="#F43F5E" /> : <Icon name="save" size={24} color="#F43F5E" />}
+          {saving ? <ActivityIndicator size="small" color="#2563eb" /> : <Icon name="save" size={24} color="#2563eb" />}
         </TouchableOpacity>
       </View>
 
@@ -194,7 +195,7 @@ const AddCategory = () => {
           <View style={styles.rowBetween}>
             <Text style={styles.sectionTitle}>Subcategories</Text>
             <TouchableOpacity onPress={addSub} style={styles.addButton}>
-              <Icon name="plus" size={16} color="#F43F5E" />
+              <Icon name="plus" size={16} color="#2563eb" />
               <Text style={styles.addButtonText}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -224,39 +225,142 @@ const AddCategory = () => {
           {saving ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>SAVE CATEGORY</Text>}
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FDFDFF' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: 'white',
-    elevation: 2,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+
+  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e3a8a' },
+
   scrollContent: { padding: 16 },
-  card: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, elevation: 1 },
-  label: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
-  input: { backgroundColor: '#F8F9FF', borderRadius: 16, padding: 14, fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 16 },
-  imagePicker: { height: 150, backgroundColor: '#F8F9FF', borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1', overflow: 'hidden' },
-  pickerInner: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  pickerText: { fontSize: 12, fontWeight: '700', color: '#94a3b8', marginTop: 8 },
+
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+
+  label: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+
+  input: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 14,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e3a8a',
+    marginBottom: 16,
+  },
+
+  imagePicker: {
+    height: 150,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    overflow: 'hidden',
+  },
+
+  pickerInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  pickerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: 8,
+  },
+
   preview: { width: '100%', height: '100%' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase' },
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addButtonText: { color: '#F43F5E', fontWeight: '900', fontSize: 12 },
-  subRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  subInput: { flex: 1, backgroundColor: '#F8F9FF', borderRadius: 12, padding: 12, fontSize: 14, fontWeight: '700', color: '#1e293b' },
+
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    textTransform: 'uppercase',
+  },
+
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  addButtonText: {
+    color: '#2563eb',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+
+  subInput: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e3a8a',
+  },
+
   removeButton: { padding: 4 },
-  submitButton: { backgroundColor: '#F43F5E', padding: 16, borderRadius: 16, alignItems: 'center', height: 56, justifyContent: 'center' },
-  submitText: { color: 'white', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
+
+  submitButton: {
+    backgroundColor: '#2563eb',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    height: 56,
+    justifyContent: 'center',
+  },
+
+  submitText: {
+    color: '#ffffff',
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
 });
 
 export default AddCategory;

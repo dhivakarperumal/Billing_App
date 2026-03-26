@@ -298,7 +298,7 @@ const AddProduct = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#F43F5E" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
@@ -312,7 +312,7 @@ const AddProduct = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEdit ? 'Edit Product' : 'Add Product'}</Text>
         <TouchableOpacity onPress={handleSubmit} disabled={saving}>
-          {saving ? <ActivityIndicator size="small" color="#F43F5E" /> : <Icon name="check" size={24} color="#F43F5E" />}
+          {saving ? <ActivityIndicator size="small" color="#2563eb" /> : <Icon name="check" size={24} color="#2563eb" />}
         </TouchableOpacity>
       </View>
 
@@ -358,7 +358,7 @@ const AddProduct = () => {
                 keyboardType="default"
               />
               <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="maximize" size={14} color="#f97316" />
+                <Icon name="maximize" size={14} color="#eff6ff" />
               </View>
             </View>
           </View>
@@ -512,7 +512,7 @@ const AddProduct = () => {
                 <Text style={styles.variantTitle}>Variant #{i + 1}</Text>
                 {formData.variants.length > 1 && (
                   <TouchableOpacity onPress={() => removeVariant(i)} style={styles.variantDelete}>
-                    <Icon name="trash-2" size={16} color="#F43F5E" />
+                    <Icon name="trash-2" size={16} color="#2563eb" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -578,9 +578,9 @@ const AddProduct = () => {
                   />
                 </View>
                 <View style={styles.gridCol}>
-                  <Text style={[styles.miniLabel, { color: '#F43F5E' }]}>Selling Price</Text>
-                  <View style={[styles.variantInput, { backgroundColor: '#fef2f2', borderBottomColor: '#fecaca' }]}>
-                    <Text style={{ color: '#F43F5E', fontWeight: '900', fontSize: 13 }}>₹ {v.sellingPrice || '0.00'}</Text>
+                  <Text style={[styles.miniLabel, { color: '#2563eb' }]}>Selling Price</Text>
+                  <View style={[styles.variantInput, { backgroundColor: '#dbeafe  ', borderBottomColor: '#1e3a8a' }]}>
+                    <Text style={{ color: '#2563eb', fontWeight: '900', fontSize: 13 }}>₹ {v.sellingPrice || '0.00'}</Text>
                   </View>
                 </View>
               </View>
@@ -600,7 +600,7 @@ const AddProduct = () => {
                 style={styles.dateButton}
               >
                 <Text style={styles.dateButtonText}>{formData.expiry.mfgDate || 'Select Date'}</Text>
-                <Icon name="calendar" size={14} color="#F43F5E" />
+                <Icon name="calendar" size={14} color="#2563eb" />
               </TouchableOpacity>
               {showMfgPicker && (
                 <DateTimePicker
@@ -698,80 +698,300 @@ const FormInput = ({ label, ...props }: any) => (
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#e2e8f0',
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase' },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    textTransform: 'uppercase',
+  },
+
   scrollContent: { padding: 16, paddingBottom: 100 },
-  section: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f1f5f9' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 12, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', marginLeft: 8 },
+
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginLeft: 8,
+  },
+
   inputContainer: { marginBottom: 16 },
-  label: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
-  input: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, fontSize: 14, fontWeight: '700', color: '#1e293b' },
+
+  label: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+
+  input: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e3a8a',
+  },
+
   row: { flexDirection: 'row', alignItems: 'center' },
+
   chipScroll: { marginTop: 4 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
-  chipActive: { backgroundColor: '#F43F5E', borderColor: '#F43F5E' },
-  chipActiveSub: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
-  chipText: { fontSize: 12, fontWeight: '800', color: '#64748b' },
-  chipTextActive: { color: 'white' },
+
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#eff6ff',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+
+  chipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+
+  chipActiveSub: {
+    backgroundColor: '#1d4ed8',
+    borderColor: '#1d4ed8',
+  },
+
+  chipText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1e3a8a',
+  },
+
+  chipTextActive: { color: '#ffffff' },
+
   pickerContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  statusChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' },
-  statusActive: { backgroundColor: '#1e293b', borderColor: '#1e293b' },
-  statusText: { fontSize: 10, fontWeight: '900', color: '#94a3b8' },
-  statusTextActive: { color: 'white' },
+
+  statusChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    backgroundColor: '#eff6ff',
+  },
+
+  statusActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+
+  statusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  statusTextActive: { color: '#ffffff' },
+
   imageScroll: { flexDirection: 'row', marginTop: 8 },
-  addImage: { width: 80, height: 80, borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+
+  addImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    borderColor: '#dbeafe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
   imageWrapper: { width: 80, height: 80, marginRight: 12 },
+
   image: { width: 80, height: 80, borderRadius: 12 },
-  removeImage: { position: 'absolute', top: -5, right: -5, backgroundColor: '#F43F5E', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  totalStockBadge: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  totalStockLabel: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' },
-  totalStockValue: { fontSize: 13, fontWeight: '900', color: '#1e293b' },
-  dateButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  dateButtonText: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
-  variantCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  variantHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 8 },
-  variantTitle: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase' },
-  variantInput: { fontSize: 13, fontWeight: '700', color: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingVertical: 8 },
+
+  removeImage: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  totalStockBadge: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
+  totalStockLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    textTransform: 'uppercase',
+  },
+
+  totalStockValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#2563eb',
+  },
+
+  dateButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbeafe',
+  },
+
+  dateButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e3a8a',
+  },
+
+  variantCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+
+  variantHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingBottom: 8,
+  },
+
+  variantTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+  },
+
+  variantInput: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e3a8a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbeafe',
+    paddingVertical: 8,
+  },
+
   variantDelete: { padding: 4 },
+
   grid: { flexDirection: 'row', gap: 12 },
   gridCol: { flex: 1 },
-  miniLabel: { fontSize: 8, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 2 },
-  addVariant: { padding: 12, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#F43F5E', borderRadius: 12, marginTop: 8 },
-  addVariantText: { color: '#F43F5E', fontWeight: '900', fontSize: 12 },
-  submitButton: { backgroundColor: '#F43F5E', borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 16, elevation: 4 },
-  submitText: { color: 'white', fontWeight: '900', fontSize: 14 },
+
+  miniLabel: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+
+  addVariant: {
+    padding: 12,
+    alignItems: 'center',
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    borderRadius: 12,
+    marginTop: 8,
+  },
+
+  addVariantText: {
+    color: '#2563eb',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+
+  submitButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 16,
+    elevation: 4,
+  },
+
+  submitText: {
+    color: '#ffffff',
+    fontWeight: '900',
+    fontSize: 14,
+  },
+
   barcodePreviewContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 180,
     marginTop: 8,
   },
+
   barcodeImage: {
     width: '100%',
     height: 120,
   },
+
   barcodeHint: {
     fontSize: 9,
     fontWeight: '900',
-    color: '#94a3b8',
+    color: '#64748b',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 12,
   },
+
   barcodePlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',

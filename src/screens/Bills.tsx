@@ -83,6 +83,7 @@ const Bills = () => {
   };
 
   const handleOpenBill = (item: any) => {
+    console.log("CLICKED", item);
     setSelectedBill(item);
     setModalVisible(true);
   };
