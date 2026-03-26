@@ -20,7 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BluetoothManager } from 'react-native-bluetooth-escpos-printer';
 
-const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
+const HEADER_GRADIENT = ['#2563eb', '#3b82f6'];
 
 type DeviceType = 'printer' | 'phone' | 'tablet' | 'headset' | 'laptop' | 'speaker' | 'watch' | 'other';
 
@@ -118,7 +118,7 @@ const PrinterSettings = () => {
           setPort(config.port || '9100');
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const requestPermissions = async (): Promise<boolean> => {
@@ -357,11 +357,24 @@ const PrinterSettings = () => {
             )}
 
             {/* Scan Button */}
-            <TouchableOpacity onPress={scanDevices} disabled={scanning} style={[styles.scanBtn, scanning && { opacity: 0.6 }]}>
-              <LinearGradient colors={['#f97316', '#ea580c']} style={styles.scanBtnInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                {scanning ? <ActivityIndicator color="#fff" size="small" /> : <Feather name="radio" size={18} color="#fff" />}
-                <Text style={styles.scanBtnTxt}>{scanning ? 'Scanning for devices…' : 'Scan Nearby Devices'}</Text>
-              </LinearGradient>
+            <TouchableOpacity
+              onPress={scanDevices}
+              disabled={scanning}
+              style={[
+                styles.scanBtn,
+                scanning && { opacity: 0.6 }
+              ]}
+            >
+              <View style={styles.scanBtnInner}>
+                {scanning ? (
+                  <ActivityIndicator color="#2563eb" size="small" />
+                ) : (
+                  <Feather name="radio" size={18} color="#2563eb" />
+                )}
+                <Text style={styles.scanBtnTxt}>
+                  {scanning ? 'Scanning for devices…' : 'Scan Nearby Devices'}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {/* Paired Devices */}
@@ -454,7 +467,7 @@ const PrinterSettings = () => {
               {
                 opacity: menuAnim,
                 transform: [{ scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
-                            { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
               }
             ]}
           >
@@ -525,78 +538,357 @@ const PrinterSettings = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '900' },
-  tabRow: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)' },
-  tabActive: { backgroundColor: '#f97316' },
-  tabTxt: { color: '#94a3b8', fontSize: 11, fontWeight: '800' },
-  tabTxtActive: { color: '#fff' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f5ff',
+  },
 
-  content: { padding: 20, paddingBottom: 40 },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
 
-  connectedBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1.5, borderColor: '#10b981', elevation: 3, shadowColor: '#10b981', shadowOpacity: 0.15, shadowRadius: 8 },
-  connectedBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  greenDotWrap: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center' },
-  greenDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' },
-  connectedBannerName: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
-  connectedBannerAddr: { fontSize: 11, color: '#94a3b8', fontWeight: '700' },
-  disconnectBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fef2f2', borderRadius: 10 },
-  disconnectTxt: { color: '#ef4444', fontSize: 11, fontWeight: '900' },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
 
-  scanBtn: { borderRadius: 18, overflow: 'hidden', marginBottom: 24 },
-  scanBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16 },
-  scanBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  section: { marginBottom: 20 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  sectionTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase', flex: 1 },
-  sectionCount: { backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  sectionCountTxt: { color: '#10b981', fontSize: 10, fontWeight: '900' },
-  deviceList: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', elevation: 2, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6 },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+  },
 
-  deviceRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
-  deviceIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  deviceMeta: { flex: 1 },
-  deviceName: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
-  deviceTypeLabel: { fontSize: 10, fontWeight: '800' },
-  deviceAddr: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
-  connectedDot: { backgroundColor: '#f0fdf4', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
-  connectedDotTxt: { color: '#10b981', fontSize: 8, fontWeight: '900' },
-  badge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, borderWidth: 1 },
-  badgeTxt: { fontSize: 8, fontWeight: '900' },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
 
-  emptyState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#94a3b8' },
-  emptySubtitle: { fontSize: 12, color: '#cbd5e1', textAlign: 'center', lineHeight: 18, maxWidth: 260 },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
 
-  wifiPanel: { backgroundColor: '#fff', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#f1f5f9' },
-  wifiHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
-  wifiTitle: { fontSize: 15, fontWeight: '900', color: '#0f172a' },
-  inputLabel: { fontSize: 11, fontWeight: '800', color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: '#f8fafc', height: 50, borderRadius: 14, paddingHorizontal: 15, fontSize: 14, fontWeight: '700', color: '#0f172a', borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 16 },
-  saveBtn: { backgroundColor: '#0f172a', height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  tabActive: {
+    backgroundColor: '#2563eb',
+  },
 
-  // ─── Device Menu Modal ────────────────────────────────────
-  menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', paddingBottom: 24, paddingHorizontal: 16 },
-  menuCard: { backgroundColor: '#fff', borderRadius: 28, overflow: 'hidden' },
-  menuHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 20 },
-  menuDeviceIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' },
-  menuDeviceName: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-  menuDeviceAddr: { fontSize: 11, color: '#94a3b8', fontWeight: '700' },
-  pairedBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#10b981' },
-  pairedBadgeTxt: { color: '#10b981', fontSize: 9, fontWeight: '900' },
-  menuDivider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
-  menuAction: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
-  menuActionIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  menuActionTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
-  menuActionSub: { fontSize: 11, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
-  menuCancelBtn: { padding: 18, alignItems: 'center' },
-  menuCancelTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '800' },
+  tabTxt: {
+    color: '#cbd5f5',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  tabTxtActive: {
+    color: '#fff',
+  },
+
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+
+  // 🔵 CONNECTED CARD
+  connectedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#2563eb',
+  },
+
+  connectedBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+
+  greenDotWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  greenDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563eb',
+  },
+
+  connectedBannerName: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  connectedBannerAddr: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '700',
+  },
+
+  disconnectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 10,
+  },
+
+  disconnectTxt: {
+    color: '#2563eb',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+
+  // 🔵 SCAN BUTTON
+  scanBtn: {
+    borderRadius: 18,
+    marginBottom: 24,
+  },
+
+  scanBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
+
+    backgroundColor: '#ffffff', // 🔥 white bg
+    borderWidth: 1.5,
+    borderColor: '#2563eb',     // 🔵 blue border
+    borderRadius: 18,
+  },
+
+  scanBtnTxt: {
+    color: '#2563eb', // 🔵 blue text
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  // 🔵 SECTION
+  section: {
+    marginBottom: 20,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    flex: 1,
+    color: '#2563eb',
+  },
+
+  sectionCount: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+
+  sectionCountTxt: {
+    color: '#2563eb',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+
+  deviceList: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+  },
+
+  // 🔵 DEVICE ROW
+  deviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5ff',
+  },
+
+  deviceIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  deviceMeta: {
+    flex: 1,
+  },
+
+  deviceName: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  deviceTypeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  deviceAddr: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+
+  connectedDot: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+
+  connectedDotTxt: {
+    color: '#2563eb',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+
+  badge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 7,
+    borderWidth: 1,
+  },
+
+  badgeTxt: {
+    fontSize: 8,
+    fontWeight: '900',
+  },
+
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    gap: 12,
+  },
+
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#64748b',
+  },
+
+  emptySubtitle: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+
+  // 🔵 WIFI PANEL
+  wifiPanel: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+  },
+
+  wifiTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  input: {
+    backgroundColor: '#f1f5ff',
+    height: 50,
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginBottom: 16,
+    color: '#1e3a8a',
+  },
+
+  saveBtn: {
+    backgroundColor: '#2563eb',
+    height: 54,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  saveBtnTxt: {
+    color: '#fff',
+    fontWeight: '900',
+  },
+
+  // 🔵 MODAL
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+
+  menuCard: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+  },
+
+  menuDeviceIcon: {
+    backgroundColor: '#eff6ff',
+  },
+
+  menuDeviceName: {
+    color: '#1e3a8a',
+  },
+
+  menuActionIcon: {
+    backgroundColor: '#eff6ff',
+  },
+
+  menuActionTitle: {
+    color: '#1e3a8a',
+  },
+
+  menuCancelTxt: {
+    color: '#64748b',
+  },
 });
 
 export default PrinterSettings;
