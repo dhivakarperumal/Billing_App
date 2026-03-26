@@ -120,7 +120,7 @@ const Settings = () => {
 
         <View style={styles.item}>
           <View style={styles.itemIcon}>
-            <Feather name="percent" size={20} color="#f97316" />
+            <Feather name="percent" size={20} color="#2563eb" />
           </View>
           <View style={styles.itemMeta}>
             <Text style={styles.itemTitle}>Enable GST</Text>
@@ -129,7 +129,7 @@ const Settings = () => {
           <Switch
             value={gstEnabled}
             onValueChange={toggleGst}
-            trackColor={{ false: '#e2e8f0', true: '#f97316' }}
+            trackColor={{ false: '#e2e8f0', true: '#2563eb' }}
           />
         </View>
 
@@ -173,7 +173,7 @@ const Settings = () => {
             onPress={item.onPress}
           >
             <View style={styles.itemIcon}>
-              <Feather name={item.icon} size={20} color="#f97316" />
+              <Feather name={item.icon} size={20} color="#2563eb" />
             </View>
             <View style={styles.itemMeta}>
               <Text style={styles.itemTitle}>{item.title}</Text>
@@ -206,50 +206,271 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  list: { flex: 1 },
-  listContent: { padding: 20, paddingBottom: 40 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f5ff', // light blue background
+  },
 
-  sectionTitle: { fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 1.5, marginBottom: 12, marginLeft: 5, textTransform: 'uppercase' },
-  item: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 10, borderWidth: 1, borderColor: '#f1f5f9' },
-  itemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' },
-  itemMeta: { flex: 1, marginLeft: 15 },
-  itemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
-  itemSubtitle: { fontSize: 10, color: '#94a3b8', fontWeight: '700', marginTop: 1 },
+  list: {
+    flex: 1,
+  },
 
-  detailsCard: { backgroundColor: '#fff', padding: 18, borderRadius: 20, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9', gap: 12 },
-  inputRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  inputLabel: { fontSize: 12, fontWeight: '800', color: '#475569' },
-  percentageInput: { backgroundColor: '#f8fafc', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', width: 55, textAlign: 'center', fontWeight: '900', color: '#0f172a' },
-  typeSelectorRow: { flexDirection: 'row', gap: 8 },
-  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-  typeBtnActive: { backgroundColor: '#f97316', borderColor: '#f97316' },
-  typeBtnText: { fontSize: 11, fontWeight: '800', color: '#64748b' },
-  typeBtnTextActive: { color: '#fff' },
+  listContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
 
-  // ── Report Panel ──
-  reportPanel: { backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 10, overflow: 'hidden' },
-  filterRow: { paddingHorizontal: 14, paddingVertical: 14 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-  chipActive: { backgroundColor: '#f97316', borderColor: '#f97316' },
-  chipText: { fontSize: 11, fontWeight: '800', color: '#64748b' },
-  chipTextActive: { color: '#fff' },
+  // 🔵 SECTION TITLE
+  sectionTitle: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#64748b',
+    letterSpacing: 1.5,
+    marginBottom: 12,
+    marginLeft: 5,
+    textTransform: 'uppercase',
+  },
 
-  summaryBar: { flexDirection: 'row', marginHorizontal: 14, marginBottom: 14, backgroundColor: '#f8fafc', borderRadius: 14, padding: 14, alignItems: 'center', justifyContent: 'space-around', borderWidth: 1, borderColor: '#f1f5f9' },
-  summaryItem: { alignItems: 'center' },
-  summaryValue: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
-  summaryLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
-  summaryDivider: { width: 1, height: 36, backgroundColor: '#e2e8f0' },
+  // 🔵 CARD ITEM
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    padding: 15,
+    borderRadius: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e7ff', // blue border
+  },
 
-  reportCenter: { alignItems: 'center', paddingVertical: 30, gap: 10 },
-  reportHint: { fontSize: 11, fontWeight: '700', color: '#94a3b8' },
+  // 🔵 ICON BOX
+  itemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff', // light blue
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  txIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' },
-  txMeta: { flex: 1, marginLeft: 10 },
-  txCustomer: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
-  txDate: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 1 },
-  txAmount: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+  itemMeta: {
+    flex: 1,
+    marginLeft: 15,
+  },
+
+  itemTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1e3a8a', // dark blue text
+  },
+
+  itemSubtitle: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '700',
+    marginTop: 1,
+  },
+
+  // 🔵 DETAILS CARD
+  detailsCard: {
+    backgroundColor: '#ffffff',
+    padding: 18,
+    borderRadius: 20,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    gap: 12,
+  },
+
+  inputRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#334155',
+  },
+
+  percentageInput: {
+    backgroundColor: '#f1f5ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    width: 55,
+    textAlign: 'center',
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  // 🔵 TYPE BUTTONS
+  typeSelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  typeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#f1f5ff',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+
+  typeBtnActive: {
+    backgroundColor: '#2563eb', // primary blue
+    borderColor: '#2563eb',
+  },
+
+  typeBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748b',
+  },
+
+  typeBtnTextActive: {
+    color: '#ffffff',
+  },
+
+  // 🔵 REPORT PANEL
+  reportPanel: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+
+  filterRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+
+  chipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+
+  chipText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748b',
+  },
+
+  chipTextActive: {
+    color: '#ffffff',
+  },
+
+  // 🔵 SUMMARY BAR
+  summaryBar: {
+    flexDirection: 'row',
+    marginHorizontal: 14,
+    marginBottom: 14,
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+
+  summaryItem: {
+    alignItems: 'center',
+  },
+
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  summaryLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  summaryDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#bfdbfe',
+  },
+
+  // 🔵 EMPTY STATE
+  reportCenter: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    gap: 10,
+  },
+
+  reportHint: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+
+  // 🔵 TRANSACTION ROW
+  txRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e7ff',
+  },
+
+  txIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  txMeta: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  txCustomer: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  txDate: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+
+  txAmount: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
 });
 
 export default Settings;
