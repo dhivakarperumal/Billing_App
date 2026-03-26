@@ -28,6 +28,7 @@ import {
 } from '../api';
 import { getTamilProductName } from '../utils/tamilProductNames';
 import { transliterateToTamil } from '../utils/tamilPhonetic';
+import Toast from 'react-native-toast-message';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -113,7 +114,11 @@ const AddProduct = () => {
         }
       } catch (err) {
         console.error('Init error:', err);
-        Alert.alert('Error', 'Failed to load initial data');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load initial data',
+        });
       } finally {
         setLoading(false);
       }
@@ -207,7 +212,11 @@ const AddProduct = () => {
 
   const handlePickImage = async () => {
     if (formData.images.length >= 5) {
-      Alert.alert('Limit reached', 'You can upload up to 5 images.');
+      Toast.show({
+        type: 'error',
+        text1: 'Limit Reached',
+        text2: 'You can upload up to 5 images',
+      });
       return;
     }
 
@@ -265,7 +274,11 @@ const AddProduct = () => {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.category) {
-      Alert.alert('Validation Error', 'Name and Category are required.');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Name and Category are required',
+      });
       return;
     }
 
@@ -281,15 +294,27 @@ const AddProduct = () => {
 
       if (isEdit) {
         await updateProduct(id, payload, token);
-        Alert.alert('Success', 'Product updated successfully!');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Product updated successfully!',
+        });
       } else {
         await createProduct(payload, token);
-        Alert.alert('Success', 'Product created successfully!');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Product created successfully!',
+        });
       }
       navigation.goBack();
     } catch (err: any) {
       console.error('Save error:', err);
-      Alert.alert('Error', err.message || 'Failed to save product');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to save product',
+      });
     } finally {
       setSaving(false);
     }
