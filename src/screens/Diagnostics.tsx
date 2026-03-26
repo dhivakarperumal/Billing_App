@@ -174,26 +174,162 @@ const Section = ({ title, icon, children }: any) => (
 );
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: 'white' },
-    backBtn: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 },
-    scrollContent: { padding: 20 },
-    section: { backgroundColor: 'white', borderRadius: 25, padding: 20, marginBottom: 20, elevation: 2 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-    sectionTitle: { fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', marginLeft: 10, letterSpacing: 1 },
-    primaryBtn: { backgroundColor: '#0f172a', padding: 15, borderRadius: 15, alignItems: 'center' },
-    primaryBtnTxt: { color: 'white', fontWeight: '900', fontSize: 11, letterSpacing: 1 },
-    row: { flexDirection: 'row', gap: 12 },
-    toolBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#eff6ff', padding: 15, borderRadius: 15 },
-    toolBtnTxt: { color: '#1e293b', fontWeight: '900', fontSize: 11 },
-    previewImg: { width: '100%', height: 200, borderRadius: 20, marginTop: 15 },
-    dataBadge: { backgroundColor: '#f1f5f9', padding: 15, borderRadius: 15, marginTop: 15 },
-    dataTxt: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginBottom: 5 },
-    bleItem: { borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 12 },
-    bleName: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
-    bleId: { fontSize: 10, fontWeight: '700', color: '#64748b', marginTop: 2 },
-    emptyTxt: { fontSize: 11, color: '#94a3b8', textAlign: 'center', marginTop: 10, fontWeight: '700' }
+  container: { flex: 1, backgroundColor: '#f1f5ff' },
+
+  // 🔵 HEADER
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    paddingTop: 10,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ff'
+  },
+
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40
+  },
+
+  // 🔵 SECTION CARD
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    elevation: 2,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15
+  },
+
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#2563eb',
+    textTransform: 'uppercase',
+    marginLeft: 10,
+    letterSpacing: 1
+  },
+
+  // 🔵 PRIMARY BUTTON
+  primaryBtn: {
+    backgroundColor: '#2563eb',
+    padding: 15,
+    borderRadius: 15,
+    alignItems: 'center'
+  },
+
+  primaryBtnTxt: {
+    color: '#ffffff',
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 1
+  },
+
+  // 🔵 ROW
+  row: {
+    flexDirection: 'row',
+    gap: 12
+  },
+
+  // 🔵 TOOL BUTTON
+  toolBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#eff6ff',
+    padding: 15,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#bfdbfe'
+  },
+
+  toolBtnTxt: {
+    color: '#1e3a8a',
+    fontWeight: '900',
+    fontSize: 11
+  },
+
+  // 🔵 IMAGE PREVIEW
+  previewImg: {
+    width: '100%',
+    height: 200,
+    borderRadius: 20,
+    marginTop: 15
+  },
+
+  // 🔵 DATA BADGE
+  dataBadge: {
+    backgroundColor: '#eff6ff',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#bfdbfe'
+  },
+
+  dataTxt: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1e3a8a',
+    marginBottom: 5
+  },
+
+  // 🔵 BLE LIST
+  bleItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ff',
+    paddingVertical: 12
+  },
+
+  bleName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1e3a8a'
+  },
+
+  bleId: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: 2
+  },
+
+  emptyTxt: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 10,
+    fontWeight: '700'
+  },
 });
 
 export default DiagnosticsScreen;
