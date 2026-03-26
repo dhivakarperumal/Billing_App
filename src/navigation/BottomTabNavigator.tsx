@@ -157,7 +157,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
       {/* QUICK ACTIONS MODAL-LIKE OVERLAY */}
       {showQuickActions && (
-        <View style={[StyleSheet.absoluteFill, styles.modalOverlay]}>
+        <View style={styles.modalOverlayBottom}>
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
@@ -167,7 +167,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           <View
             style={[
               styles.modalContent,
-              { paddingBottom: 24 + insets.bottom }
+              { paddingBottom: 24 + insets.bottom + 70, }
             ]}
           >
             <View style={styles.modalPill} />
@@ -348,7 +348,7 @@ export default function BottomTabNavigator() {
       </Tab.Navigator>
 
       {showLogoutModal && (
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlayCenter}>
           <View style={styles.logoutModalBox}>
             <Text style={styles.logoutTitle}>Sign Out</Text>
 
@@ -539,19 +539,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  /* MODAL / QUICK ACTIONS */
-  modalOverlay: {
-    ...StyleSheet.absoluteFillObject, // 🔥 FULL SCREEN
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    justifyContent: 'center', // ✅ CENTER VERTICALLY
-    alignItems: 'center',     // ✅ CENTER HORIZONTALLY
-  },
   modalContent: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
     paddingBottom: 24,
+    width: '100%', // ✅ full width
   },
   modalPill: {
     width: 40,
@@ -668,6 +662,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
+  modalOverlayBottom: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+  justifyContent: 'flex-end', // ✅ bottom
+},
+
+modalOverlayCenter: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: 'rgba(15, 23, 42, 0.7)',
+  justifyContent: 'center',   // ✅ center
+  alignItems: 'center',
+},
 });
 
 

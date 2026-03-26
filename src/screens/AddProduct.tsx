@@ -39,6 +39,8 @@ const AddProduct = () => {
   const isEdit = !!id;
   const { token } = useAuth();
 
+  const [showImageModal, setShowImageModal] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showMfgPicker, setShowMfgPicker] = useState(false);
@@ -220,22 +222,7 @@ const AddProduct = () => {
       return;
     }
 
-    Alert.alert(
-      'Upload Product Image',
-      'Pick a source:',
-      [
-        {
-          text: 'Take Photo',
-          onPress: () => openPicker('camera'),
-        },
-        {
-          text: 'Choose from Gallery',
-          onPress: () => openPicker('gallery'),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-      { cancelable: true }
-    );
+   setShowImageModal(true);
   };
 
   const openPicker = async (type: 'camera' | 'gallery') => {
@@ -695,6 +682,44 @@ const AddProduct = () => {
           {saving ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>{isEdit ? 'UPDATE PRODUCT' : 'PUBLISH PRODUCT'}</Text>}
         </TouchableOpacity>
       </ScrollView>
+      {showImageModal && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.imageModalBox}>
+      <Text style={styles.modalTitle}>Upload Image</Text>
+
+      <Text style={styles.modalSubText}>
+        Choose image source
+      </Text>
+
+      <TouchableOpacity
+        style={styles.modalBtn}
+        onPress={() => {
+          setShowImageModal(false);
+          openPicker('camera');
+        }}
+      >
+        <Text style={styles.modalBtnText}>Take Photo</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.modalBtn}
+        onPress={() => {
+          setShowImageModal(false);
+          openPicker('gallery');
+        }}
+      >
+        <Text style={styles.modalBtnText}>Choose from Gallery</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.modalBtn, { backgroundColor: '#e2e8f0' }]}
+        onPress={() => setShowImageModal(false)}
+      >
+        <Text style={{ color: '#1e3a8a', fontWeight: '800' }}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
     </SafeAreaView>
   );
 };
@@ -1022,6 +1047,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  modalOverlay: {
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: 'rgba(15, 23, 42, 0.6)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+imageModalBox: {
+  width: '85%',
+  backgroundColor: '#ffffff', // 🤍 WHITE BG
+  borderRadius: 16,
+  padding: 20,
+},
+
+modalTitle: {
+  fontSize: 18,
+  fontWeight: '900',
+  color: '#2563eb', // 🔵 BLUE
+  textAlign: 'center',
+  marginBottom: 8,
+},
+
+modalSubText: {
+  textAlign: 'center',
+  color: '#1e3a8a',
+  marginBottom: 20,
+  fontWeight: '600',
+},
+
+modalBtn: {
+  backgroundColor: '#2563eb', // 🔵 BLUE BUTTON
+  padding: 12,
+  borderRadius: 10,
+  marginBottom: 10,
+  alignItems: 'center',
+},
+
+modalBtnText: {
+  color: '#ffffff', // 🤍 WHITE TEXT
+  fontWeight: '800',
+},
 });
 
 export default AddProduct;
