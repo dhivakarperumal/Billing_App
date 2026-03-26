@@ -30,6 +30,8 @@ const CreateBilling = () => {
     const { token } = useAuth();
     const insets = useSafeAreaInsets();
 
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
+
     // Data States
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -46,6 +48,7 @@ const CreateBilling = () => {
     const [showPostSavePreview, setShowPostSavePreview] = useState(false);
     const [savedPrintData, setSavedPrintData] = useState<PrintData | null>(null);
     const [businessInfo, setBusinessInfo] = useState<any>(null);
+
 
     // Form State
     const [customerName, setCustomerName] = useState("");
@@ -419,13 +422,19 @@ const CreateBilling = () => {
 
     const handleProductPress = (product: Product) => {
         setCustomQty('1');
-        if (product) {
-            setSelectedProduct(product);
-            setShowVariantModal(true);
+        setSelectedProduct(product);
+
+        // ✅ default select first variant
+        if (product?.variants && product.variants.length > 0) {
+            setSelectedVariant(product.variants[0]);
+        } else {
+            setSelectedVariant(null);
         }
+
+        setShowVariantModal(true);
     };
 
-    const addToCart = (product: Product, variant?: any) => {
+    const addToCart = (product, variant) => {
         if (!product) return;
         const qty = Number(customQty) || 1;
         const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
@@ -736,7 +745,17 @@ const CreateBilling = () => {
                                 <Text style={styles.pickerLabel}>Or Select Variant</Text>
                                 <View style={styles.variantGrid}>
                                     {selectedProduct.variants.map((v: any, idx: number) => (
-                                        <TouchableOpacity key={idx} style={styles.variantBtn} onPress={() => addToCart(selectedProduct as Product, v)}>
+                                        <TouchableOpacity
+                                            key={idx}
+                                            style={[
+                                                styles.variantBtn,
+                                                selectedVariant === v && {
+                                                    borderColor: '#2563eb',
+                                                    backgroundColor: '#eff6ff'
+                                                }
+                                            ]}
+                                            onPress={() => setSelectedVariant(v)}
+                                        >
                                             <Text style={styles.vQty}>{v.quantity}{v.unit}</Text>
                                             <Text style={styles.vPrice}>₹{v.sellingPrice || v.mrp || 0}</Text>
                                         </TouchableOpacity>
@@ -745,11 +764,14 @@ const CreateBilling = () => {
                             </>
                         )}
 
-                        {/* <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
-                           <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
-                        </TouchableOpacity> */}
+                        <TouchableOpacity
+                            style={styles.confirmAddBtn}
+                            onPress={() => addToCart(selectedProduct, selectedVariant)}
+                        >
+                            <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
+                        </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => setShowVariantModal(false)}><Text style={styles.cancelTxt}>CANCEL</Text></TouchableOpacity>
+                        {/* <TouchableOpacity onPress={() => setShowVariantModal(false)}><Text style={styles.cancelTxt}>CANCEL</Text></TouchableOpacity> */}
                     </View>
                 </View>
             </Modal>
@@ -1242,5 +1264,21 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 4,
+    },
+
+    confirmAddBtn: {
+        width: '100%',
+        backgroundColor: '#2563eb',
+        paddingVertical: 14,
+        borderRadius: 18,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+
+    confirmAddTxt: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
 });
