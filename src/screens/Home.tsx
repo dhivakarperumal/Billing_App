@@ -360,7 +360,7 @@ const Home = () => {
         </View>
 
         {/* ... */}
-        <View className="bg-green-200 rounded-[30px] p-5 mb-6 mt-6 border border-gray-100 shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
+        <View className="bg-blue-200 rounded-[30px] p-5 mb-6 mt-6 border border-gray-100 shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
           {/* Header */}
           <View className="flex-row justify-between items-center mb-6">
             <View>
@@ -527,8 +527,8 @@ const Home = () => {
                   className="flex-row justify-between items-center border-b border-gray-50 pb-3 last:border-none px-2"
                 >
                   <View className="flex-row items-center gap-3">
-                    <View className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center">
-                      <Icon name="file-text" size={16} color="#F43F5E" />
+                    <View className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Icon name="file-text" size={16} color="blue" />
                     </View>
                     <View>
                       <Text className="text-[11px] font-black text-slate-800 uppercase">
