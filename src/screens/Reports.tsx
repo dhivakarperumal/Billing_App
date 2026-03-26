@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
   Alert,
 } from 'react-native';
@@ -18,7 +17,7 @@ import Share from 'react-native-share';
 import RNFS from 'react-native-fs';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type DateFilter = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'all';
 
