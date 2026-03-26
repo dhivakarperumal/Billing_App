@@ -5,7 +5,7 @@ import {
     StatusBar, Dimensions, Platform, Image,
     PermissionsAndroid, StyleSheet, NativeModules, DeviceEventEmitter, Animated, Easing
 } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
@@ -20,20 +20,21 @@ const { width } = Dimensions.get('window');
 
 // ─── Constants ──────────────────────────────────────────
 const PRIMARY_GRADIENT = ['#2563eb', '#1d4ed8']; // blue
-const HEADER_GRADIENT  = ['#2563eb', '#1d4ed8']; // blue header
-const ACCENT_COLOR     = '#2563eb'; // main blue
+const HEADER_GRADIENT = ['#2563eb', '#1d4ed8']; // blue header
+const ACCENT_COLOR = '#2563eb'; // main blue
 
 const CreateBilling = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { token } = useAuth();
-    
+    const insets = useSafeAreaInsets();
+
     // Data States
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    
+
     // UI States
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [productSearchTerm, setProductSearchTerm] = useState("");
@@ -49,7 +50,7 @@ const CreateBilling = () => {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [cart, setCart] = useState<any[]>([]);
-    
+
     // Tax Config
     const [gstEnabled, setGstEnabled] = useState(false);
     const [gstPercentage, setGstPercentage] = useState(18);
@@ -61,17 +62,17 @@ const CreateBilling = () => {
                 const enabled = await AsyncStorage.getItem('gst_enabled');
                 const percentage = await AsyncStorage.getItem('gst_percentage');
                 const type = await AsyncStorage.getItem('gst_type');
-                
+
                 setGstEnabled(enabled === 'true');
                 if (percentage) setGstPercentage(Number(percentage));
                 if (type) setGstType(type as any);
-            } catch (e) {}
+            } catch (e) { }
         };
         const loadBusinessInfo = async () => {
             try {
                 const data = await AsyncStorage.getItem('business_info');
                 if (data) setBusinessInfo(JSON.parse(data));
-            } catch (e) {}
+            } catch (e) { }
         };
         loadTaxConfig();
         loadBusinessInfo();
@@ -96,7 +97,7 @@ const CreateBilling = () => {
     // ─── Calculations ──────────────────────────────────────────
     const { subtotal, gstAmount, cartTotal } = useMemo(() => {
         const rawSum = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
+
         if (!gstEnabled) {
             return { subtotal: rawSum, gstAmount: 0, cartTotal: rawSum };
         }
@@ -146,16 +147,16 @@ const CreateBilling = () => {
     const matchVoiceToProduct = (text: string, productList: Product[]) => {
         const q = text.toLowerCase().trim();
         // Exact match: English name, Tamil name, Tanglish name, or Tamil→Tanglish
-        let found = productList.find(p => 
-            (p.name || '').toLowerCase() === q || 
+        let found = productList.find(p =>
+            (p.name || '').toLowerCase() === q ||
             (p.name_tamil || '').toLowerCase() === q ||
             (p.name_tanglish || '').toLowerCase() === q ||
             tanglishMatchesTamil(q, p.name_tamil || '')
         );
         // Partial match
         if (!found) {
-            found = productList.find(p => 
-                (p.name || '').toLowerCase().includes(q) || 
+            found = productList.find(p =>
+                (p.name || '').toLowerCase().includes(q) ||
                 (p.name_tamil || '').toLowerCase().includes(q) ||
                 (p.name_tanglish || '').toLowerCase().includes(q) ||
                 tanglishMatchesTamil(q, p.name_tamil || '')
@@ -164,8 +165,8 @@ const CreateBilling = () => {
         // Word-level match
         if (!found) {
             const words = q.split(' ').filter(w => w.length > 1);
-            found = productList.find(p => words.some(w => 
-                (p.name || '').toLowerCase().includes(w) || 
+            found = productList.find(p => words.some(w =>
+                (p.name || '').toLowerCase().includes(w) ||
                 (p.name_tamil || '').toLowerCase().includes(w) ||
                 (p.name_tanglish || '').toLowerCase().includes(w) ||
                 tanglishMatchesTamil(w, p.name_tamil || '')
@@ -228,32 +229,32 @@ const CreateBilling = () => {
     const stopVoiceSearch = async () => {
         setIsListening(false);
         stopMicPulse();
-        try { await Voice.stop(); } catch (e) {}
+        try { await Voice.stop(); } catch (e) { }
     };
 
     const processVoiceResult = (text: string) => {
         // Stop listening immediately after getting a result
         stopVoiceSearch();
-        
+
         const q = text.toLowerCase().trim();
         const heardMsg = voiceLang === 'ta' ? `கேட்கப்பட்டது: "${text}"` : `Heard: "${text}"`;
         setVoiceStatus(heardMsg);
         const matched = matchVoiceToProduct(text, products);
-        
+
         if (matched) {
             setProductSearchTerm(matched.name); // Filter the list to show current products
-            
+
             setTimeout(() => {
                 const foundMsg = voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`;
                 setVoiceStatus(foundMsg);
-                
+
                 // If product has variants, show variety picker (current products details)
                 if (matched.variants && matched.variants.length > 0) {
                     handleProductPress(matched);
                 } else {
                     addToCartDirectly(matched);
                 }
-                
+
                 setTimeout(() => setVoiceStatus(''), 3000);
             }, 600);
         } else {
@@ -301,12 +302,12 @@ const CreateBilling = () => {
             if (url.includes('am=')) {
                 const amountMatch = url.match(/[?&]am=([0-9.]+)/);
                 const nameMatch = url.match(/[?&]pn=([^&]+)/);
-                
+
                 if (amountMatch && amountMatch[1]) {
                     const price = parseFloat(amountMatch[1]);
                     const name = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : 'QR Payment';
                     const itemId = `upi-${Date.now()}`;
-                    
+
                     setCart(prev => [...prev, {
                         id: itemId,
                         product_id: 0,
@@ -375,7 +376,7 @@ const CreateBilling = () => {
                 setProducts(pItems);
                 let cItems = Array.isArray(cResp) ? cResp : (cResp.categories || cResp.data || cResp.items || []);
                 setCategories(cItems);
-            } catch (err) {} finally { setLoading(false); }
+            } catch (err) { } finally { setLoading(false); }
         };
         loadInitialData();
     }, [token]);
@@ -404,7 +405,7 @@ const CreateBilling = () => {
     const [customQty, setCustomQty] = useState('1');
 
     const handleProductPress = (product: Product) => {
-        setCustomQty('1'); 
+        setCustomQty('1');
         if (product) {
             setSelectedProduct(product);
             setShowVariantModal(true);
@@ -448,11 +449,11 @@ const CreateBilling = () => {
             };
             const response: any = await createBill(payload, token);
             const billId = response?.id || Date.now();
-            
+
             // Load Post-Save Preferences
             const autoP = await AsyncStorage.getItem('auto_print') === 'true';
             const afterA = await AsyncStorage.getItem('after_save_action') || 'back';
-            
+
             const printData: PrintData = {
                 customerName,
                 customerPhone,
@@ -490,7 +491,7 @@ const CreateBilling = () => {
     return (
         <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
             <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
-            
+
             <LinearGradient colors={HEADER_GRADIENT} style={styles.headerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <View style={styles.headerRow}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconBtn}>
@@ -503,18 +504,18 @@ const CreateBilling = () => {
 
                 <View style={styles.searchBarContainer}>
                     <Feather name="search" size={16} color="#94a3b8" />
-                    <TextInput 
-                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : voiceLang === 'tgl' ? "Tanglish la thedi..." : "Search Inventory..."} 
+                    <TextInput
+                        placeholder={voiceLang === 'ta' ? "சரக்குகளைத் தேடுங்கள்..." : voiceLang === 'tgl' ? "Tanglish la thedi..." : "Search Inventory..."}
                         style={styles.searchInput}
                         placeholderTextColor="#475569"
                         value={productSearchTerm}
                         onChangeText={setProductSearchTerm}
                     />
-                    
+
                     {/* Language Toggle */}
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={cycleVoiceLang}
-                        style={{ 
+                        style={{
                             paddingHorizontal: 10, paddingVertical: 4, marginRight: 5, borderRadius: 8,
                             backgroundColor: voiceLang === 'ta' ? '#e11d48' : voiceLang === 'tgl' ? '#7c3aed' : '#f1f5f9'
                         }}
@@ -558,7 +559,10 @@ const CreateBilling = () => {
             <FlatList
                 data={filteredProducts}
                 numColumns={2}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={{
+                    padding: 12,
+                    paddingBottom: insets.bottom + 120, // 🔥 FIX
+                }}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => handleProductPress(item)} style={styles.card}>
@@ -567,8 +571,8 @@ const CreateBilling = () => {
                         </View>
                         <Text style={styles.itemName} numberOfLines={1}>
                             {voiceLang === 'ta' && item.name_tamil ? item.name_tamil
-                            : voiceLang === 'tgl' && item.name_tanglish ? item.name_tanglish
-                            : item.name}
+                                : voiceLang === 'tgl' && item.name_tanglish ? item.name_tanglish
+                                    : item.name}
                         </Text>
                         <View style={styles.itemFooter}>
                             <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString()}</Text>
@@ -579,7 +583,12 @@ const CreateBilling = () => {
             />
 
             {cart.length > 0 && (
-                <View style={[styles.footerBar, { bottom: 10 }]}>
+                <View style={[
+                    styles.footerBar,
+                    {
+                        bottom: insets.bottom + 10,   // 🔥 FIX
+                    }
+                ]}>
                     <TouchableOpacity onPress={() => setShowCart(true)} style={styles.cartBtn}>
                         <View style={styles.cartIconWrapper}><Feather name="shopping-cart" size={18} color="#fff" /></View>
                         <View style={styles.cartInfo}>
@@ -602,7 +611,7 @@ const CreateBilling = () => {
                         <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowCart(false)}>
                             <Feather name="x" size={20} color="#94a3b8" />
                         </TouchableOpacity>
-                        
+
                         <View style={styles.modalPill} />
                         <Text style={styles.modalTitle}>Cart Manifest<Text style={{ color: '#f97316' }}>.</Text></Text>
 
@@ -649,32 +658,32 @@ const CreateBilling = () => {
                         <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowVariantModal(false)}>
                             <Feather name="x" size={20} color="#94a3b8" />
                         </TouchableOpacity>
-                        
+
                         <View style={styles.modalPill} />
                         <Text style={styles.variantTitle}>{voiceLang === 'ta' && selectedProduct?.name_tamil ? selectedProduct.name_tamil : selectedProduct?.name}</Text>
-                        
+
                         <View style={styles.qtyPicker}>
-                           <Text style={styles.pickerLabel}>Set Quantity/Weight</Text>
-                           <View style={styles.qtyRow}>
-                                <TouchableOpacity 
+                            <Text style={styles.pickerLabel}>Set Quantity/Weight</Text>
+                            <View style={styles.qtyRow}>
+                                <TouchableOpacity
                                     style={styles.qtyBtn}
                                     onPress={() => setCustomQty(q => String(Math.max(0.1, (Number(q) || 0) - 1)))}
                                 >
                                     <Feather name="minus" size={20} color="#f97316" />
                                 </TouchableOpacity>
-                                <TextInput 
+                                <TextInput
                                     style={styles.qtyInput}
                                     value={customQty}
                                     onChangeText={setCustomQty}
                                     keyboardType="numeric"
                                 />
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.qtyBtn}
                                     onPress={() => setCustomQty(q => String((Number(q) || 0) + 1))}
                                 >
                                     <Feather name="plus" size={20} color="#f97316" />
                                 </TouchableOpacity>
-                           </View>
+                            </View>
                         </View>
 
                         {selectedProduct?.variants && selectedProduct.variants.length > 0 && (
@@ -690,7 +699,7 @@ const CreateBilling = () => {
                                 </View>
                             </>
                         )}
-                        
+
                         {/* <TouchableOpacity style={styles.confirmAddBtn} onPress={() => addToCart(selectedProduct as Product)}>
                            <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
                         </TouchableOpacity> */}
@@ -728,7 +737,7 @@ const CreateBilling = () => {
                                         )}
                                         <Text style={{ fontSize: 20, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', textAlign: 'center' }}>{businessInfo?.storeName || 'BILLING APP'}</Text>
                                         {businessInfo?.tagline && <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '700', textAlign: 'center', marginTop: 4, fontStyle: 'italic' }}>{businessInfo.tagline}</Text>}
-                                        
+
                                         <View style={{ marginTop: 15, alignItems: 'center' }}>
                                             {businessInfo?.address && <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: '600', textAlign: 'center' }}>{businessInfo.address}</Text>}
                                             {businessInfo?.phone && <Text style={{ fontSize: 10, color: '#475569', fontWeight: '900', textAlign: 'center', marginTop: 4 }}>Ph: {businessInfo.phone}</Text>}
@@ -768,9 +777,9 @@ const CreateBilling = () => {
                                         <View style={{ alignItems: 'center', marginTop: 30, backgroundColor: '#f8fafc', padding: 25, borderRadius: 30, borderWidth: 1, borderColor: '#f1f5f9' }}>
                                             <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, marginBottom: 20 }}>VERIFY PAYMENT VIA UPI</Text>
                                             <View style={{ backgroundColor: '#fff', padding: 15, borderRadius: 24, elevation: 2 }}>
-                                                <Image 
-                                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${businessInfo.upiId}&pn=${businessInfo.storeName}&am=${savedPrintData.totalAmount}&cu=INR`)}` }} 
-                                                    style={{ width: 140, height: 140 }} 
+                                                <Image
+                                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${businessInfo.upiId}&pn=${businessInfo.storeName}&am=${savedPrintData.totalAmount}&cu=INR`)}` }}
+                                                    style={{ width: 140, height: 140 }}
                                                 />
                                             </View>
                                             <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 20, backgroundColor: '#fff', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' }}>{businessInfo.upiId}</Text>
@@ -794,11 +803,11 @@ const CreateBilling = () => {
                             <TouchableOpacity onPress={() => finalizeUI()} style={{ flex: 1, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#f1f5f9', paddingVertical: 18, borderRadius: 22, alignItems: 'center' }}>
                                 <Text style={{ fontSize: 12, fontWeight: '900', color: '#64748b', letterSpacing: 1 }}>DONE</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={async () => {
                                     if (savedPrintData) await printReceipt(savedPrintData);
                                     finalizeUI();
-                                }} 
+                                }}
                                 style={{ flex: 2, backgroundColor: '#f97316', paddingVertical: 18, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 8, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 10 }}
                             >
                                 <Feather name="printer" size={20} color="white" />
@@ -815,361 +824,361 @@ const CreateBilling = () => {
 export default CreateBilling;
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 15, fontSize: 10, color: '#94a3b8', fontWeight: '900', letterSpacing: 2 },
+    loadingContainer: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 15, fontSize: 10, color: '#94a3b8', fontWeight: '900', letterSpacing: 2 },
 
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+    container: { flex: 1, backgroundColor: '#f8fafc' },
 
-  headerGradient: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
+    headerGradient: {
+        paddingHorizontal: 20,
+        paddingTop: 30,
+        paddingBottom: 25,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+    },
 
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
 
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
+    headerIconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+    },
 
-  headerTitleWrap: { flex: 1, alignItems: 'flex-start' },
+    headerTitleWrap: { flex: 1, alignItems: 'flex-start' },
 
-  headerTitle: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 17,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
 
-  searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    marginBottom: 25,
-  },
+    searchBarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        paddingHorizontal: 15,
+        marginBottom: 25,
+    },
 
-  searchInput: {
-    flex: 1,
-    height: 55,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-    paddingLeft: 10,
-  },
+    searchInput: {
+        flex: 1,
+        height: 55,
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#0f172a',
+        paddingLeft: 10,
+    },
 
-  voiceBtn: { padding: 6, marginRight: 4 },
+    voiceBtn: { padding: 6, marginRight: 4 },
 
-  inlineScanner: { padding: 5 },
+    inlineScanner: { padding: 5 },
 
-  voiceStatusBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(37,99,235,0.15)', // blue tint
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 20,
-  },
+    voiceStatusBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(37,99,235,0.15)', // blue tint
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        marginBottom: 20,
+    },
 
-  voiceStatusTxt: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1e3a8a',
-    flex: 1,
-  },
+    voiceStatusTxt: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#1e3a8a',
+        flex: 1,
+    },
 
-  customerFormRow: { flexDirection: 'row', gap: 10 },
+    customerFormRow: { flexDirection: 'row', gap: 10 },
 
-  miniInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 50,
-  },
+    miniInputContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 50,
+    },
 
-  miniInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
+    miniInput: {
+        flex: 1,
+        marginLeft: 8,
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#0f172a',
+    },
 
-  listContent: { padding: 12, paddingBottom: 120 },
+    listContent: { padding: 12, paddingBottom: 120 },
 
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    margin: 6,
-    padding: 12,
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        margin: 6,
+        padding: 12,
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
 
-  imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#eff6ff',
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    overflow: 'hidden',
-  },
+    imageContainer: {
+        width: '100%',
+        aspectRatio: 1,
+        backgroundColor: '#eff6ff',
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
+        overflow: 'hidden',
+    },
 
-  productImg: { width: '100%', height: '100%' },
+    productImg: { width: '100%', height: '100%' },
 
-  itemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
+    itemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
 
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
+    itemFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 8,
+    },
 
-  itemPrice: { fontSize: 14, fontWeight: '900', color: '#2563eb' },
+    itemPrice: { fontSize: 14, fontWeight: '900', color: '#2563eb' },
 
-  stockBadge: {
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
+    stockBadge: {
+        backgroundColor: '#eff6ff',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
 
-  stockText: { fontSize: 8, fontWeight: '900', color: '#2563eb' },
+    stockText: { fontSize: 8, fontWeight: '900', color: '#2563eb' },
 
-  footerBar: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    flexDirection: 'row',
-    gap: 12,
-    zIndex: 100,
-  },
+    footerBar: {
+        position: 'absolute',
+        left: 24,
+        right: 24,
+        flexDirection: 'row',
+        gap: 12,
+        zIndex: 100,
+    },
 
-  cartBtn: {
-    flex: 1,
-    height: 60,
-    backgroundColor: '#1e3a8a',
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    elevation: 8,
-  },
+    cartBtn: {
+        flex: 1,
+        height: 60,
+        backgroundColor: '#1e3a8a',
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 18,
+        elevation: 8,
+    },
 
-  cartIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    cartIconWrapper: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-  cartInfo: { flex: 1, marginLeft: 12 },
+    cartInfo: { flex: 1, marginLeft: 12 },
 
-  cartVal: { color: '#fff', fontSize: 16, fontWeight: '900' },
+    cartVal: { color: '#fff', fontSize: 16, fontWeight: '900' },
 
-  cartCount: { color: '#c7d2fe', fontSize: 8, fontWeight: '800' },
+    cartCount: { color: '#c7d2fe', fontSize: 8, fontWeight: '800' },
 
-  commitBtn: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#2563eb',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 8,
-  },
+    commitBtn: {
+        width: 60,
+        height: 60,
+        backgroundColor: '#2563eb',
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 8,
+    },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.6)',
-    justifyContent: 'flex-end',
-  },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15,23,42,0.6)',
+        justifyContent: 'flex-end',
+    },
 
-  modalSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    padding: 25,
-    maxHeight: '85%',
-  },
+    modalSheet: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
+        padding: 25,
+        maxHeight: '85%',
+    },
 
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#eff6ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    modalCloseBtn: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        zIndex: 10,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#eff6ff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-  modalPill: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#dbeafe',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
+    modalPill: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#dbeafe',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
 
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0f172a',
-    marginBottom: 20,
-  },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#0f172a',
+        marginBottom: 20,
+    },
 
-  cartScroll: { marginBottom: 20 },
+    cartScroll: { marginBottom: 20 },
 
-  cartItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    padding: 15,
-    borderRadius: 20,
-    marginBottom: 10,
-  },
+    cartItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#eff6ff',
+        padding: 15,
+        borderRadius: 20,
+        marginBottom: 10,
+    },
 
-  cartItemMeta: { flex: 1 },
+    cartItemMeta: { flex: 1 },
 
-  cartItemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
+    cartItemName: { fontSize: 12, fontWeight: '900', color: '#0f172a' },
 
-  cartItemPrice: { fontSize: 10, fontWeight: '800', color: '#2563eb', marginTop: 1 },
+    cartItemPrice: { fontSize: 10, fontWeight: '800', color: '#2563eb', marginTop: 1 },
 
-  qtyControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 5,
-    paddingHorizontal: 10,
-    gap: 12,
-  },
+    qtyControl: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 5,
+        paddingHorizontal: 10,
+        gap: 12,
+    },
 
-  qtyValue: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+    qtyValue: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
 
-  modalFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    modalFooter: {
+        borderTopWidth: 1,
+        borderTopColor: '#e2e8f0',
+        paddingTop: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
 
-  taxLabel: { fontSize: 10, fontWeight: '800', color: '#64748b', marginBottom: 2 },
+    taxLabel: { fontSize: 10, fontWeight: '800', color: '#64748b', marginBottom: 2 },
 
-  totalLabel: { fontSize: 9, fontWeight: '900', color: '#94a3b8' },
+    totalLabel: { fontSize: 9, fontWeight: '900', color: '#94a3b8' },
 
-  totalVal: { fontSize: 26, fontWeight: '900', color: '#2563eb' },
+    totalVal: { fontSize: 26, fontWeight: '900', color: '#2563eb' },
 
-  finalizeBtn: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 25,
-    paddingVertical: 15,
-    borderRadius: 18,
-  },
+    finalizeBtn: {
+        backgroundColor: '#2563eb',
+        paddingHorizontal: 25,
+        paddingVertical: 15,
+        borderRadius: 18,
+    },
 
-  finalizeTxt: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    finalizeTxt: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
-  variantSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    padding: 30,
-    alignItems: 'center',
-  },
+    variantSheet: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
+        padding: 30,
+        alignItems: 'center',
+    },
 
-  variantTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
+    variantTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
 
-  qtyPicker: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 25,
-    backgroundColor: '#eff6ff',
-    padding: 20,
-    borderRadius: 24,
-  },
+    qtyPicker: {
+        width: '100%',
+        alignItems: 'center',
+        marginBottom: 25,
+        backgroundColor: '#eff6ff',
+        padding: 20,
+        borderRadius: 24,
+    },
 
-  pickerLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#1e3a8a',
-    letterSpacing: 1,
-    marginBottom: 15,
-    textTransform: 'uppercase',
-  },
+    pickerLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#1e3a8a',
+        letterSpacing: 1,
+        marginBottom: 15,
+        textTransform: 'uppercase',
+    },
 
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+    qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
 
-  qtyBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-  },
+    qtyBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#dbeafe',
+    },
 
-  qtyInput: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#0f172a',
-    width: 80,
-    textAlign: 'center',
-  },
+    qtyInput: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#0f172a',
+        width: 80,
+        textAlign: 'center',
+    },
 
-  variantGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    marginBottom: 20,
-  },
+    variantGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 10,
+        marginBottom: 20,
+    },
 
-  variantBtn: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    alignItems: 'center',
-    minWidth: 80,
-  },
+    variantBtn: {
+        backgroundColor: '#fff',
+        padding: 15,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        alignItems: 'center',
+        minWidth: 80,
+    },
 
-  vQty: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
+    vQty: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
 
-  vPrice: { fontSize: 11, fontWeight: '800', color: '#2563eb', marginTop: 4 },
+    vPrice: { fontSize: 11, fontWeight: '800', color: '#2563eb', marginTop: 4 },
 
-  cancelTxt: { fontSize: 11, fontWeight: '900', color: '#64748b' },
+    cancelTxt: { fontSize: 11, fontWeight: '900', color: '#64748b' },
 });
