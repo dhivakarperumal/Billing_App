@@ -20,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
 import { printReceipt } from '../utils/printer';
 
-const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
+const HEADER_GRADIENT = ['#2563eb', '#3b82f6'];
 
 const Bills = () => {
   const { token } = useAuth();
@@ -126,12 +126,12 @@ const Bills = () => {
     >
       <View className="flex-row items-center flex-1 space-x-3">
         <View className="w-12 h-14 bg-slate-50 rounded-xl items-center justify-center">
-          <Feather name="file-text" size={18} color="#f97316" />
+          <Feather name="file-text" size={18} color="blue" />
         </View>
 
         <View className="flex-1">
           <View className="flex-row items-center space-x-2 mb-1">
-            <Text className="text-[9px] font-black text-orange-500 bg-orange-100 px-1.5 py-[2px] rounded">
+            <Text className="text-[9px] font-black text-blue-500 bg-blue-100 px-1.5 py-[2px] rounded">
               #ORD-{item.id || item.order_number}
             </Text>
             <Text className="text-[9px] font-bold text-slate-400">
@@ -151,8 +151,8 @@ const Bills = () => {
         </Text>
 
         <View className="flex-row items-center space-x-1 mt-1">
-          <View className="w-[5px] h-[5px] bg-green-500 rounded-full" />
-          <Text className="text-[9px] font-black text-green-500 uppercase">
+          <View className="w-[5px] h-[5px] bg-blue-400 rounded-full" />
+          <Text className="text-[9px] font-black text-blue-400 uppercase">
             {item.status || 'PAID'}
           </Text>
         </View>
@@ -236,13 +236,13 @@ const Bills = () => {
                 {selectedBill && (
                   <>
                     {/* 🔥 SUMMARY CARD */}
-                    <View className="bg-orange-50 border border-orange-200 p-4 rounded-2xl mb-6">
+                    <View className="bg-blue-50 border border-blue-200 p-4 rounded-2xl mb-6">
                       <View className="flex-row justify-between items-center mb-3">
                         <Text className="text-[15px] font-black text-slate-900">
                           #{selectedBill.id}
                         </Text>
 
-                        <View className="bg-green-500 px-3 py-1 rounded-full">
+                        <View className="bg-blue-400 px-3 py-1 rounded-full">
                           <Text className="text-[9px] font-black text-white">
                             {selectedBill.status || 'PAID'}
                           </Text>
@@ -294,8 +294,8 @@ const Bills = () => {
                                 </View>
 
                                 {/* Quantity Badge */}
-                                <View className="bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
-                                  <Text className="text-[11px] font-black text-orange-500">
+                                <View className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+                                  <Text className="text-[11px] font-black text-blue-500">
                                     Qty {item.quantity || 1}
                                   </Text>
                                 </View>
@@ -321,7 +321,7 @@ const Bills = () => {
                                   <Text className="text-[10px] text-slate-400 mb-1">
                                     Total
                                   </Text>
-                                  <Text className="text-[15px] font-black text-orange-500">
+                                  <Text className="text-[15px] font-black text-blue-500">
                                     ₹
                                     {(
                                       (item.price || 0) * (item.quantity || 1)
@@ -347,7 +347,7 @@ const Bills = () => {
                       <Text className="text-[11px] text-slate-300 mb-1">
                         Total Amount
                       </Text>
-                      <Text className="text-[22px] font-black text-orange-400">
+                      <Text className="text-[22px] font-black text-blue-400">
                         ₹
                         {(
                           selectedBill.total_amount ||
@@ -372,7 +372,7 @@ const Bills = () => {
 
                       <TouchableOpacity
                         onPress={() => setReceiptModalVisible(true)}
-                        className="flex-[1.5] bg-orange-500 py-5 rounded-3xl flex-row items-center justify-center space-x-2"
+                        className="flex-[1.5] bg-blue-500 py-5 rounded-3xl flex-row items-center justify-center space-x-2"
                       >
                         <Feather name="printer" size={16} color="white" />
                         <Text className="text-white font-black text-[11px] uppercase tracking-widest">
@@ -453,7 +453,7 @@ const Bills = () => {
                 {/* Financial Summary */}
                 <View className="flex-row justify-between items-center mb-6">
                   <Text className="text-[16px] font-black text-slate-900 uppercase">Paid Amount</Text>
-                  <Text className="text-[22px] font-black text-orange-500">₹{(selectedBill?.total_amount || selectedBill?.total || 0).toLocaleString()}</Text>
+                  <Text className="text-[22px] font-black text-blue-500">₹{(selectedBill?.total_amount || selectedBill?.total || 0).toLocaleString()}</Text>
                 </View>
 
                 {/* Payment Evidence / QR */}
@@ -487,7 +487,7 @@ const Bills = () => {
                </TouchableOpacity>
                <TouchableOpacity 
                  onPress={handlePrint} 
-                 className="flex-[2] bg-orange-500 py-5 rounded-[20px] flex-row items-center justify-center space-x-3 shadow-xl shadow-orange-300"
+                 className="flex-[2] bg-blue-500 py-5 rounded-[20px] flex-row items-center justify-center space-x-3 shadow-xl shadow-blue-300"
                >
                    <Feather name="printer" size={20} color="white" />
                    <Text className="text-white font-black uppercase text-[12px] tracking-widest">Print Receipt</Text>
