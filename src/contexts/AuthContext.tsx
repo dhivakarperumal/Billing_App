@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from '
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login as apiLogin, register as apiRegister } from '../api';
+import Toast from 'react-native-toast-message';
 
 export type AuthUser = {
   id?: string | number;
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const storedToken = await AsyncStorage.getItem('auth_token');
         const storedUser = await AsyncStorage.getItem('auth_user');
-        
+
         if (storedToken) {
           setToken(storedToken);
           if (storedUser) setUser(JSON.parse(storedUser));
@@ -60,15 +61,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { token: newToken, user: apiUser } = await apiLogin({ identifier, password });
       setToken(newToken);
       setUser(apiUser ?? null);
-      
+
       await AsyncStorage.setItem('auth_token', newToken);
       if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
-    } catch (error: any) {
-      const message = error?.message ?? 'Unknown error';
-      const details = error?.details ? `\n${JSON.stringify(error.details)}` : '';
-      Alert.alert('Login failed', `${message}${details}`);
+    }
+    catch (error: any) {
+      console.log("FULL ERROR:", error); // 🔥 debug
+
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Something went wrong';
+
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: message,
+      });
+
       console.error('Login error:', error);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -83,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setToken(newToken);
       setUser(apiUser ?? null);
-      
+
       await AsyncStorage.setItem('auth_token', newToken);
       if (apiUser) await AsyncStorage.setItem('auth_user', JSON.stringify(apiUser));
     } catch (error: any) {
@@ -102,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const value = useMemo(
