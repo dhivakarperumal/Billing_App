@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Switch, Image } from 'react-native';
 
-const HEADER_GRADIENT = ['#0f172a', '#1e293b'];
+const HEADER_GRADIENT = ['#2563eb', '#3b82f6'];
 
 const ReceiptSetup = () => {
     const navigation = useNavigation();
@@ -246,9 +246,9 @@ const ReceiptSetup = () => {
 
                 {showQRCode && upiId !== '' && (
                     <View style={styles.qrContainer}>
-                        <Image 
-                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=10.00&cu=INR`)}` }} 
-                            style={styles.qrPreview} 
+                        <Image
+                            source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=10.00&cu=INR`)}` }}
+                            style={styles.qrPreview}
                         />
                         <Text style={styles.qrLabel}>UPI Payment QR Preview</Text>
                     </View>
@@ -305,9 +305,9 @@ const ReceiptSetup = () => {
                         {showQRCode && upiId !== '' && (
                             <View style={styles.previewQRSection}>
                                 <Text style={styles.previewQRText}>Scan to Pay</Text>
-                                <Image 
-                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=350.00&cu=INR`)}` }} 
-                                    style={styles.previewQRImage} 
+                                <Image
+                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${storeName}&am=350.00&cu=INR`)}` }}
+                                    style={styles.previewQRImage}
                                 />
                                 <Text style={styles.previewUPI}>{upiId}</Text>
                             </View>
@@ -328,58 +328,364 @@ const ReceiptSetup = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
+    container: { flex: 1, backgroundColor: '#f1f5ff' },
+
     header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
+
     headerRow: { flexDirection: 'row', alignItems: 'center' },
-    backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: '#fff', fontSize: 18, fontWeight: '900' },
+
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+
+    headerTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '900'
+    },
+
     content: { padding: 20 },
-    warningCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, backgroundColor: '#f0f9ff', borderRadius: 16, borderWidth: 1, borderColor: '#bae6fd', marginBottom: 25 },
-    warningText: { flex: 1, color: '#0369a1', fontSize: 12, fontWeight: '700', lineHeight: 18 },
+
+    // 🔵 INFO CARD
+    warningCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 15,
+        backgroundColor: '#eff6ff',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+        marginBottom: 25
+    },
+
+    warningText: {
+        flex: 1,
+        color: '#1e3a8a',
+        fontSize: 12,
+        fontWeight: '700',
+        lineHeight: 18
+    },
+
     formGroup: { marginBottom: 20 },
-    label: { fontSize: 12, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-    input: { backgroundColor: '#fff', height: 50, borderRadius: 14, paddingHorizontal: 15, fontSize: 14, fontWeight: '700', color: '#0f172a', borderWidth: 1, borderColor: '#e2e8f0' },
-    textArea: { height: 90, paddingTop: 15, textAlignVertical: 'top' },
-    saveBtn: { backgroundColor: '#f97316', height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 25, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-    saveBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
-    sectionHeader: { marginTop: 30, marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingBottom: 8 },
-    sectionTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 1 },
-    switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#fff', padding: 15, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-    switchLabel: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
-    switchSubLabel: { fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 2 },
-    logoContainer: { alignItems: 'center', backgroundColor: '#fff', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20 },
-    logoPreview: { width: 100, height: 100, borderRadius: 12, marginBottom: 15, resizeMode: 'contain' },
-    logoPlaceholder: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#f8fafc', marginBottom: 15, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1' },
-    uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#1e293b', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-    uploadBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
-    qrContainer: { alignItems: 'center', backgroundColor: '#fff', padding: 20, borderRadius: 16, borderStyle: 'dotted', borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 20 },
-    qrPreview: { width: 140, height: 140, marginBottom: 10 },
-    qrLabel: { fontSize: 11, fontWeight: '800', color: '#64748b', textTransform: 'uppercase' },
+    label: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 8
+    },
 
-    /* Preview Styles */
-    previewContainer: { alignItems: 'center', marginTop: 10 },
-    receiptPaper: { backgroundColor: '#fff', width: '100%', maxWidth: 300, padding: 20, borderRadius: 2, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderStyle: 'solid' },
-    previewHeader: { alignItems: 'center', marginBottom: 15 },
-    previewLogo: { width: 60, height: 60, borderRadius: 30, marginBottom: 10, resizeMode: 'contain' },
-    previewStoreName: { fontSize: 16, fontWeight: '900', color: '#000', textAlign: 'center' },
-    previewTagline: { fontSize: 10, fontWeight: '700', color: '#64748b', textAlign: 'center', marginTop: 2 },
-    previewAddress: { fontSize: 9, fontWeight: '600', color: '#64748b', textAlign: 'center', marginTop: 2 },
-    receiptDivider: { height: 1, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', borderStyle: 'dashed', marginVertical: 12 },
+    // 🔵 INPUT
+    input: {
+        backgroundColor: '#ffffff',
+        height: 50,
+        borderRadius: 14,
+        paddingHorizontal: 15,
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e3a8a',
+        borderWidth: 1,
+        borderColor: '#bfdbfe'
+    },
+
+    textArea: {
+        height: 90,
+        paddingTop: 15,
+        textAlignVertical: 'top'
+    },
+
+    // 🔵 SAVE BUTTON
+    saveBtn: {
+        backgroundColor: '#2563eb',
+        height: 54,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 25,
+        shadowColor: '#2563eb',
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5
+    },
+
+    saveBtnTxt: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '900',
+        letterSpacing: 1
+    },
+
+    // 🔵 SECTION
+    sectionHeader: {
+        marginTop: 30,
+        marginBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e7ff',
+        paddingBottom: 8
+    },
+
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#2563eb',
+        textTransform: 'uppercase',
+        letterSpacing: 1
+    },
+
+    // 🔵 SWITCH CARD
+    switchRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        backgroundColor: '#ffffff',
+        padding: 15,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e0e7ff'
+    },
+
+    switchLabel: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#1e3a8a'
+    },
+
+    switchSubLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#64748b',
+        marginTop: 2
+    },
+
+    // 🔵 LOGO
+    logoContainer: {
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        padding: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e0e7ff',
+        marginBottom: 20
+    },
+
+    logoPreview: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        marginBottom: 15,
+        resizeMode: 'contain'
+    },
+
+    logoPlaceholder: {
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        backgroundColor: '#f1f5ff',
+        marginBottom: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: '#bfdbfe'
+    },
+
+    uploadBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#2563eb',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 10
+    },
+
+    uploadBtnTxt: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '800'
+    },
+
+    // 🔵 QR
+    qrContainer: {
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        padding: 20,
+        borderRadius: 16,
+        borderStyle: 'dotted',
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+        marginBottom: 20
+    },
+
+    qrPreview: {
+        width: 140,
+        height: 140,
+        marginBottom: 10
+    },
+
+    qrLabel: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#64748b',
+        textTransform: 'uppercase'
+    },
+
+    // 🔵 PREVIEW
+    previewContainer: {
+        alignItems: 'center',
+        marginTop: 10
+    },
+
+    receiptPaper: {
+        backgroundColor: '#ffffff',
+        width: '100%',
+        maxWidth: 300,
+        padding: 20,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#e0e7ff',
+        shadowColor: '#2563eb',
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2
+    },
+
+    previewHeader: {
+        alignItems: 'center',
+        marginBottom: 15
+    },
+
+    previewLogo: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        marginBottom: 10,
+        resizeMode: 'contain'
+    },
+
+    previewStoreName: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#1e3a8a',
+        textAlign: 'center'
+    },
+
+    previewTagline: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#64748b',
+        textAlign: 'center',
+        marginTop: 2
+    },
+
+    previewAddress: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: '#64748b',
+        textAlign: 'center',
+        marginTop: 2
+    },
+
+    receiptDivider: {
+        height: 1,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e7ff',
+        borderStyle: 'dashed',
+        marginVertical: 12
+    },
+
     previewBody: { gap: 8 },
-    previewRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    previewItem: { fontSize: 11, fontWeight: '600', color: '#000' },
-    previewPrice: { fontSize: 11, fontWeight: '700', color: '#000' },
-    previewTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    previewTotalLabel: { fontSize: 13, fontWeight: '900', color: '#000' },
-    previewTotalValue: { fontSize: 15, fontWeight: '900', color: '#f97316' },
-    previewQRSection: { alignItems: 'center', marginTop: 5, marginBottom: 10 },
-    previewQRText: { fontSize: 10, fontWeight: '800', color: '#64748b', marginBottom: 8, textTransform: 'uppercase' },
-    previewQRImage: { width: 100, height: 100 },
-    previewUPI: { fontSize: 8, color: '#94a3b8', marginTop: 5 },
-    previewFooter: { alignItems: 'center', marginTop: 15 },
-    previewFooterMsg: { fontSize: 11, fontWeight: '700', color: '#000', textAlign: 'center' },
-    previewWatermark: { fontSize: 8, fontWeight: '600', color: '#cbd5e1', marginTop: 10, textTransform: 'uppercase', letterSpacing: 1 },
+
+    previewRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+
+    previewItem: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#1e3a8a'
+    },
+
+    previewPrice: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1e3a8a'
+    },
+
+    previewTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+
+    previewTotalLabel: {
+        fontSize: 13,
+        fontWeight: '900',
+        color: '#1e3a8a'
+    },
+
+    previewTotalValue: {
+        fontSize: 15,
+        fontWeight: '900',
+        color: '#2563eb' // 🔵 changed from orange
+    },
+
+    previewQRSection: {
+        alignItems: 'center',
+        marginTop: 5,
+        marginBottom: 10
+    },
+
+    previewQRText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#64748b',
+        marginBottom: 8,
+        textTransform: 'uppercase'
+    },
+
+    previewQRImage: {
+        width: 100,
+        height: 100
+    },
+
+    previewUPI: {
+        fontSize: 8,
+        color: '#94a3b8',
+        marginTop: 5
+    },
+
+    previewFooter: {
+        alignItems: 'center',
+        marginTop: 15
+    },
+
+    previewFooterMsg: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1e3a8a',
+        textAlign: 'center'
+    },
+
+    previewWatermark: {
+        fontSize: 8,
+        fontWeight: '600',
+        color: '#c7d2fe',
+        marginTop: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 1
+    },
 });
 
 export default ReceiptSetup;

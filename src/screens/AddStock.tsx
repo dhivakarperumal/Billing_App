@@ -9,14 +9,13 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, updateProduct } from '../api';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const AddStock = () => {
   const { token } = useAuth();
@@ -125,7 +124,7 @@ const AddStock = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Stock</Text>
         <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-          <Feather name="rotate-ccw" size={20} color={selectedProduct ? "#f97316" : "#e2e8f0"} />
+          <Feather name="rotate-ccw" size={20} color={selectedProduct ? "#2563eb" : "#e2e8f0"} />
         </TouchableOpacity>
       </View>
 
@@ -144,11 +143,11 @@ const AddStock = () => {
           style={styles.scanBtn}
           onPress={() => navigation.navigate('ScannerScreen', { target: 'AddStock' })}
         >
-          <Feather name="maximize" size={18} color="#f97316" />
+          <Feather name="maximize" size={18} color="#2563eb" />
         </TouchableOpacity>
       </View>
           {loading ? (
-            <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 100 }} />
+            <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 100 }} />
           ) : (
             <FlatList
               data={filteredProducts}
@@ -156,7 +155,7 @@ const AddStock = () => {
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.productItem} onPress={() => handleSelectProduct(item)}>
                   <View style={styles.itemIcon}>
-                    <Feather name="box" size={20} color="#f97316" />
+                    <Feather name="box" size={20} color="#2563eb" />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.itemTitle}>{item.name}</Text>
@@ -229,34 +228,230 @@ const AddStock = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', margin: 16, paddingHorizontal: 16, height: 50, borderRadius: 16, borderWidth: 1, borderColor: '#f1f5f9', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10 },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: '700', color: '#1e293b' },
-  scanBtn: { padding: 8, backgroundColor: '#fff7ed', borderRadius: 10 },
-  list: { paddingHorizontal: 16, paddingBottom: 40 },
-  productItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 20, marginBottom: 10, borderWidth: 1, borderColor: '#f1f5f9' },
-  itemIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center' },
-  itemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a' },
-  itemSubtitle: { fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 2, textTransform: 'uppercase' },
-  selectedWrapper: { flex: 1, padding: 20 },
-  selectedHeader: { marginBottom: 24, alignItems: 'center' },
-  selectedName: { fontSize: 24, fontWeight: '900', color: '#0f172a', textAlign: 'center' },
-  codeBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8 },
-  selectedCode: { fontSize: 10, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 },
-  sectionTitle: { fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16, textAlign: 'center' },
-  variantCard: { backgroundColor: '#fff', padding: 20, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
-  variantInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  variantName: { fontSize: 15, fontWeight: '900', color: '#1e293b' },
-  currentStock: { fontSize: 12, fontWeight: '700', color: '#94a3b8' },
-  mathContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, gap: 10 },
-  mathText: { fontSize: 16, fontWeight: '700', color: '#64748b', width: 40, textAlign: 'center' },
-  addInput: { flex: 1, backgroundColor: '#fff', height: 40, borderRadius: 8, borderWidth: 1, borderColor: '#f97316', textAlign: 'center', fontSize: 16, fontWeight: '900', color: '#f97316' },
-  mathEquals: { fontSize: 16, fontWeight: '700', color: '#94a3b8' },
-  newTotal: { fontSize: 20, fontWeight: '900', color: '#0f172a', width: 60, textAlign: 'center' },
-  updateBtn: { flexDirection: 'row', backgroundColor: '#f97316', paddingVertical: 18, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 20, gap: 10, elevation: 4, shadowColor: '#f97316', shadowOpacity: 0.3, shadowRadius: 10 },
-  updateBtnText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  container: { flex: 1, backgroundColor: '#f1f5ff' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ff'
+  },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  // 🔵 SEARCH
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    margin: 16,
+    paddingHorizontal: 16,
+    height: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    elevation: 2,
+  },
+
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e3a8a'
+  },
+
+  scanBtn: {
+    padding: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 10
+  },
+
+  // 🔵 LIST
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 40
+  },
+
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e7ff'
+  },
+
+  itemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
+  itemTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  itemSubtitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: 2,
+    textTransform: 'uppercase'
+  },
+
+  // 🔵 SELECTED
+  selectedWrapper: {
+    flex: 1,
+    padding: 20
+  },
+
+  selectedHeader: {
+    marginBottom: 24,
+    alignItems: 'center'
+  },
+
+  selectedName: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    textAlign: 'center'
+  },
+
+  codeBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 8
+  },
+
+  selectedCode: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#2563eb',
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748b',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+
+  // 🔵 VARIANT CARD
+  variantCard: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e7ff'
+  },
+
+  variantInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15
+  },
+
+  variantName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  currentStock: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b'
+  },
+
+  // 🔵 MATH BOX
+  mathContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    padding: 12,
+    borderRadius: 14,
+    gap: 10
+  },
+
+  mathText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748b',
+    width: 40,
+    textAlign: 'center'
+  },
+
+  addInput: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2563eb'
+  },
+
+  mathEquals: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#94a3b8'
+  },
+
+  newTotal: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1e3a8a',
+    width: 60,
+    textAlign: 'center'
+  },
+
+  // 🔵 BUTTON
+  updateBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#2563eb',
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 10,
+    elevation: 4,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.25,
+    shadowRadius: 10
+  },
+
+  updateBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '900'
+  },
 });
 
 export default AddStock;
