@@ -28,10 +28,10 @@ const CreateBillPlaceholder = () => (
 );
 
 // ─── Constants ──────────────────────────────────────────
-const PRIMARY_GRADIENT = ['#f97316', '#ea580c']; // Orange
-const HEADER_GRADIENT = ['#0f172a', '#1e293b']; // Dark Blueish
-const ACTIVE_COLOR = '#f97316';
-const INACTIVE_COLOR = '#94a3b8';
+const PRIMARY_GRADIENT = ['#2563eb', '#1d4ed8']; // blue gradient
+const ACTIVE_COLOR = '#2563eb';// Orange
+const HEADER_GRADIENT = ['#2563eb', '#1d4ed8'];
+const INACTIVE_COLOR = '#9ca3af'; // softer gray like login
 
 // ─── Header Components ─────────────────────────────────
 function HeaderBackground() {
@@ -154,7 +154,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
 
       {/* QUICK ACTIONS MODAL-LIKE OVERLAY */}
       {showQuickActions && (
@@ -175,25 +175,25 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               <QuickBtn
                 icon="microphone-alt"
                 label="Voice Bill"
-                colors={['#6366f1', '#4f46e5']}
+                colors={['#3b82f6', '#2563eb']}
                 onPress={() => navigation.navigate('CreateBilling')}
               />
               <QuickBtn
                 icon="expand"
                 label="Quick Scan"
-                colors={['#10b981', '#059669']}
+                colors={['#60a5fa', '#2563eb']}
                 onPress={() => navigation.navigate('ScannerScreen')}
               />
               <QuickBtn
                 icon="file-signature"
                 label="Manual"
-                colors={['#f59e0b', '#d97706']}
+                colors={['#1d4ed8', '#1e40af']}
                 onPress={() => navigation.navigate('CreateBilling')}
               />
               <QuickBtn
                 icon="ellipsis-h"
                 label="Reports"
-                colors={['#64748b', '#475569']}
+                colors={['#93c5fd', '#3b82f6']}
                 onPress={() => navigation.navigate('Reports')}
               />
             </View>
@@ -301,6 +301,15 @@ export default function BottomTabNavigator() {
         ),
         headerStyle: {
           height: Platform.OS === 'ios' ? 110 : 80,
+        },
+        headerTitleContainerStyle: {
+          paddingBottom: 15,   // 👈 creates space BELOW
+        },
+        headerRightContainerStyle: {
+          paddingBottom: 15,
+        },
+        headerLeftContainerStyle: {
+          paddingBottom: 15,
         },
       }}
     >
@@ -414,7 +423,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: ACTIVE_COLOR,
+    backgroundColor: '#fff',
     marginTop: 2,
   },
   tabLabelText: {
