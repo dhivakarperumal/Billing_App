@@ -459,77 +459,100 @@ const PrinterSettings = () => {
       </ScrollView>
 
       {/* ─── Device Action Menu Modal ─────────────────────────── */}
-      <Modal visible={!!menuDevice} transparent animationType="none" onRequestClose={closeMenu}>
+      <Modal visible={!!menuDevice} transparent animationType="fade" onRequestClose={closeMenu}>
         <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={closeMenu}>
+
           <Animated.View
             style={[
               styles.menuCard,
               {
-                opacity: menuAnim,
-                transform: [{ scale: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
-                { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                transform: [{
+                  translateY: menuAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0]
+                  })
+                }]
               }
             ]}
           >
-            {/* Device Info */}
+
+            {/* HANDLE BAR */}
+            <View style={styles.handleBar} />
+
+            {/* DEVICE INFO */}
             <View style={styles.menuHeader}>
               <View style={styles.menuDeviceIcon}>
-                <Feather name="printer" size={24} color="#f97316" />
+                <Feather name="printer" size={22} color="#2563eb" />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuDeviceName}>{menuDevice?.name}</Text>
                 <Text style={styles.menuDeviceAddr}>{menuDevice?.address}</Text>
               </View>
+
               {menuDevice?.paired && (
-                <View style={styles.pairedBadge}><Text style={styles.pairedBadgeTxt}>PAIRED</Text></View>
+                <View style={styles.pairedBadge}>
+                  <Text style={styles.pairedBadgeTxt}>PAIRED</Text>
+                </View>
               )}
             </View>
 
-            <View style={styles.menuDivider} />
+            {/* ACTIONS */}
+            <View style={styles.menuActionsWrap}>
 
-            {/* Connect */}
-            <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && connectDevice(menuDevice)}>
-              <View style={[styles.menuActionIcon, { backgroundColor: '#fffbeb' }]}>
-                <Feather name="zap" size={18} color="#f97316" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.menuActionTitle}>Connect & Use</Text>
-                <Text style={styles.menuActionSub}>Set as active printer</Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#94a3b8" />
-            </TouchableOpacity>
-
-            {/* Pair — only for unpaired */}
-            {!menuDevice?.paired && (
-              <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && pairDevice(menuDevice)}>
-                <View style={[styles.menuActionIcon, { backgroundColor: '#f0fdf4' }]}>
-                  <Feather name="link" size={18} color="#10b981" />
+              {/* CONNECT */}
+              <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && connectDevice(menuDevice)}>
+                <View style={[styles.menuActionIcon, { backgroundColor: '#eff6ff' }]}>
+                  <Feather name="zap" size={18} color="#2563eb" />
                 </View>
+
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.menuActionTitle}>Pair Device</Text>
-                  <Text style={styles.menuActionSub}>Add to paired devices list</Text>
+                  <Text style={styles.menuActionTitle}>Connect & Use</Text>
+                  <Text style={styles.menuActionSub}>Set as active printer</Text>
                 </View>
+
                 <Feather name="chevron-right" size={16} color="#94a3b8" />
               </TouchableOpacity>
-            )}
 
-            {/* Unpair — only for paired */}
-            {menuDevice?.paired && (
-              <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && unpairDevice(menuDevice)}>
-                <View style={[styles.menuActionIcon, { backgroundColor: '#fef2f2' }]}>
-                  <Feather name="link-2" size={18} color="#ef4444" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.menuActionTitle, { color: '#ef4444' }]}>Unpair Device</Text>
-                  <Text style={styles.menuActionSub}>Remove from paired list</Text>
-                </View>
-                <Feather name="chevron-right" size={16} color="#94a3b8" />
-              </TouchableOpacity>
-            )}
+              {/* PAIR */}
+              {!menuDevice?.paired && (
+                <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && pairDevice(menuDevice)}>
+                  <View style={[styles.menuActionIcon, { backgroundColor: '#ecfdf5' }]}>
+                    <Feather name="link" size={18} color="#10b981" />
+                  </View>
 
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.menuActionTitle}>Pair Device</Text>
+                    <Text style={styles.menuActionSub}>Add to paired list</Text>
+                  </View>
+
+                  <Feather name="chevron-right" size={16} color="#94a3b8" />
+                </TouchableOpacity>
+              )}
+
+              {/* UNPAIR */}
+              {menuDevice?.paired && (
+                <TouchableOpacity style={styles.menuAction} onPress={() => menuDevice && unpairDevice(menuDevice)}>
+                  <View style={[styles.menuActionIcon, { backgroundColor: '#fef2f2' }]}>
+                    <Feather name="link-2" size={18} color="#ef4444" />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.menuActionTitle, { color: '#ef4444' }]}>Unpair Device</Text>
+                    <Text style={styles.menuActionSub}>Remove from paired</Text>
+                  </View>
+
+                  <Feather name="chevron-right" size={16} color="#94a3b8" />
+                </TouchableOpacity>
+              )}
+
+            </View>
+
+            {/* CANCEL */}
             <TouchableOpacity style={styles.menuCancelBtn} onPress={closeMenu}>
               <Text style={styles.menuCancelTxt}>Cancel</Text>
             </TouchableOpacity>
+
           </Animated.View>
         </TouchableOpacity>
       </Modal>
@@ -887,6 +910,111 @@ const styles = StyleSheet.create({
   },
 
   menuCancelTxt: {
+    color: '#64748b',
+  },
+
+  handleBar: {
+    width: 50,
+    height: 5,
+    backgroundColor: '#cbd5f5',
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+
+  menuCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 30,
+    paddingBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+
+  menuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+
+  menuDeviceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  menuDeviceName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  menuDeviceAddr: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+
+  pairedBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+
+  pairedBadgeTxt: {
+    color: '#2563eb',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+
+  menuActionsWrap: {
+    paddingHorizontal: 10,
+  },
+
+  menuAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+  },
+
+  menuActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  menuActionTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+
+  menuActionSub: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+
+  menuCancelBtn: {
+    marginTop: 10,
+    padding: 16,
+    alignItems: 'center',
+  },
+
+  menuCancelTxt: {
+    fontSize: 14,
+    fontWeight: '800',
     color: '#64748b',
   },
 });
