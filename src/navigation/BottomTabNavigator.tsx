@@ -45,17 +45,14 @@ function HeaderBackground() {
   );
 }
 
-function HeaderRight() {
+function HeaderRight({ onLogoutClick }) {
   const { user, signOut } = useAuth();
   const [showMenu, setShowMenu] = React.useState(false);
   const navigation = useNavigation<any>();
 
   const handleLogout = () => {
     setShowMenu(false);
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
-    ]);
+    onLogoutClick();
   };
 
   if (!user) return null;
@@ -105,6 +102,8 @@ function HeaderRight() {
             </Text>
           </TouchableOpacity>
         </View>
+
+
       )}
     </View>
   );
@@ -287,63 +286,98 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
 // ─── Navigator Configuration ────────────────────────────
 export default function BottomTabNavigator() {
+  const { signOut } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   return (
-    <Tab.Navigator
-      tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: true,
-        headerBackground: () => <HeaderBackground />,
-        headerTintColor: '#fff',
-        headerTitleAlign: 'left',
-        headerTitleStyle: {
-          fontWeight: '900',
-          fontSize: 18,
-          letterSpacing: 0.5,
-          textTransform: 'uppercase',
-        },
-        headerRight: () => (
-          <HeaderRight />
-        ),
-        headerStyle: {
-          height: Platform.OS === 'ios' ? 110 : 80,
-        },
-        headerTitleContainerStyle: {
-          paddingBottom: 15,   // 👈 creates space BELOW
-        },
-        headerRightContainerStyle: {
-          paddingBottom: 15,
-        },
-        headerLeftContainerStyle: {
-          paddingBottom: 15,
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={Home}
-        options={{ title: 'Analytics' }}
-      />
-      <Tab.Screen
-        name="Bills"
-        component={Bills}
-        options={{ title: 'Billing' }}
-      />
-      <Tab.Screen
-        name="CreateBill"
-        component={CreateBillPlaceholder}
-        options={{ title: 'Create' }}
-      />
-      <Tab.Screen
-        name="Products"
-        component={Products}
-        options={{ title: 'Inventory' }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={Settings}
-        options={{ title: 'Settings' }}
-      />
-    </Tab.Navigator>
+    <>
+      <Tab.Navigator
+        tabBar={props => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: true,
+          headerBackground: () => <HeaderBackground />,
+          headerTintColor: '#fff',
+          headerTitleAlign: 'left',
+          headerTitleStyle: {
+            fontWeight: '900',
+            fontSize: 18,
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+          },
+          headerRight: () => (
+            <HeaderRight onLogoutClick={() => setShowLogoutModal(true)} />
+          ),
+          headerStyle: {
+            height: Platform.OS === 'ios' ? 110 : 80,
+          },
+          headerTitleContainerStyle: {
+            paddingBottom: 15,   // 👈 creates space BELOW
+          },
+          headerRightContainerStyle: {
+            paddingBottom: 15,
+          },
+          headerLeftContainerStyle: {
+            paddingBottom: 15,
+          },
+        }}
+      >
+        <Tab.Screen
+          name="Home"
+          component={Home}
+          options={{ title: 'Analytics' }}
+        />
+        <Tab.Screen
+          name="Bills"
+          component={Bills}
+          options={{ title: 'Billing' }}
+        />
+        <Tab.Screen
+          name="CreateBill"
+          component={CreateBillPlaceholder}
+          options={{ title: 'Create' }}
+        />
+        <Tab.Screen
+          name="Products"
+          component={Products}
+          options={{ title: 'Inventory' }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={Settings}
+          options={{ title: 'Settings' }}
+        />
+      </Tab.Navigator>
+
+      {showLogoutModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.logoutModalBox}>
+            <Text style={styles.logoutTitle}>Sign Out</Text>
+
+            <Text style={styles.logoutMessage}>
+              Are you sure you want to sign out?
+            </Text>
+
+            <View style={styles.logoutActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmBtn}
+                onPress={() => {
+                  setShowLogoutModal(false);
+                  signOut();
+                }}
+              >
+                <Text style={styles.confirmText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -507,9 +541,10 @@ const styles = StyleSheet.create({
 
   /* MODAL / QUICK ACTIONS */
   modalOverlay: {
-    zIndex: 1000,
+    ...StyleSheet.absoluteFillObject, // 🔥 FULL SCREEN
     backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center', // ✅ CENTER VERTICALLY
+    alignItems: 'center',     // ✅ CENTER HORIZONTALLY
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -577,4 +612,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.5,
   },
+
+  logoutModalBox: {
+    backgroundColor: '#fff',
+    width: '85%',   // ✅ fixed width for better center look
+    borderRadius: 16,
+    padding: 20,
+  },
+
+  logoutTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2563eb', // 🔵 BLUE
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+
+  logoutMessage: {
+    fontSize: 14,
+    color: '#1e3a8a',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
+  logoutActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  cancelBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    marginRight: 8,
+    alignItems: 'center',
+  },
+
+  confirmBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#2563eb',
+    marginLeft: 8,
+    alignItems: 'center',
+  },
+
+  cancelText: {
+    color: '#2563eb',
+    fontWeight: '700',
+  },
+
+  confirmText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
+
+

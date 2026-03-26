@@ -68,7 +68,7 @@ const signIn = async (identifier: string, password: string) => {
     // ✅ SUCCESS TOAST
     Toast.show({
       type: 'success',
-      text1: 'Login Successful 🎉',
+      text1: 'Login Successful',
       text2: 'Welcome back!',
     });
 
@@ -111,7 +111,7 @@ const signUp = async (name: string, email: string, password: string) => {
     // ✅ SUCCESS TOAST
     Toast.show({
       type: 'success',
-      text1: 'Registration Successful 🎉',
+      text1: 'Registration Successful',
       text2: 'Account created successfully',
     });
 
