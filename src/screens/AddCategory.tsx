@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Image,
   StyleSheet,
 } from 'react-native';
@@ -14,14 +13,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  fetchCategories, 
-  createCategory, 
-  updateCategory, 
+import {
+  fetchCategories,
+  createCategory,
+  updateCategory,
   fetchCategoryById,
   Category
 } from '../api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 const AddCategory = () => {
   const navigation = useNavigation<any>();
@@ -32,7 +32,7 @@ const AddCategory = () => {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const [formData, setFormData] = useState<any>({
     catId: '',
     name: '',
@@ -47,18 +47,18 @@ const AddCategory = () => {
       setLoading(true);
       try {
         if (!isEdit) {
-            // Auto ID Generation matching web logic
-            const data = await fetchCategories(token);
-            let nextNum = 1;
-            if (data && data.length > 0) {
-              const ids = data.map((c: any) => {
-                const num = parseInt(c.catId?.replace('CAT', ''), 10);
-                return isNaN(num) ? 0 : num;
-              });
-              nextNum = Math.max(...ids, 0) + 1;
-            }
-            const formattedNum = nextNum.toString().padStart(3, '0');
-            setFormData((prev: any) => ({ ...prev, catId: `CAT${formattedNum}` }));
+          // Auto ID Generation matching web logic
+          const data = await fetchCategories(token);
+          let nextNum = 1;
+          if (data && data.length > 0) {
+            const ids = data.map((c: any) => {
+              const num = parseInt(c.catId?.replace('CAT', ''), 10);
+              return isNaN(num) ? 0 : num;
+            });
+            nextNum = Math.max(...ids, 0) + 1;
+          }
+          const formattedNum = nextNum.toString().padStart(3, '0');
+          setFormData((prev: any) => ({ ...prev, catId: `CAT${formattedNum}` }));
         } else {
           const cat = await fetchCategoryById(id, token);
           setFormData({
@@ -71,7 +71,11 @@ const AddCategory = () => {
         }
       } catch (err) {
         console.error('Init error:', err);
-        Alert.alert('Error', 'Failed to initialize screen');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to initialize screen',
+        });
       } finally {
         setLoading(false);
       }
@@ -106,7 +110,11 @@ const AddCategory = () => {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.catId) {
-      Alert.alert('Required', 'Name and Category ID are required');
+      Toast.show({
+        type: 'error',
+        text1: 'Required',
+        text2: 'Name and Category ID are required',
+      });
       return;
     }
 
@@ -119,14 +127,26 @@ const AddCategory = () => {
 
       if (isEdit) {
         await updateCategory(id, payload, token);
-        Alert.alert('Success', 'Category updated successfully');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Category updated successfully',
+        });
       } else {
         await createCategory(payload, token);
-        Alert.alert('Success', 'Category created successfully');
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Category created successfully',
+        });
       }
       navigation.goBack();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save category');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: err.message || 'Failed to save category',
+      });
     } finally {
       setSaving(false);
     }
@@ -141,7 +161,7 @@ const AddCategory = () => {
   }
 
   return (
-  <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#1e293b" />
@@ -154,41 +174,41 @@ const AddCategory = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-            <Text style={styles.label}>Category ID</Text>
-            <TextInput 
-              style={styles.input} 
-              value={formData.catId}
-              onChangeText={(v) => setFormData((p: any) => ({ ...p, catId: v }))}
-            />
+          <Text style={styles.label}>Category ID</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.catId}
+            onChangeText={(v) => setFormData((p: any) => ({ ...p, catId: v }))}
+          />
 
-            <Text style={styles.label}>Category Name</Text>
-            <TextInput 
-              style={styles.input} 
-              value={formData.name}
-              onChangeText={(v) => setFormData((p: any) => ({ ...p, name: v }))}
-              placeholder="e.g. Beverages"
-            />
+          <Text style={styles.label}>Category Name</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.name}
+            onChangeText={(v) => setFormData((p: any) => ({ ...p, name: v }))}
+            placeholder="e.g. Beverages"
+          />
 
-            <Text style={styles.label}>Description</Text>
-            <TextInput 
-              style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
-              value={formData.description}
-              onChangeText={(v) => setFormData((p: any) => ({ ...p, description: v }))}
-              placeholder="Category details..."
-              multiline
-            />
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+            value={formData.description}
+            onChangeText={(v) => setFormData((p: any) => ({ ...p, description: v }))}
+            placeholder="Category details..."
+            multiline
+          />
 
-            <Text style={styles.label}>Category Image</Text>
-            <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
-               {formData.image ? (
-                 <Image source={{ uri: formData.image }} style={styles.preview} />
-               ) : (
-                 <View style={styles.pickerInner}>
-                   <Icon name="image" size={32} color="#cbd5e1" />
-                   <Text style={styles.pickerText}>Tap to Upload</Text>
-                 </View>
-               )}
-            </TouchableOpacity>
+          <Text style={styles.label}>Category Image</Text>
+          <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage}>
+            {formData.image ? (
+              <Image source={{ uri: formData.image }} style={styles.preview} />
+            ) : (
+              <View style={styles.pickerInner}>
+                <Icon name="image" size={32} color="#cbd5e1" />
+                <Text style={styles.pickerText}>Tap to Upload</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
@@ -202,8 +222,8 @@ const AddCategory = () => {
 
           {subcategories.map((sub, index) => (
             <View key={index} style={styles.subRow}>
-              <TextInput 
-                style={styles.subInput} 
+              <TextInput
+                style={styles.subInput}
                 value={sub}
                 onChangeText={(v) => handleSubChange(index, v)}
                 placeholder="Subcategory name"
@@ -217,9 +237,9 @@ const AddCategory = () => {
           ))}
         </View>
 
-        <TouchableOpacity 
-          style={styles.submitButton} 
-          onPress={handleSubmit} 
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleSubmit}
           disabled={saving}
         >
           {saving ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>SAVE CATEGORY</Text>}
