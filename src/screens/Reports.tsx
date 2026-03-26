@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   StatusBar,
-  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { BluetoothEscposPrinter } from 'react-native-bluetooth-escpos-printer';
@@ -18,6 +17,7 @@ import RNFS from 'react-native-fs';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 type DateFilter = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'all';
 
@@ -49,10 +49,10 @@ const Reports = ({ navigation }: any) => {
   const filteredOrders = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     return orders.filter((order) => {
       const orderDate = new Date(order.created_at || order.date);
-      
+
       switch (activeFilter) {
         case 'today':
           return orderDate >= startOfDay;
@@ -101,7 +101,11 @@ const Reports = ({ navigation }: any) => {
 
   const handleExportExcel = async () => {
     if (filteredOrders.length === 0) {
-      Alert.alert('No Data', 'No transactions found for this period.');
+      Toast.show({
+        type: 'error',
+        text1: 'No Data',
+        text2: 'No transactions found',
+      });
       return;
     }
 
@@ -121,7 +125,7 @@ const Reports = ({ navigation }: any) => {
       const path = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
       await RNFS.writeFile(path, csvContent, 'utf8');
-      
+
       // Strategy 1: Share via file path (most common)
       // Strategy 2: Share via base64 (fallback for some restrictive environments)
       const base64Data = await RNFS.readFile(path, 'base64');
@@ -137,7 +141,7 @@ const Reports = ({ navigation }: any) => {
       } catch (shareErr: any) {
         // If file path fails, try base64 as fallback
         if (shareErr.message && shareErr.message !== 'User did not share') {
-           await Share.open({
+          await Share.open({
             url: `data:text/csv;base64,${base64Data}`,
             type: 'text/csv',
             filename: fileName,
@@ -148,14 +152,22 @@ const Reports = ({ navigation }: any) => {
       }
     } catch (error: any) {
       if (error.message !== 'User did not share') {
-        Alert.alert('Excel Export Failed', error.message);
+        Toast.show({
+          type: 'error',
+          text1: 'Export Failed',
+          text2: error.message,
+        });
       }
     }
   };
 
   const handleExportPDF = async () => {
     if (filteredOrders.length === 0) {
-      Alert.alert('No Data', 'No transactions found for this period.');
+      Toast.show({
+        type: 'error',
+        text1: 'No Data',
+        text2: 'No transactions found',
+      });
       return;
     }
 
@@ -223,7 +235,7 @@ const Reports = ({ navigation }: any) => {
         console.error('PDF Conversion Error:', pdfErr);
         throw pdfErr;
       }
-      
+
       if (!results) {
         throw new Error('PDF generation failed: No result returned from native module');
       }
@@ -246,7 +258,11 @@ const Reports = ({ navigation }: any) => {
     } catch (error: any) {
       if (error.message !== 'User did not share') {
         const detail = results ? JSON.stringify(results) : 'No results';
-        Alert.alert('PDF Export Error (DEBUG-V2)', `${error.message}\n\nData: ${detail}`);
+        Toast.show({
+          type: 'error',
+          text1: 'PDF Export Error',
+          text2: error.message,
+        });
       }
     } finally {
       setLoading(false);
@@ -264,14 +280,18 @@ const Reports = ({ navigation }: any) => {
       await BluetoothEscposPrinter.printText(`Total Revenue: Rs.${summary.total.toLocaleString()}\n`, {});
       await BluetoothEscposPrinter.printText(`------------------------------\n\n`, {});
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-      
+
       for (const order of filteredOrders.slice(0, 20)) {
-         const date = new Date(order.created_at || order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-         await BluetoothEscposPrinter.printText(`${date}  #${String(order.id).slice(-4)}  Rs.${order.total_amount}\n`, {});
+        const date = new Date(order.created_at || order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        await BluetoothEscposPrinter.printText(`${date}  #${String(order.id).slice(-4)}  Rs.${order.total_amount}\n`, {});
       }
       await BluetoothEscposPrinter.printText(`\n\n\n`, {});
     } catch (e: any) {
-      Alert.alert('Printer Error', 'Please ensure your printer is connected in Settings.');
+      Toast.show({
+        type: 'error',
+        text1: 'Printer Error',
+        text2: 'Connect printer in settings',
+      });
     }
   };
 
@@ -309,7 +329,7 @@ const Reports = ({ navigation }: any) => {
         </ScrollView>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
@@ -377,11 +397,11 @@ const Reports = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
 
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 16, 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
@@ -392,28 +412,28 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   refreshButton: { padding: 4 },
 
-  filterContainer: { 
-    backgroundColor: '#ffffff', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#e2e8f0' 
+  filterContainer: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0'
   },
 
   filterScroll: { padding: 12, gap: 8 },
 
   content: { flex: 1 },
 
-  chip: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 8, 
-    borderRadius: 20, 
-    backgroundColor: '#eff6ff', 
-    borderWidth: 1, 
-    borderColor: '#dbeafe' 
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe'
   },
 
-  chipActive: { 
-    backgroundColor: '#2563eb', 
-    borderColor: '#2563eb' 
+  chipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb'
   },
 
   chipText: { fontSize: 13, fontWeight: '600', color: '#1e3a8a' },
@@ -435,106 +455,106 @@ const styles = StyleSheet.create({
 
   summaryItem: { flex: 1, alignItems: 'center' },
 
-  summaryLabel: { 
-    fontSize: 12, 
-    fontWeight: '900', 
-    color: '#64748b', 
-    textTransform: 'uppercase', 
-    marginBottom: 4 
+  summaryLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: 4
   },
 
-  summaryValue: { 
-    fontSize: 20, 
-    fontWeight: '900', 
-    color: '#2563eb' 
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#2563eb'
   },
 
   divider: { width: 1, backgroundColor: '#e2e8f0', height: '100%' },
 
-  transactionsHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingHorizontal: 16, 
-    marginTop: 8, 
-    marginBottom: 12 
+  transactionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12
   },
 
-  sectionTitle: { 
-    fontSize: 12, 
-    fontWeight: '900', 
-    color: '#64748b', 
-    textTransform: 'uppercase', 
-    letterSpacing: 1 
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 1
   },
 
-  exportButton: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#eff6ff', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#dbeafe'
   },
 
-  exportText: { 
-    fontSize: 12, 
-    fontWeight: '900', 
-    color: '#2563eb', 
-    marginLeft: 4 
+  exportText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#2563eb',
+    marginLeft: 4
   },
 
-  transactionItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#ffffff', 
-    marginHorizontal: 16, 
-    marginBottom: 8, 
-    padding: 16, 
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 16,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
 
-  orderIcon: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 12, 
-    backgroundColor: '#eff6ff', 
-    alignItems: 'center', 
-    justifyContent: 'center' 
+  orderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
 
   orderId: { fontSize: 14, fontWeight: '900', color: '#1e3a8a' },
 
-  orderDate: { 
-    fontSize: 12, 
-    fontWeight: '600', 
-    color: '#64748b', 
-    marginTop: 2 
+  orderDate: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 2
   },
 
-  orderAmount: { 
-    fontSize: 16, 
-    fontWeight: '900', 
-    color: '#2563eb' 
+  orderAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2563eb'
   },
 
-  emptyState: { 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginTop: 40, 
-    padding: 20 
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    padding: 20
   },
 
-  emptyText: { 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#64748b', 
-    marginTop: 12, 
-    textAlign: 'center' 
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 12,
+    textAlign: 'center'
   },
 });
 
