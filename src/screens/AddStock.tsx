@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, updateProduct } from '../api';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 const AddStock = () => {
   const { token } = useAuth();
@@ -33,14 +34,18 @@ const AddStock = () => {
   useEffect(() => {
     const scannedBarcode = route.params?.barcode;
     if (scannedBarcode && products.length > 0) {
-      const found = products.find(p => 
-        String(p.product_code).toLowerCase() === String(scannedBarcode).toLowerCase() || 
+      const found = products.find(p =>
+        String(p.product_code).toLowerCase() === String(scannedBarcode).toLowerCase() ||
         String(p.barcode).toLowerCase() === String(scannedBarcode).toLowerCase()
       );
       if (found) {
         handleSelectProduct(found);
       } else {
-        Alert.alert('Not Found', 'Product with this barcode not found');
+        Toast.show({
+          type: 'error',
+          text1: 'Not Found',
+          text2: 'Product with this barcode not found',
+        });
         // Clear params to prevent persistent alert
         navigation.setParams({ barcode: undefined });
       }
@@ -90,28 +95,38 @@ const AddStock = () => {
       });
 
       const totalStock = updatedVariants.reduce((sum: number, v: any) => sum + (Number(v.stock) || 0), 0);
-      
+
       // Merge with existing product data to prevent losing other details
       const payload = {
         ...selectedProduct,
         variants: updatedVariants,
         total_stock: totalStock
       };
-      
+
       await updateProduct(selectedProduct.id, payload, token);
 
-      Alert.alert('Success', 'Stock updated additively!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Stock updated successfully!',
+      });
+
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1000);
     } catch (err) {
-      Alert.alert('Error', 'Update failed');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Update failed',
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredProducts = products.filter(p =>
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.product_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -131,21 +146,21 @@ const AddStock = () => {
       {!selectedProduct ? (
         <View style={{ flex: 1 }}>
           <View style={styles.searchContainer}>
-        <Feather name="search" size={18} color="#94a3b8" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by Name or Barcode..."
-          placeholderTextColor="#94a3b8"
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-        />
-        <TouchableOpacity 
-          style={styles.scanBtn}
-          onPress={() => navigation.navigate('ScannerScreen', { target: 'AddStock' })}
-        >
-          <Feather name="maximize" size={18} color="#2563eb" />
-        </TouchableOpacity>
-      </View>
+            <Feather name="search" size={18} color="#94a3b8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by Name or Barcode..."
+              placeholderTextColor="#94a3b8"
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+            />
+            <TouchableOpacity
+              style={styles.scanBtn}
+              onPress={() => navigation.navigate('ScannerScreen', { target: 'AddStock' })}
+            >
+              <Feather name="maximize" size={18} color="#2563eb" />
+            </TouchableOpacity>
+          </View>
           {loading ? (
             <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 100 }} />
           ) : (
@@ -178,7 +193,7 @@ const AddStock = () => {
           </View>
 
           <Text style={styles.sectionTitle}>Stock Update (Additive)</Text>
-          
+
           {selectedProduct.variants?.map((v: any, i: number) => {
             const added = Number(addingValues[i]) || 0;
             const current = Number(v.stock) || 0;
@@ -188,7 +203,7 @@ const AddStock = () => {
                   <Text style={styles.variantName}>{v.quantity} {v.unit}</Text>
                   <Text style={styles.currentStock}>Current: {current}</Text>
                 </View>
-                
+
                 <View style={styles.mathContainer}>
                   <Text style={styles.mathText}>{current}</Text>
                   <Feather name="plus" size={14} color="#94a3b8" />
@@ -207,8 +222,8 @@ const AddStock = () => {
             );
           })}
 
-          <TouchableOpacity 
-            style={[styles.updateBtn, saving && { opacity: 0.7 }]} 
+          <TouchableOpacity
+            style={[styles.updateBtn, saving && { opacity: 0.7 }]}
             onPress={handleUpdate}
             disabled={saving}
           >
