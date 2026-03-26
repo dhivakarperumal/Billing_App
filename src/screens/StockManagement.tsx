@@ -9,14 +9,13 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, updateProduct, Product } from '../api';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const StockManagement = () => {
   const { token } = useAuth();
@@ -74,8 +73,8 @@ const StockManagement = () => {
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredProducts = products.filter(p =>
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.product_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -86,8 +85,8 @@ const StockManagement = () => {
           <Text style={styles.productName}>{item.name}</Text>
           <Text style={styles.productCode}>ID: {item.product_code || item.id}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.saveBtn} 
+        <TouchableOpacity
+          style={styles.saveBtn}
           onPress={() => saveProductStock(item)}
           disabled={updatingId === item.id}
         >
@@ -178,79 +177,212 @@ const StockManagement = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 20, 
-    backgroundColor: '#fff',
+  container: { flex: 1, backgroundColor: '#f1f5ff' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    paddingTop: 10,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9'
+    borderBottomColor: '#e0e7ff'
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  // 🔵 SEARCH
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     margin: 16,
     paddingHorizontal: 16,
     height: 50,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#bfdbfe',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
   },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: '700', color: '#1e293b' },
-  list: { paddingHorizontal: 16, paddingTop: 4 },
+
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e3a8a'
+  },
+
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 4
+  },
+
+  // 🔵 CARD
   productCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e0e7ff',
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.08,
     shadowRadius: 12,
   },
-  productHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 15 },
-  productName: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-  productCode: { fontSize: 11, fontWeight: '700', color: '#94a3b8', marginTop: 2, textTransform: 'uppercase' },
-  saveBtn: { backgroundColor: '#f97316', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-  saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  variantsList: { backgroundColor: '#f8fafc', borderRadius: 16, padding: 12 },
-  variantHeader: { flexDirection: 'row', paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 8 },
-  colLabel: { fontSize: 10, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase' },
-  variantRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  variantName: { fontSize: 13, fontWeight: '800', color: '#1e293b' },
-  variantPrice: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
-  stockInputContainer: { alignItems: 'flex-end' },
-  stockInput: { 
-    backgroundColor: '#fff', 
-    width: 60, 
-    height: 36, 
-    borderRadius: 10, 
-    borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    textAlign: 'center', 
-    fontSize: 14, 
-    fontWeight: '900', 
-    color: '#f97316' 
+
+  productHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 15
   },
-  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 15, gap: 10 },
-  totalLabel: { fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase' },
-  totalValue: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', height: 300 },
-  loadingText: { marginTop: 12, fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 },
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyText: { marginTop: 16, fontSize: 14, fontWeight: '700', color: '#94a3b8', textAlign: 'center' },
+
+  productName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  productCode: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: 2,
+    textTransform: 'uppercase'
+  },
+
+  // 🔵 BUTTON
+  saveBtn: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12
+  },
+
+  saveBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900'
+  },
+
+  // 🔵 VARIANTS
+  variantsList: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    padding: 12
+  },
+
+  variantHeader: {
+    flexDirection: 'row',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbeafe',
+    marginBottom: 8
+  },
+
+  colLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase'
+  },
+
+  variantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e7ff'
+  },
+
+  variantName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1e3a8a'
+  },
+
+  variantPrice: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#1e3a8a'
+  },
+
+  stockInputContainer: {
+    alignItems: 'flex-end'
+  },
+
+  stockInput: {
+    backgroundColor: '#ffffff',
+    width: 60,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2563eb',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#2563eb'
+  },
+
+  // 🔵 TOTAL
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 15,
+    gap: 10
+  },
+
+  totalLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase'
+  },
+
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#2563eb'
+  },
+
+  // 🔵 STATES
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 300
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60
+  },
+
+  emptyText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748b',
+    textAlign: 'center'
+  },
 });
 
 export default StockManagement;
