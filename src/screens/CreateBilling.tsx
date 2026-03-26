@@ -591,18 +591,38 @@ const CreateBilling = () => {
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => handleProductPress(item)} style={styles.card}>
+
                         <View style={styles.imageContainer}>
-                            {item.image || item.images?.[0] ? <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} /> : <Feather name="package" size={24} color="#cbd5e1" />}
+                            {item.image || item.images?.[0] ? (
+                                <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} />
+                            ) : (
+                                <Feather name="package" size={24} color="#cbd5e1" />
+                            )}
+
+                            {/* ✅ ADD BUTTON */}
+                            <TouchableOpacity
+                                style={styles.addBtn}
+                                onPress={() => handleProductPress(item)}  // opens qty popup
+                            >
+                                <Feather name="plus" size={16} color="#fff" />
+                            </TouchableOpacity>
+
                         </View>
+
                         <Text style={styles.itemName} numberOfLines={1}>
-                            {voiceLang === 'ta' && item.name_tamil ? item.name_tamil
-                                : voiceLang === 'tgl' && item.name_tanglish ? item.name_tanglish
-                                    : item.name}
+                            {item.name}
                         </Text>
+
                         <View style={styles.itemFooter}>
-                            <Text style={styles.itemPrice}>₹{Number(item.offer_price || item.price || 0).toLocaleString()}</Text>
-                            <View style={styles.stockBadge}><Text style={styles.stockText}>{item.total_stock || 0} U</Text></View>
+                            <Text style={styles.itemPrice}>
+                                ₹{Number(item.offer_price || item.price || 0)}
+                            </Text>
+
+                            <View style={styles.stockBadge}>
+                                <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
+                            </View>
                         </View>
+
                     </TouchableOpacity>
                 )}
             />
@@ -1206,4 +1226,21 @@ const styles = StyleSheet.create({
     vPrice: { fontSize: 11, fontWeight: '800', color: '#2563eb', marginTop: 4 },
 
     cancelTxt: { fontSize: 11, fontWeight: '900', color: '#64748b' },
+    addBtn: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        width: 34,          // ✅ medium size
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: '#2563eb',
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        // shadow
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
 });
