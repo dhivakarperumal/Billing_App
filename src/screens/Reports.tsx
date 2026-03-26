@@ -316,7 +316,7 @@ const Reports = ({ navigation }: any) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
       >
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#f43f5e" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
         ) : (
           <>
             <View style={styles.summaryCard}>
@@ -377,69 +377,166 @@ const Reports = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
+
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
     padding: 16, 
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#e2e8f0',
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
+
+  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e3a8a' },
+
   backButton: { padding: 4 },
   refreshButton: { padding: 4 },
-  filterContainer: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+
+  filterContainer: { 
+    backgroundColor: '#ffffff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e2e8f0' 
+  },
+
   filterScroll: { padding: 12, gap: 8 },
+
   content: { flex: 1 },
+
   chip: { 
     paddingHorizontal: 16, 
     paddingVertical: 8, 
     borderRadius: 20, 
-    backgroundColor: '#f1f5f9', 
+    backgroundColor: '#eff6ff', 
     borderWidth: 1, 
-    borderColor: 'transparent' 
+    borderColor: '#dbeafe' 
   },
-  chipActive: { backgroundColor: '#fff1f2', borderColor: '#f43f5e' },
-  chipText: { fontSize: 13, fontWeight: '600', color: '#64748b' },
-  chipTextActive: { color: '#f43f5e' },
+
+  chipActive: { 
+    backgroundColor: '#2563eb', 
+    borderColor: '#2563eb' 
+  },
+
+  chipText: { fontSize: 13, fontWeight: '600', color: '#1e3a8a' },
+
+  chipTextActive: { color: '#ffffff' },
+
   summaryCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     margin: 16,
     borderRadius: 24,
     padding: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
+    elevation: 3,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
+
   summaryItem: { flex: 1, alignItems: 'center' },
-  summaryLabel: { fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 },
-  summaryValue: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-  divider: { width: 1, backgroundColor: '#f1f5f9', height: '100%' },
-  transactionsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 8, marginBottom: 12 },
-  sectionTitle: { fontSize: 12, fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 },
-  exportButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff1f2', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  exportText: { fontSize: 12, fontWeight: '900', color: '#f43f5e', marginLeft: 4 },
+
+  summaryLabel: { 
+    fontSize: 12, 
+    fontWeight: '900', 
+    color: '#64748b', 
+    textTransform: 'uppercase', 
+    marginBottom: 4 
+  },
+
+  summaryValue: { 
+    fontSize: 20, 
+    fontWeight: '900', 
+    color: '#2563eb' 
+  },
+
+  divider: { width: 1, backgroundColor: '#e2e8f0', height: '100%' },
+
+  transactionsHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    marginTop: 8, 
+    marginBottom: 12 
+  },
+
+  sectionTitle: { 
+    fontSize: 12, 
+    fontWeight: '900', 
+    color: '#64748b', 
+    textTransform: 'uppercase', 
+    letterSpacing: 1 
+  },
+
+  exportButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#eff6ff', 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dbeafe'
+  },
+
+  exportText: { 
+    fontSize: 12, 
+    fontWeight: '900', 
+    color: '#2563eb', 
+    marginLeft: 4 
+  },
+
   transactionItem: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#fff', 
+    backgroundColor: '#ffffff', 
     marginHorizontal: 16, 
     marginBottom: 8, 
     padding: 16, 
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
   },
-  orderIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
-  orderId: { fontSize: 14, fontWeight: '900', color: '#1e293b' },
-  orderDate: { fontSize: 12, fontWeight: '600', color: '#94a3b8', marginTop: 2 },
-  orderAmount: { fontSize: 16, fontWeight: '900', color: '#1e293b' },
-  emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 40, padding: 20 },
-  emptyText: { fontSize: 14, fontWeight: '600', color: '#94a3b8', marginTop: 12, textAlign: 'center' },
+
+  orderIcon: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 12, 
+    backgroundColor: '#eff6ff', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+
+  orderId: { fontSize: 14, fontWeight: '900', color: '#1e3a8a' },
+
+  orderDate: { 
+    fontSize: 12, 
+    fontWeight: '600', 
+    color: '#64748b', 
+    marginTop: 2 
+  },
+
+  orderAmount: { 
+    fontSize: 16, 
+    fontWeight: '900', 
+    color: '#2563eb' 
+  },
+
+  emptyState: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 40, 
+    padding: 20 
+  },
+
+  emptyText: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#64748b', 
+    marginTop: 12, 
+    textAlign: 'center' 
+  },
 });
 
 export default Reports;
