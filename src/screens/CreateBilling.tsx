@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
-    FlatList, Modal, ActivityIndicator,
+    FlatList, Modal, ActivityIndicator, Alert,
     StatusBar, Dimensions, Platform, Image,
     PermissionsAndroid, StyleSheet, NativeModules, DeviceEventEmitter, Animated, Easing
 } from "react-native";
@@ -474,9 +474,48 @@ const CreateBilling = () => {
     const addToCart = (product: Product, variant?: any) => {
         if (!product) return;
         const qty = Number(customQty) || 1;
-        const unit = variant ? variant.unit : customUnit;
+        const unit = variant ? (variant.unit || 'pcs') : (customUnit || 'pcs');
         const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : `${product.id}-${unit}`;
-        const price = variant ? Number(variant.sellingPrice || variant.mrp || 0) : Number(product.offer_price || product.price || 0);
+        
+        // --- PROPORTIONAL PRICING CALCULATION ---
+        let unitPrice = 0;
+        
+        if (variant) {
+            // Use variant price directly (qty means "number of packs")
+            unitPrice = Number(variant.sellingPrice || variant.mrp || 0);
+        } else {
+            // Calculate proportional price for custom unit/qty
+            const ref = product.variants?.[0]; // Use first variant as pricing reference
+            const basePrice = Number(product.offer_price || product.price || 0);
+            
+            const u = unit.toLowerCase();
+            const isMeasurement = ['kg', 'g', 'mg', 'l', 'ml', 'liter'].includes(u);
+            
+            if (ref && ref.quantity && ref.sellingPrice && isMeasurement) {
+                const refQty = Number(ref.quantity);
+                const refUnit = (ref.unit || 'pcs').toLowerCase();
+                const refPrice = Number(ref.sellingPrice);
+
+                const factors: Record<string, number> = { 
+                    'kg': 1000, 'g': 1, 'mg': 0.001, 
+                    'l': 1000, 'liter': 1000, 'ml': 1, 
+                    'pcs': 1 
+                };
+
+                // total = (target_qty_in_base / ref_qty_in_base) * ref_price
+                // We want price PER 1 TARGET UNIT so that: qty * unitPrice = total
+                const refBase = refQty * (factors[refUnit] || 1);
+                const targetBaseOne = 1 * (factors[u] || 1); // e.g. price per 1kg if u='kg'
+
+                if (refBase > 0) {
+                    unitPrice = (targetBaseOne / refBase) * refPrice;
+                } else {
+                    unitPrice = basePrice;
+                }
+            } else {
+                unitPrice = basePrice;
+            }
+        }
 
         const name = variant
             ? `${product.name} (${variant.quantity}${variant.unit})`
@@ -489,7 +528,7 @@ const CreateBilling = () => {
                 id: itemId,
                 product_id: product.id,
                 name: name,
-                price: price,
+                price: unitPrice,
                 quantity: qty,
                 image: product.image || product.images?.[0] || null
             }];
@@ -722,48 +761,115 @@ const CreateBilling = () => {
             )}
 
             <Modal visible={showCart} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
+                <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
                     <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCart(false)} />
-                    <View style={styles.modalSheet}>
+                    <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 20 }]}>
+                        <View style={styles.modalPill} />
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 }}>
+                            <Text style={styles.modalTitle}>Cart Manifest<Text style={{ color: '#2563eb' }}>.</Text></Text>
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    if (cart.length > 0) {
+                                        Alert.alert(
+                                            "Clear Cart", 
+                                            "Are you sure you want to remove all items?",
+                                            [
+                                                { text: "Cancel", style: "cancel" },
+                                                { text: "Delete All", style: "destructive", onPress: () => setCart([]) }
+                                            ]
+                                        );
+                                    }
+                                }} 
+                                style={{ padding: 8 }}
+                            >
+                                <Text style={{ fontSize: 10, fontWeight: '900', color: '#ef4444', letterSpacing: 1 }}>CLEAR ALL</Text>
+                            </TouchableOpacity>
+                        </View>
+
                         <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowCart(false)}>
                             <Feather name="x" size={20} color="#94a3b8" />
                         </TouchableOpacity>
 
-                        <View style={styles.modalPill} />
-                        <Text style={styles.modalTitle}>Cart Manifest<Text style={{ color: '#f97316' }}>.</Text></Text>
-
-                        <ScrollView style={styles.cartScroll}>
-                            {cart.map((item) => (
+                        <ScrollView style={styles.cartScroll} showsVerticalScrollIndicator={false}>
+                            {cart.length === 0 ? (
+                                <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+                                    <Feather name="shopping-bag" size={48} color="#e2e8f0" />
+                                    <Text style={{ marginTop: 15, fontSize: 14, fontWeight: '700', color: '#94a3b8' }}>Your cart is empty</Text>
+                                </View>
+                            ) : cart.map((item) => (
                                 <View key={item.id} style={styles.cartItem}>
+                                    <View style={styles.cartItemImgContainer}>
+                                        {item.image ? (
+                                            <Image source={{ uri: item.image }} style={styles.cartItemImg} />
+                                        ) : (
+                                            <Feather name="package" size={16} color="#94a3b8" />
+                                        )}
+                                    </View>
                                     <View style={styles.cartItemMeta}>
-                                        <Text style={styles.cartItemName}>{item.name}</Text>
-                                        <Text style={styles.cartItemPrice}>₹{item.price.toLocaleString()}</Text>
+                                        <Text style={styles.cartItemName} numberOfLines={1}>{item.name}</Text>
+                                        <Text style={styles.cartItemPrice}>
+                                            {item.quantity} x ₹{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = 
+                                            <Text style={{ color: '#0f172a', fontWeight: '900' }}> ₹{(item.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                                        </Text>
                                     </View>
                                     <View style={styles.qtyControl}>
-                                        <TouchableOpacity onPress={() => {
-                                            if (item.quantity > 1) {
-                                                setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i));
-                                            } else {
-                                                setCart(prev => prev.filter(i => i.id !== item.id));
-                                            }
-                                        }}><Feather name={item.quantity > 1 ? "minus" : "trash-2"} size={14} color="#64748b" /></TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={styles.qtyMinorBtn}
+                                            onPress={() => {
+                                                if (item.quantity > 0.1) {
+                                                    const step = item.quantity > 1 ? 1 : 0.1;
+                                                    setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Math.max(0, Number((i.quantity - step).toFixed(2))) } : i).filter(i => i.quantity > 0));
+                                                } else {
+                                                    setCart(prev => prev.filter(i => i.id !== item.id));
+                                                }
+                                            }}
+                                        >
+                                            <Feather name={item.quantity <= 1 ? "trash-2" : "minus"} size={12} color={item.quantity <= 1 ? "#ef4444" : "#64748b"} />
+                                        </TouchableOpacity>
+
                                         <Text style={styles.qtyValue}>{item.quantity}</Text>
-                                        <TouchableOpacity onPress={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}><Feather name="plus" size={14} color="#f97316" /></TouchableOpacity>
+
+                                        <TouchableOpacity 
+                                            style={styles.qtyMinorBtn}
+                                            onPress={() => {
+                                                const step = item.quantity >= 1 ? 1 : 0.1;
+                                                setCart(prev => prev.map(i => i.id === item.id ? { ...i, quantity: Number((i.quantity + step).toFixed(2)) } : i));
+                                            }}
+                                        >
+                                            <Feather name="plus" size={12} color="#2563eb" />
+                                        </TouchableOpacity>
                                     </View>
+
+                                    <TouchableOpacity 
+                                        onPress={() => setCart(prev => prev.filter(i => i.id !== item.id))}
+                                        style={{ marginLeft: 10, padding: 5 }}
+                                    >
+                                        <Feather name="trash-2" size={16} color="#ef4444" />
+                                    </TouchableOpacity>
                                 </View>
                             ))}
                         </ScrollView>
 
-                        <View style={styles.modalFooter}>
-                            <View>
-                                {gstEnabled && (
-                                    <Text style={styles.taxLabel}>{gstType.toUpperCase()} GST ({gstPercentage}%): ₹{gstAmount.toFixed(2)}</Text>
-                                )}
-                                <Text style={styles.totalVal}>₹{cartTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
-                                <Text style={styles.totalLabel}>FINAL VALUATION</Text>
+                        {cart.length > 0 && (
+                            <View style={styles.modalFooter}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.taxLabel}>SUBTOTAL: ₹{subtotal.toFixed(2)}</Text>
+                                    {gstEnabled && (
+                                        <Text style={styles.taxLabel}>{gstType.toUpperCase()} GST ({gstPercentage}%): ₹{gstAmount.toFixed(2)}</Text>
+                                    )}
+                                    <Text style={styles.totalLabel}>TOTAL VALUATION</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                                        <Text style={styles.totalVal}>₹{cartTotal.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}</Text>
+                                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8', marginLeft: 6 }}>NET</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity onPress={handleFinalizeBill} style={styles.finalizeBtn}>
+                                    <Text style={styles.finalizeTxt}>FINALIZE BILL</Text>
+                                    <Feather name="arrow-right" size={16} color="#fff" style={{ marginLeft: 8 }} />
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity onPress={handleFinalizeBill} style={styles.finalizeBtn}><Text style={styles.finalizeTxt}>COMMIT BILL</Text></TouchableOpacity>
-                        </View>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -1280,7 +1386,23 @@ const styles = StyleSheet.create({
         borderRadius: 18,
     },
 
-    finalizeTxt: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    finalizeTxt: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+    cartItemImgContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        overflow: 'hidden',
+    },
+    cartItemImg: { width: '100%', height: '100%' },
+    qtyMinorBtn: {
+        padding: 6,
+        borderRadius: 8,
+        backgroundColor: '#f8fafc',
+    },
 
     variantSheet: {
         backgroundColor: '#fff',
