@@ -104,6 +104,8 @@ const CreateBilling = () => {
     const [showPostSavePreview, setShowPostSavePreview] = useState(false);
     const [savedPrintData, setSavedPrintData] = useState<PrintData | null>(null);
     const [businessInfo, setBusinessInfo] = useState<any>(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedPaymentMode, setSelectedPaymentMode] = useState<'CASH' | 'UPI'>('CASH');
 
 
     // Form State
@@ -140,17 +142,15 @@ const CreateBilling = () => {
 
     const finalizeUI = async () => {
         try {
-            const afterA = await AsyncStorage.getItem('after_save_action') || 'stay';
-            if (afterA === 'back') {
-                navigation.goBack();
-            } else {
-                setCart([]);
-                setCustomerName("");
-                setCustomerPhone("");
-                setShowPostSavePreview(false);
-            }
+            setCart([]);
+            setCustomerName("");
+            setCustomerPhone("");
+            setShowPostSavePreview(false);
+            
+            // Navigate to Bills tab specifically
+            navigation.navigate('Tabs', { screen: 'Bills' });
         } catch (e) {
-            navigation.goBack();
+            navigation.navigate('Tabs', { screen: 'Bills' });
         }
     };
 
@@ -621,7 +621,7 @@ const CreateBilling = () => {
         closeVariantModal();
     };
 
-    const handleFinalizeBill = async () => {
+    const handleFinalizeBill = () => {
         if (!customerName || !customerPhone) return Toast.show({
             type: 'error',
             text1: 'Missing Info',
@@ -632,7 +632,11 @@ const CreateBilling = () => {
             text1: 'Cart Empty',
             text2: 'Add items first',
         });
+        setShowPaymentModal(true);
+    };
 
+    const processBill = async (mode: 'CASH' | 'UPI') => {
+        setShowPaymentModal(false);
         setSaving(true);
         try {
             const payload: BillPayload = {
@@ -656,7 +660,8 @@ const CreateBilling = () => {
                 subtotal: Number(subtotal.toFixed(2)),
                 gstAmount: Number(gstAmount.toFixed(2)),
                 billId: billId,
-                date: new Date().toLocaleDateString()
+                date: new Date().toLocaleDateString(),
+                paymentMode: mode
             };
 
             if (autoP) {
@@ -758,24 +763,7 @@ const CreateBilling = () => {
                 </View>
             </View>
 
-            {/* 🔥 Categories Optimization */}
-            <View style={{ backgroundColor: '#fff' }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                    <CategoryBtn 
-                        title="All" 
-                        isActive={selectedCategory === "All"} 
-                        onPress={setSelectedCategory} 
-                    />
-                    {categories.map((cat: any) => (
-                        <CategoryBtn 
-                            key={cat.id || cat.name}
-                            title={cat.name} 
-                            isActive={selectedCategory === cat.name} 
-                            onPress={setSelectedCategory} 
-                        />
-                    ))}
-                </ScrollView>
-            </View>
+           
 
             <FlatList
                 data={filteredProducts}
@@ -1099,7 +1087,7 @@ const CreateBilling = () => {
                                     </View>
 
                                     {/* QR Section */}
-                                    {businessInfo?.showQRCode && businessInfo?.upiId && (
+                                    {(savedPrintData?.paymentMode === 'UPI' || businessInfo?.showQRCode) && businessInfo?.upiId && (
                                         <View style={{ alignItems: 'center', marginTop: 30, backgroundColor: '#f8fafc', padding: 25, borderRadius: 30, borderWidth: 1, borderColor: '#f1f5f9' }}>
                                             <Text style={{ fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, marginBottom: 20 }}>VERIFY PAYMENT VIA UPI</Text>
                                             <View style={{ backgroundColor: '#fff', padding: 15, borderRadius: 24, elevation: 2 }}>
@@ -1140,6 +1128,64 @@ const CreateBilling = () => {
                                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 1 }}>PRINT RECEIPT</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+            {/* 🔥 PAYMENT MODE SELECTION MODAL */}
+            <Modal
+                visible={showPaymentModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowPaymentModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalSheet, { paddingBottom: 40 }]}>
+                        <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowPaymentModal(false)}>
+                            <Feather name="x" size={20} color="#64748b" />
+                        </TouchableOpacity>
+                        
+                        <View style={styles.modalPill} />
+                        <Text style={styles.modalTitle}>Choose Payment Manner.</Text>
+
+                        <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20 }}>
+                            <TouchableOpacity 
+                                onPress={() => setSelectedPaymentMode('CASH')}
+                                style={{ 
+                                    flex: 1, height: 100, borderRadius: 24, backgroundColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#f8fafc',
+                                    borderWidth: 2, borderColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#e2e8f0',
+                                    alignItems: 'center', justifyContent: 'center', gap: 8
+                                }}
+                            >
+                                <Feather name="dollar-sign" size={24} color={selectedPaymentMode === 'CASH' ? '#fff' : '#64748b'} />
+                                <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'CASH' ? '#fff' : '#64748b' }}>CASH</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                onPress={() => setSelectedPaymentMode('UPI')}
+                                style={{ 
+                                    flex: 1, height: 100, borderRadius: 24, backgroundColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#f8fafc',
+                                    borderWidth: 2, borderColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#e2e8f0',
+                                    alignItems: 'center', justifyContent: 'center', gap: 8
+                                }}
+                            >
+                                <Feather name="smartphone" size={24} color={selectedPaymentMode === 'UPI' ? '#fff' : '#64748b'} />
+                                <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'UPI' ? '#fff' : '#64748b' }}>UPI / QR</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {selectedPaymentMode === 'UPI' && businessInfo?.upiId && (
+                            <View style={{ backgroundColor: '#eff6ff', padding: 15, borderRadius: 18, marginBottom: 20, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 10, fontWeight: '800', color: '#1e3a8a', marginBottom: 5 }}>QR SELECTION ENABLED</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#2563eb' }}>UPI: {businessInfo.upiId}</Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity 
+                            style={[styles.finalizeBtn, { width: '100%' }]}
+                            onPress={() => processBill(selectedPaymentMode)}
+                        >
+                            <Text style={styles.finalizeTxt}>CONFIRM & FINALIZE ₹{cartTotal.toFixed(2)}</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>

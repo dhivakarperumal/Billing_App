@@ -19,6 +19,7 @@ export interface PrintData {
   gstAmount?: number;
   billId: string | number;
   date: string;
+  paymentMode?: 'CASH' | 'UPI';
 }
 
 export interface BusinessInfo {
@@ -133,8 +134,8 @@ const printBluetooth = async (data: PrintData, bInfo: BusinessInfo) => {
     await BluetoothEscposPrinter.printText(`TOTAL: Rs.${data.totalAmount}\n`, { fontweight: 1 });
     await BluetoothEscposPrinter.printText("\n", {});
 
-    // Print QR Code if enabled
-    if (bInfo.showQRCode && bInfo.upiId) {
+    // Print QR Code if UPI is selected OR if explicitly enabled in settings for all receipts
+    if ((data.paymentMode === 'UPI' || bInfo.showQRCode) && bInfo.upiId) {
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
       await BluetoothEscposPrinter.printText("Scan to Pay with UPI\n", { fontweight: 0 });
       const upiUrl = `upi://pay?pa=${bInfo.upiId}&pn=${encodeURIComponent(bInfo.storeName)}&am=${data.totalAmount}&cu=INR`;
