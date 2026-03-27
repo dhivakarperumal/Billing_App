@@ -13,9 +13,11 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { useAuth } from "../contexts/AuthContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Register = ({ onSwitchToLogin }: { onSwitchToLogin: () => void }) => {
   const { signUp, loading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [form, setForm] = useState({
     username: "",
@@ -74,6 +76,7 @@ const Register = ({ onSwitchToLogin }: { onSwitchToLogin: () => void }) => {
       {/* HEADER SAME AS LOGIN */}
       <ImageBackground
         source={require("../assets/billing-bg.jpg")}
+        style={{ paddingTop: insets.top + 20 }}
         className="h-[40%] justify-center items-center px-6"
         resizeMode="cover"
       >

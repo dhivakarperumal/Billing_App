@@ -36,16 +36,13 @@ const INACTIVE_COLOR = '#9ca3af'; // softer gray like login
 // ─── Header Components ─────────────────────────────────
 function HeaderBackground() {
   return (
-    <LinearGradient
-      colors={HEADER_GRADIENT}
-      style={StyleSheet.absoluteFill}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
+    <View
+      style={[StyleSheet.absoluteFill, { backgroundColor: '#2563eb' }]}
     />
   );
 }
 
-function HeaderRight({ onLogoutClick }) {
+function HeaderRight({ onLogoutClick }: { onLogoutClick: () => void }) {
   const { user, signOut } = useAuth();
   const [showMenu, setShowMenu] = React.useState(false);
   const navigation = useNavigation<any>();
@@ -310,7 +307,7 @@ export default function BottomTabNavigator() {
             height: Platform.OS === 'ios' ? 110 : 80,
           },
           headerTitleContainerStyle: {
-            paddingBottom: 15,   // 👈 creates space BELOW
+            paddingBottom: 15,
           },
           headerRightContainerStyle: {
             paddingBottom: 15,

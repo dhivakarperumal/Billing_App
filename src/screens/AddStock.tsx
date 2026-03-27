@@ -131,16 +131,21 @@ const AddStock = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={24} color="#0f172a" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add New Stock</Text>
-        <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-          <Feather name="rotate-ccw" size={20} color={selectedProduct ? "#2563eb" : "#e2e8f0"} />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+      
+      <View 
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Add New Stock</Text>
+          <TouchableOpacity onPress={() => setSelectedProduct(null)} style={styles.resetBtn}>
+            <Feather name="rotate-ccw" size={20} color={selectedProduct ? "#ffffff" : "rgba(255,255,255,0.4)"} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!selectedProduct ? (
@@ -246,19 +251,46 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5ff' },
 
   header: {
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#2563eb',
+    elevation: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e7ff'
   },
 
   headerTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#1e3a8a'
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  resetBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // 🔵 SEARCH

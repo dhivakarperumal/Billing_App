@@ -531,16 +531,20 @@ const CreateBilling = () => {
 
     return (
         <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-            <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+            <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
 
-            <LinearGradient colors={HEADER_GRADIENT} style={styles.headerGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <View style={styles.headerRow}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconBtn}>
-                        <Feather name="arrow-left" size={20} color="#fff" />
+            <View 
+                style={[styles.header, { paddingTop: insets.top + 10 }]} 
+            >
+                <View style={[styles.headerRow, { justifyContent: 'space-between', alignItems: 'center' }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Feather name="arrow-left" size={24} color="#ffffff" />
                     </TouchableOpacity>
-                    <View style={styles.headerTitleWrap}>
-                        <Text style={styles.headerTitle}>BILLING<Text style={{ color: '#f97316' }}></Text></Text>
-                    </View>
+                    <Text style={styles.headerTitle}>BILLING DESK</Text>
+                    <TouchableOpacity onPress={() => setShowCart(true)} style={styles.cartIconRef}>
+                        <Feather name="shopping-cart" size={20} color="#ffffff" />
+                        {cart.length > 0 && <View style={styles.cartBadge}><Text style={styles.cartBadgeTxt}>{cart.length}</Text></View>}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.searchBarContainer}>
@@ -595,7 +599,7 @@ const CreateBilling = () => {
                         <TextInput placeholder="Number" keyboardType="phone-pad" style={styles.miniInput} placeholderTextColor="#475569" value={customerPhone} onChangeText={setCustomerPhone} />
                     </View>
                 </View>
-            </LinearGradient>
+            </View>
 
             <FlatList
                 data={filteredProducts}
@@ -934,12 +938,14 @@ const styles = StyleSheet.create({
 
     container: { flex: 1, backgroundColor: '#f8fafc' },
 
-    headerGradient: {
+    header: {
         paddingHorizontal: 20,
-        paddingTop: 30,
         paddingBottom: 25,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
+        backgroundColor: '#2563eb', // Standardized Blue
+        elevation: 8,
+        shadowColor: '#2563eb',
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
     },
 
     headerRow: {
@@ -949,23 +955,49 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 
-    headerIconBtn: {
+    headerTitle: {
+        color: '#ffffff',
+        fontSize: 18,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+
+    backBtn: {
         width: 40,
         height: 40,
         borderRadius: 12,
         backgroundColor: 'rgba(255,255,255,0.15)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 10,
     },
 
-    headerTitleWrap: { flex: 1, alignItems: 'flex-start' },
+    cartIconRef: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-    headerTitle: {
+    cartBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#ef4444',
+        minWidth: 16,
+        height: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 4,
+    },
+
+    cartBadgeTxt: {
         color: '#fff',
-        fontSize: 17,
+        fontSize: 8,
         fontWeight: '900',
-        letterSpacing: 0.5,
     },
 
     searchBarContainer: {

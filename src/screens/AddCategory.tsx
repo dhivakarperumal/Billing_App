@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   Image,
   StyleSheet,
+  StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import {
   fetchCategories,
@@ -26,6 +28,7 @@ import Toast from 'react-native-toast-message';
 const AddCategory = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const { id } = (route.params as any) || {};
   const isEdit = !!id;
   const { token } = useAuth();
@@ -161,15 +164,21 @@ const AddCategory = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color="#1e293b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEdit ? 'Edit Category' : 'Add Category'}</Text>
-        <TouchableOpacity onPress={handleSubmit} disabled={saving}>
-          {saving ? <ActivityIndicator size="small" color="#2563eb" /> : <Icon name="save" size={24} color="#2563eb" />}
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+      
+      <View 
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{isEdit ? 'Edit Category' : 'Add Category'}</Text>
+          <TouchableOpacity onPress={handleSubmit} disabled={saving} style={styles.saveBtn}>
+            {saving ? <ActivityIndicator size="small" color="#ffffff" /> : <Icon name="save" size={24} color="#ffffff" />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -255,16 +264,47 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   header: {
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#2563eb',
+    elevation: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
 
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#1e3a8a' },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  saveBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   scrollContent: { padding: 16 },
 

@@ -13,9 +13,11 @@ import { useAuth } from "../contexts/AuthContext";
 import { ImageBackground } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Login = ({ onSwitchToRegister }: { onSwitchToRegister: () => void }) => {
   const { signIn, loading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +49,7 @@ return (
     {/* IMAGE HEADER */}
     <ImageBackground
       source={require("../assets/billing-bg.jpg")}
+      style={{ paddingTop: insets.top + 20 }}
       className="h-[50%] justify-center items-center px-6"
       resizeMode="cover"
     >
