@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   FlatList,
   StatusBar,
   Image,
+  Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,17 +20,90 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
 
+// --- Global Cache for zero-flicker reload ---
+let gStockProducts: any[] = [];
+
+const StockItem = memo(({ item, updatingId, handleStockChange, saveProductStock }: any) => (
+  <View style={styles.productCard}>
+    <View style={styles.productHeader}>
+      <View style={styles.imageContainer}>
+        {item.image || (item.images && item.images.length > 0) ? (
+          <Image source={{ uri: item.image || item.images[0] }} style={styles.productImage} />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Feather name="box" size={30} color="#e2e8f0" />
+          </View>
+        )}
+      </View>
+
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+        {item.name_tamil ? (
+          <Text style={styles.tamilName} numberOfLines={1}>{item.name_tamil}</Text>
+        ) : null}
+        <Text style={styles.productCode}>CODE: {item.product_code || item.id}</Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.saveBtn}
+        onPress={() => saveProductStock(item)}
+        disabled={updatingId === item.id}
+      >
+        {updatingId === item.id ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.saveBtnText}>Update</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.variantsList}>
+      <View style={styles.variantHeader}>
+        <Text style={[styles.colLabel, { flex: 2 }]}>Variant</Text>
+        <Text style={[styles.colLabel, { flex: 1, textAlign: 'center' }]}>Price</Text>
+        <Text style={[styles.colLabel, { flex: 1, textAlign: 'right' }]}>Stock Count</Text>
+      </View>
+
+      {item.variants?.map((v: any, idx: number) => (
+        <View key={idx} style={styles.variantRow}>
+          <Text style={[styles.variantName, { flex: 2 }]}>{v.quantity} {v.unit}</Text>
+          <Text style={[styles.variantPrice, { flex: 1, textAlign: 'center' }]}>₹{v.sellingPrice || v.mrp}</Text>
+          <View style={[styles.stockInputContainer, { flex: 1 }]}>
+            <TextInput
+              style={styles.stockInput}
+              value={String(v.stock ?? 0)}
+              onChangeText={(val) => handleStockChange(item.id, idx, val)}
+              keyboardType="numeric"
+              selectTextOnFocus
+              placeholder="0"
+              placeholderTextColor="#94a3b8"
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+
+    <View style={styles.totalRow}>
+      <Text style={styles.totalLabel}>Grand Total Stock:</Text>
+      <Text style={styles.totalValue}>{item.total_stock || 0}</Text>
+    </View>
+  </View>
+));
+
 const StockManagement = () => {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(gStockProducts);
+  const [loading, setLoading] = useState(gStockProducts.length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  // Sync with global cache
+  useEffect(() => { gStockProducts = products; }, [products]);
+
+  const loadData = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const resp = await fetchProducts(token);
       const items = Array.isArray(resp) ? resp : (resp as any).products || [];
@@ -37,12 +111,12 @@ const StockManagement = () => {
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    loadData();
+    loadData(gStockProducts.length === 0);
   }, [loadData]);
 
   const handleStockChange = (productId: any, variantIndex: number, newValue: string) => {
@@ -88,72 +162,14 @@ const StockManagement = () => {
     p.product_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const renderProduct = ({ item }: { item: any }) => (
-    <View style={styles.productCard}>
-      <View style={styles.productHeader}>
-        <View style={styles.imageContainer}>
-          {item.images && item.images.length > 0 ? (
-            <Image source={{ uri: item.images[0] }} style={styles.productImage} />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Feather name="box" size={30} color="#e2e8f0" />
-            </View>
-          )}
-        </View>
-
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          {item.name_tamil ? (
-            <Text style={styles.tamilName} numberOfLines={1}>{item.name_tamil}</Text>
-          ) : null}
-          <Text style={styles.productCode}>CODE: {item.product_code || item.id}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={() => saveProductStock(item)}
-          disabled={updatingId === item.id}
-        >
-          {updatingId === item.id ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveBtnText}>Update</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.variantsList}>
-        <View style={styles.variantHeader}>
-          <Text style={[styles.colLabel, { flex: 2 }]}>Variant</Text>
-          <Text style={[styles.colLabel, { flex: 1, textAlign: 'center' }]}>Price</Text>
-          <Text style={[styles.colLabel, { flex: 1, textAlign: 'right' }]}>Stock Count</Text>
-        </View>
-
-        {item.variants?.map((v: any, idx: number) => (
-          <View key={idx} style={styles.variantRow}>
-            <Text style={[styles.variantName, { flex: 2 }]}>{v.quantity} {v.unit}</Text>
-            <Text style={[styles.variantPrice, { flex: 1, textAlign: 'center' }]}>₹{v.sellingPrice || v.mrp}</Text>
-            <View style={[styles.stockInputContainer, { flex: 1 }]}>
-              <TextInput
-                style={styles.stockInput}
-                value={String(v.stock ?? 0)}
-                onChangeText={(val) => handleStockChange(item.id, idx, val)}
-                keyboardType="numeric"
-                selectTextOnFocus
-                placeholder="0"
-                placeholderTextColor="#94a3b8"
-              />
-            </View>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Grand Total Stock:</Text>
-        <Text style={styles.totalValue}>{item.total_stock || 0}</Text>
-      </View>
-    </View>
-  );
+  const renderProduct = useCallback(({ item }: { item: any }) => (
+    <StockItem 
+      item={item} 
+      updatingId={updatingId} 
+      handleStockChange={handleStockChange} 
+      saveProductStock={saveProductStock} 
+    />
+  ), [updatingId, handleStockChange, saveProductStock]);
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
@@ -167,7 +183,7 @@ const StockManagement = () => {
             <Feather name="arrow-left" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Stock Management</Text>
-          <TouchableOpacity onPress={loadData} style={styles.refreshBtn}>
+          <TouchableOpacity onPress={() => loadData(true)} style={styles.refreshBtn}>
             <Feather name="refresh-cw" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
@@ -195,6 +211,10 @@ const StockManagement = () => {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderProduct}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 20 }]}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={10}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
               <Feather name="box" size={48} color="#e2e8f0" />

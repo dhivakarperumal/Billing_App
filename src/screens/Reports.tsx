@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   StatusBar,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { BluetoothEscposPrinter } from 'react-native-bluetooth-escpos-printer';
@@ -18,16 +19,39 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchOrders } from '../api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { memo } from 'react';
+import { FlatList } from 'react-native';
+
+// --- Global Cache for Reports ---
+let gOrders: any[] = [];
+
+const TransactionItem = memo(({ order }: any) => (
+  <View style={styles.transactionItem}>
+    <View style={styles.orderIcon}>
+      <Icon name="shopping-bag" size={18} color="#64748b" />
+    </View>
+    <View style={{ flex: 1, marginLeft: 12 }}>
+      <Text style={styles.orderId}>Order #{order.id?.toString().slice(-6).toUpperCase()}</Text>
+      <Text style={styles.orderDate}>
+        {new Date(order.created_at || order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </Text>
+    </View>
+    <Text style={styles.orderAmount}>₹{Number(order.total_amount).toLocaleString()}</Text>
+  </View>
+));
 
 type DateFilter = 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'all';
 
 const Reports = ({ navigation }: any) => {
   const { token } = useAuth();
   const insets = useSafeAreaInsets();
-  const [loading, setLoading] = useState(false);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>(gOrders);
+  const [loading, setLoading] = useState(gOrders.length === 0);
   const [activeFilter, setActiveFilter] = useState<DateFilter>('today');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Sync with global cache
+  useEffect(() => { gOrders = orders; }, [orders]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -334,14 +358,12 @@ const Reports = ({ navigation }: any) => {
         </ScrollView>
       </View>
 
-      <ScrollView
-        style={styles.content}
+      <FlatList
+        data={filteredOrders}
+        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
-      >
-        {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
-        ) : (
+        ListHeaderComponent={() => (
           <>
             <View style={styles.summaryCard}>
               <View style={styles.summaryItem}>
@@ -373,28 +395,23 @@ const Reports = ({ navigation }: any) => {
               </View>
             </View>
 
-            {filteredOrders.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Icon name="file-text" size={48} color="#e2e8f0" />
-                <Text style={styles.emptyText}>No transactions found for this period</Text>
-              </View>
-            ) : (
-              filteredOrders.map((order, i) => (
-                <View key={i} style={styles.transactionItem}>
-                  <View style={styles.orderIcon}>
-                    <Icon name="shopping-bag" size={18} color="#64748b" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.orderId}>Order #{order.id?.toString().slice(-6).toUpperCase()}</Text>
-                    <Text style={styles.orderDate}>{new Date(order.created_at || order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-                  </View>
-                  <Text style={styles.orderAmount}>₹{Number(order.total_amount).toLocaleString()}</Text>
-                </View>
-              ))
+            {loading && !refreshing && (
+                <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
             )}
           </>
         )}
-      </ScrollView>
+        renderItem={({ item }) => <TransactionItem order={item} />}
+        ListEmptyComponent={() => !loading && (
+          <View style={styles.emptyState}>
+            <Icon name="file-text" size={48} color="#e2e8f0" />
+            <Text style={styles.emptyText}>No transactions found for this period</Text>
+          </View>
+        )}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+      />
     </SafeAreaView>
   );
 };

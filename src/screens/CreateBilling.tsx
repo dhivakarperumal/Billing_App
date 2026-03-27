@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import {
     View, Text, TextInput, TouchableOpacity, ScrollView,
     FlatList, Modal, ActivityIndicator, Alert,
@@ -24,6 +24,58 @@ const PRIMARY_GRADIENT = ['#2563eb', '#1d4ed8']; // blue
 const HEADER_GRADIENT = ['#2563eb', '#1d4ed8']; // blue header
 const ACCENT_COLOR = '#2563eb'; // main blue
 
+// --- Optimized Product Card Component ---
+const ProductCard = memo(({ item, onPress }: { item: Product; onPress: (p: Product) => void }) => (
+    <TouchableOpacity onPress={() => onPress(item)} style={styles.card}>
+        <View style={styles.imageContainer}>
+            {item.image || item.images?.[0] ? (
+                <Image 
+                    source={{ uri: item.image || item.images?.[0] }} 
+                    style={styles.productImg} 
+                />
+            ) : (
+                <Feather name="package" size={24} color="#cbd5e1" />
+            )}
+
+            <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => onPress(item)}
+            >
+                <Feather name="plus" size={16} color="#fff" />
+            </TouchableOpacity>
+        </View>
+
+        <Text style={styles.itemName} numberOfLines={1}>
+            {item.name}
+        </Text>
+
+        <View style={styles.itemFooter}>
+            <Text style={styles.itemPrice}>
+                ₹{Number(item.offer_price || item.price || 0)}
+            </Text>
+
+            <View style={styles.stockBadge}>
+                <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
+            </View>
+        </View>
+    </TouchableOpacity>
+));
+
+const CategoryBtn = memo(({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: (t: string) => void }) => (
+    <TouchableOpacity 
+        style={[styles.categoryBtn, isActive && styles.activeCategoryBtn]} 
+        onPress={() => onPress(title)}
+    >
+        <Text style={[styles.categoryText, isActive && styles.activeCategoryText]}>
+            {String(title).toUpperCase()}
+        </Text>
+    </TouchableOpacity>
+));
+
+// --- Global Cache for persistent memory between navigation ---
+let gProducts: Product[] = [];
+let gCategories: Category[] = [];
+
 const CreateBilling = () => {
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
@@ -32,11 +84,15 @@ const CreateBilling = () => {
 
     const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
-    // Data States
-    const [products, setProducts] = useState<Product[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Data States (initialized from global cache for zero-flicker reload)
+    const [products, setProducts] = useState<Product[]>(gProducts);
+    const [categories, setCategories] = useState<Category[]>(gCategories);
+    const [loading, setLoading] = useState(gProducts.length === 0);
     const [saving, setSaving] = useState(false);
+
+    // Sync local state to global cache whenever it updates
+    useEffect(() => { gProducts = products; }, [products]);
+    useEffect(() => { gCategories = categories; }, [categories]);
 
     // UI States
     const [selectedCategory, setSelectedCategory] = useState("All");
@@ -373,20 +429,49 @@ const CreateBilling = () => {
         }
     }, [route.params?.barcode, route.params?.barcodes, products]);
 
-    // Data Loading
+    // Data Loading with Caching
     useEffect(() => {
         const loadInitialData = async () => {
             if (!token) return;
             try {
-                const [pResp, cResp]: any = await Promise.all([
-                    fetchProducts(token).catch(() => []),
-                    fetchCategories(token).catch(() => [])
+                // 1. Load cached data for instant display
+                const [cachedP, cachedC] = await Promise.all([
+                    AsyncStorage.getItem('cached_products'),
+                    AsyncStorage.getItem('cached_categories')
                 ]);
-                let pItems = Array.isArray(pResp) ? pResp : (pResp.products || pResp.data || pResp.items || []);
-                setProducts(pItems);
-                let cItems = Array.isArray(cResp) ? cResp : (cResp.categories || cResp.data || cResp.items || []);
-                setCategories(cItems);
-            } catch (err) { } finally { setLoading(false); }
+                
+                if (cachedP) setProducts(JSON.parse(cachedP));
+                if (cachedC) setCategories(JSON.parse(cachedC));
+                
+                // If we have cached data, hide loader immediately
+                if (cachedP && cachedC) setLoading(false);
+
+                // 2. Fetch fresh data in background
+                const [pResp, cResp]: any = await Promise.all([
+                    fetchProducts(token).catch(() => null),
+                    fetchCategories(token).catch(() => null)
+                ]);
+
+                if (pResp) {
+                    const pItems = Array.isArray(pResp) ? pResp : (pResp.products || pResp.data || pResp.items || []);
+                    if (pItems.length > 0) {
+                        setProducts(pItems);
+                        await AsyncStorage.setItem('cached_products', JSON.stringify(pItems));
+                    }
+                }
+
+                if (cResp) {
+                    const cItems = Array.isArray(cResp) ? cResp : (cResp.categories || cResp.data || cResp.items || []);
+                    if (cItems.length > 0) {
+                        setCategories(cItems);
+                        await AsyncStorage.setItem('cached_categories', JSON.stringify(cItems));
+                    }
+                }
+            } catch (err) {
+                console.error("Load Error:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         loadInitialData();
     }, [token]);
@@ -673,14 +758,41 @@ const CreateBilling = () => {
                 </View>
             </View>
 
+            {/* 🔥 Categories Optimization */}
+            <View style={{ backgroundColor: '#fff' }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                    <CategoryBtn 
+                        title="All" 
+                        isActive={selectedCategory === "All"} 
+                        onPress={setSelectedCategory} 
+                    />
+                    {categories.map((cat: any) => (
+                        <CategoryBtn 
+                            key={cat.id || cat.name}
+                            title={cat.name} 
+                            isActive={selectedCategory === cat.name} 
+                            onPress={setSelectedCategory} 
+                        />
+                    ))}
+                </ScrollView>
+            </View>
+
             <FlatList
                 data={filteredProducts}
                 numColumns={2}
+                keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={{
                     padding: 12,
-                    paddingBottom: insets.bottom + 120, // 🔥 FIX
-                    flexGrow: 1, // Ensure content can center if empty
+                    paddingBottom: insets.bottom + 120,
+                    flexGrow: 1,
                 }}
+                initialNumToRender={8}
+                maxToRenderPerBatch={10}
+                windowSize={10}
+                removeClippedSubviews={Platform.OS === 'android'}
+                renderItem={({ item }) => (
+                    <ProductCard item={item} onPress={handleProductPress} />
+                )}
                 ListEmptyComponent={() => (
                     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 }}>
                         <Feather name="search" size={48} color="#cbd5e1" />
@@ -698,43 +810,6 @@ const CreateBilling = () => {
                             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 1 }}>ADD PRODUCT</Text>
                         </TouchableOpacity>
                     </View>
-                )}
-                keyExtractor={(item) => String(item.id)}
-                renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => handleProductPress(item)} style={styles.card}>
-
-                        <View style={styles.imageContainer}>
-                            {item.image || item.images?.[0] ? (
-                                <Image source={{ uri: item.image || item.images?.[0] }} style={styles.productImg} />
-                            ) : (
-                                <Feather name="package" size={24} color="#cbd5e1" />
-                            )}
-
-                            {/* ✅ ADD BUTTON */}
-                            <TouchableOpacity
-                                style={styles.addBtn}
-                                onPress={() => handleProductPress(item)}  // opens qty popup
-                            >
-                                <Feather name="plus" size={16} color="#fff" />
-                            </TouchableOpacity>
-
-                        </View>
-
-                        <Text style={styles.itemName} numberOfLines={1}>
-                            {item.name}
-                        </Text>
-
-                        <View style={styles.itemFooter}>
-                            <Text style={styles.itemPrice}>
-                                ₹{Number(item.offer_price || item.price || 0)}
-                            </Text>
-
-                            <View style={styles.stockBadge}>
-                                <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
-                            </View>
-                        </View>
-
-                    </TouchableOpacity>
                 )}
             />
 
@@ -1363,6 +1438,39 @@ const styles = StyleSheet.create({
     },
 
     qtyValue: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
+    
+    categoryScroll: {
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    categoryBtn: {
+        paddingHorizontal: 22,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#f8fafc',
+        marginHorizontal: 6,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    activeCategoryBtn: {
+        backgroundColor: '#2563eb',
+        borderColor: '#2563eb',
+        elevation: 4,
+        shadowColor: '#2563eb',
+        shadowOpacity: 0.3, shadowRadius: 5,
+    },
+    categoryText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#64748b',
+        letterSpacing: 1,
+    },
+    activeCategoryText: {
+        color: '#fff',
+    },
 
     modalFooter: {
         borderTopWidth: 1,

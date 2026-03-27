@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,25 @@ import {
   FlatList,
   Alert,
   StatusBar,
+  Platform,
 } from 'react-native';
+import { memo, useCallback } from 'react';
+
+// --- Global Cache ---
+let gAddStockProducts: any[] = [];
+
+const ProductListItem = memo(({ item, onPress }: any) => (
+  <TouchableOpacity style={styles.productItem} onPress={() => onPress(item)}>
+    <View style={styles.itemIcon}>
+      <Feather name="box" size={20} color="#2563eb" />
+    </View>
+    <View style={{ flex: 1, marginLeft: 12 }}>
+      <Text style={styles.itemTitle}>{item.name}</Text>
+      <Text style={styles.itemSubtitle}>ID: {item.product_code || item.id}  · Total: {item.total_stock || 0}</Text>
+    </View>
+    <Feather name="chevron-right" size={18} color="#cbd5e1" />
+  </TouchableOpacity>
+));
 import Feather from 'react-native-vector-icons/Feather';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchProducts, updateProduct } from '../api';
@@ -23,12 +41,15 @@ const AddStock = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(gAddStockProducts);
+  const [loading, setLoading] = useState(gAddStockProducts.length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [addingValues, setAddingValues] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
+
+  // Sync with global cache
+  useEffect(() => { gAddStockProducts = products; }, [products]);
 
   // Auto-select when barcode is scanned
   useEffect(() => {
@@ -52,8 +73,8 @@ const AddStock = () => {
     }
   }, [route.params?.barcode, products]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const resp = await fetchProducts(token);
       const items = Array.isArray(resp) ? resp : (resp as any).products || [];
@@ -61,12 +82,12 @@ const AddStock = () => {
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    loadData();
+    loadData(gAddStockProducts.length === 0);
   }, [loadData]);
 
   const handleSelectProduct = (product: any) => {
@@ -173,18 +194,13 @@ const AddStock = () => {
               data={filteredProducts}
               keyExtractor={item => String(item.id)}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.productItem} onPress={() => handleSelectProduct(item)}>
-                  <View style={styles.itemIcon}>
-                    <Feather name="box" size={20} color="#2563eb" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.itemTitle}>{item.name}</Text>
-                    <Text style={styles.itemSubtitle}>ID: {item.product_code || item.id}  · Total: {item.total_stock || 0}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color="#cbd5e1" />
-                </TouchableOpacity>
+                <ProductListItem item={item} onPress={handleSelectProduct} />
               )}
               contentContainerStyle={styles.list}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS === 'android'}
             />
           )}
         </View>
