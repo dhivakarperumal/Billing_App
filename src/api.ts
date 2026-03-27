@@ -166,6 +166,17 @@ export async function updateProduct(
   }, token);
 }
 
+export async function reduceStock(
+  productId: string | number,
+  quantityToReduce: number,
+  token?: string | null,
+) {
+  return request<any>(`/products/${productId}/reduce-stock`, {
+    method: 'POST',
+    body: JSON.stringify({ quantity: quantityToReduce }),
+  }, token);
+}
+
 export async function get<T=any>(path: string, token?: string | null): Promise<T> {
   return request<T>(path, { method: 'GET' }, token);
 }

@@ -9,7 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../contexts/AuthContext";
-import { fetchProducts, fetchCategories, createBill, Product, Category, BillPayload } from "../api";
+import { fetchProducts, fetchCategories, createBill, reduceStock, Product, Category, BillPayload } from "../api";
 import LinearGradient from 'react-native-linear-gradient';
 import { printReceipt, PrintData } from "../utils/printer";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,41 +25,69 @@ const HEADER_GRADIENT = ['#2563eb', '#1d4ed8']; // blue header
 const ACCENT_COLOR = '#2563eb'; // main blue
 
 // --- Optimized Product Card Component ---
-const ProductCard = memo(({ item, onPress }: { item: Product; onPress: (p: Product) => void }) => (
-    <TouchableOpacity onPress={() => onPress(item)} style={styles.card}>
-        <View style={styles.imageContainer}>
-            {item.image || item.images?.[0] ? (
-                <Image 
-                    source={{ uri: item.image || item.images?.[0] }} 
-                    style={styles.productImg} 
-                />
-            ) : (
-                <Feather name="package" size={24} color="#cbd5e1" />
-            )}
+const ProductCard = memo(({ item, onPress }: { item: Product; onPress: (p: Product) => void }) => {
+    const isOutOfStock = item.total_stock !== undefined && item.total_stock !== null && Number(item.total_stock) <= 0;
 
-            <TouchableOpacity
-                style={styles.addBtn}
-                onPress={() => onPress(item)}
-            >
-                <Feather name="plus" size={16} color="#fff" />
-            </TouchableOpacity>
-        </View>
+    return (
+        <TouchableOpacity
+            onPress={() => !isOutOfStock && onPress(item)}
+            style={[styles.card, isOutOfStock && { opacity: 0.6 }]}
+            activeOpacity={isOutOfStock ? 1 : 0.8}
+        >
+            <View style={styles.imageContainer}>
+                {item.image || item.images?.[0] ? (
+                    <Image
+                        source={{ uri: item.image || item.images?.[0] }}
+                        style={[styles.productImg, isOutOfStock && { opacity: 0.5 }]}
+                    />
+                ) : (
+                    <Feather name="package" size={24} color={isOutOfStock ? '#e2e8f0' : '#cbd5e1'} />
+                )}
 
-        <Text style={styles.itemName} numberOfLines={1}>
-            {item.name}
-        </Text>
+                {/* Out of Stock Overlay */}
+                {isOutOfStock ? (
+                    <View style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(15,23,42,0.5)', borderRadius: 16,
+                        alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                            <Text style={{ fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.5 }}>OUT OF STOCK</Text>
+                        </View>
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={() => onPress(item)}
+                    >
+                        <Feather name="plus" size={16} color="#fff" />
+                    </TouchableOpacity>
+                )}
+            </View>
 
-        <View style={styles.itemFooter}>
-            <Text style={styles.itemPrice}>
-                ₹{Number(item.offer_price || item.price || 0)}
+            <Text style={[styles.itemName, isOutOfStock && { color: '#94a3b8' }]} numberOfLines={1}>
+                {item.name}
             </Text>
 
-            <View style={styles.stockBadge}>
-                <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
+            <View style={styles.itemFooter}>
+                <Text style={[styles.itemPrice, isOutOfStock && { color: '#94a3b8' }]}>
+                    ₹{Number(item.offer_price || item.price || 0)}
+                </Text>
+
+                {isOutOfStock ? (
+                    <View style={[styles.stockBadge, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={[styles.stockText, { color: '#ef4444' }]}>SOLD OUT</Text>
+                    </View>
+                ) : (
+                    <View style={styles.stockBadge}>
+                        <Text style={styles.stockText}>{item.total_stock || 0} U</Text>
+                    </View>
+                )}
             </View>
-        </View>
-    </TouchableOpacity>
-));
+        </TouchableOpacity>
+    );
+});
+
 
 const CategoryBtn = memo(({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: (t: string) => void }) => (
     <TouchableOpacity 
@@ -648,9 +676,22 @@ const CreateBilling = () => {
             const response: any = await createBill(payload, token);
             const billId = response?.id || Date.now();
 
+            // ✅ STOCK REDUCTION — run in parallel for all cart items
+            const stockReductions = cart
+                .filter(i => i.product_id) // Only real products (not custom UPI items)
+                .map(i =>
+                    reduceStock(i.product_id, i.quantity, token).catch((err: any) => {
+                        console.warn(`Stock reduce failed for product ${i.product_id}:`, err?.message);
+                    })
+                );
+            await Promise.all(stockReductions);
+
+            // Invalidate global product cache so stock shows updated
+            gProducts = [];
+            await AsyncStorage.removeItem('cached_products');
+
             // Load Post-Save Preferences
             const autoP = await AsyncStorage.getItem('auto_print') === 'true';
-            const afterA = await AsyncStorage.getItem('after_save_action') || 'back';
 
             const printData: PrintData = {
                 customerName,
