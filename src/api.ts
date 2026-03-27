@@ -113,6 +113,12 @@ export async function register(payload: RegisterPayload) {
   });
 }
 
+export async function deleteAccount(id: string | number, token?: string | null) {
+  return request<any>(`/auth/users/${id}`, {
+    method: 'DELETE',
+  }, token);
+}
+
 export async function fetchCustomers(token?: string | null) {
   return request<Customer[]>(`/customers`, { method: 'GET' }, token);
 }
