@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   StatusBar,
+  Image,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useAuth } from '../contexts/AuthContext';
@@ -89,10 +90,24 @@ const StockManagement = () => {
   const renderProduct = ({ item }: { item: any }) => (
     <View style={styles.productCard}>
       <View style={styles.productHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productCode}>ID: {item.product_code || item.id}</Text>
+        <View style={styles.imageContainer}>
+          {item.images && item.images.length > 0 ? (
+            <Image source={{ uri: item.images[0] }} style={styles.productImage} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Feather name="box" size={30} color="#e2e8f0" />
+            </View>
+          )}
         </View>
+
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+          {item.name_tamil ? (
+            <Text style={styles.tamilName} numberOfLines={1}>{item.name_tamil}</Text>
+          ) : null}
+          <Text style={styles.productCode}>CODE: {item.product_code || item.id}</Text>
+        </View>
+
         <TouchableOpacity
           style={styles.saveBtn}
           onPress={() => saveProductStock(item)}
@@ -120,10 +135,12 @@ const StockManagement = () => {
             <View style={[styles.stockInputContainer, { flex: 1 }]}>
               <TextInput
                 style={styles.stockInput}
-                value={String(v.stock || 0)}
+                value={String(v.stock ?? 0)}
                 onChangeText={(val) => handleStockChange(item.id, idx, val)}
                 keyboardType="numeric"
                 selectTextOnFocus
+                placeholder="0"
+                placeholderTextColor="#94a3b8"
               />
             </View>
           </View>
@@ -258,6 +275,13 @@ const styles = StyleSheet.create({
     color: '#1e3a8a'
   },
 
+  tamilName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3b82f6',
+    marginTop: -2
+  },
+
   productCode: {
     fontSize: 11,
     fontWeight: '700',
@@ -376,6 +400,30 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textTransform: 'uppercase',
     letterSpacing: 1
+  },
+
+  // 🔵 IMAGE
+  imageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyState: {

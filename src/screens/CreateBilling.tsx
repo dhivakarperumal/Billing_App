@@ -413,9 +413,12 @@ const CreateBilling = () => {
     }, [products, selectedCategory, productSearchTerm, voiceLang]);
 
     const [customQty, setCustomQty] = useState('1');
+    const [customUnit, setCustomUnit] = useState('pcs');
+    const UNITS = ["kg", "g", "mg", "L", "ml", "pcs", "box", "pack"];
 
     const handleProductPress = (product: Product) => {
         setCustomQty('1');
+        setCustomUnit(product.unit || 'pcs');
         setSelectedProduct(product);
 
         // ✅ default select first variant
@@ -431,15 +434,20 @@ const CreateBilling = () => {
     const closeVariantModal = () => {
         setShowVariantModal(false);
         setCustomQty('1');
+        setCustomUnit('pcs');
         setProductSearchTerm("");
     };
 
     const addToCart = (product: Product, variant?: any) => {
         if (!product) return;
         const qty = Number(customQty) || 1;
-        const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);
+        const unit = variant ? variant.unit : customUnit;
+        const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : `${product.id}-${unit}`;
         const price = variant ? Number(variant.sellingPrice || variant.mrp || 0) : Number(product.offer_price || product.price || 0);
-        const name = variant ? `${product.name} (${variant.quantity}${variant.unit})` : product.name;
+
+        const name = variant
+            ? `${product.name} (${variant.quantity}${variant.unit})`
+            : `${product.name} (${qty}${unit})`;
 
         setCart(prev => {
             const exists = prev.find(item => item.id === itemId);
@@ -755,6 +763,18 @@ const CreateBilling = () => {
                                 >
                                     <Feather name="plus" size={20} color="#f97316" />
                                 </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.unitGrid}>
+                                {UNITS.map(u => (
+                                    <TouchableOpacity
+                                        key={u}
+                                        onPress={() => setCustomUnit(u)}
+                                        style={[styles.unitBtn, customUnit === u && styles.unitBtnSelected]}
+                                    >
+                                        <Text style={[styles.unitBtnText, customUnit === u && styles.unitBtnTextSelected]}>{u}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         </View>
 
@@ -1291,6 +1311,34 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         alignItems: 'center',
         marginTop: 10,
+    },
+
+    unitGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 20,
+    },
+    unitBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#dbeafe',
+    },
+    unitBtnSelected: {
+        backgroundColor: '#2563eb',
+        borderColor: '#2563eb',
+    },
+    unitBtnText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#1e3a8a',
+    },
+    unitBtnTextSelected: {
+        color: '#fff',
     },
 
     confirmAddTxt: {
