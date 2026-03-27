@@ -1131,60 +1131,97 @@ const CreateBilling = () => {
                     </View>
                 </View>
             </Modal>
-            {/* 🔥 PAYMENT MODE SELECTION MODAL */}
+            {/* 🔥 PREMIUM PAYMENT MODE SELECTION MODAL */}
             <Modal
                 visible={showPaymentModal}
                 transparent
-                animationType="fade"
+                animationType="slide"
                 onRequestClose={() => setShowPaymentModal(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalSheet, { paddingBottom: 40 }]}>
+                    <View style={[styles.modalSheet, { paddingBottom: 50 }]}>
                         <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowPaymentModal(false)}>
                             <Feather name="x" size={20} color="#64748b" />
                         </TouchableOpacity>
                         
                         <View style={styles.modalPill} />
-                        <Text style={styles.modalTitle}>Choose Payment Manner.</Text>
+                        
+                        <View style={{ alignItems: 'center', marginBottom: 30 }}>
+                            <Text style={[styles.modalTitle, { marginBottom: 5 }]}>Settle Payment</Text>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>How would you like to receive ₹{cartTotal.toFixed(2)}?</Text>
+                        </View>
 
-                        <View style={{ flexDirection: 'row', gap: 15, marginBottom: 20 }}>
+                        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 25 }}>
                             <TouchableOpacity 
                                 onPress={() => setSelectedPaymentMode('CASH')}
+                                activeOpacity={0.8}
                                 style={{ 
-                                    flex: 1, height: 100, borderRadius: 24, backgroundColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#f8fafc',
-                                    borderWidth: 2, borderColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#e2e8f0',
-                                    alignItems: 'center', justifyContent: 'center', gap: 8
+                                    flex: 1, height: 130, borderRadius: 28, 
+                                    backgroundColor: selectedPaymentMode === 'CASH' ? '#eff6ff' : '#ffffff',
+                                    borderWidth: 2, borderColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#f1f5f9',
+                                    alignItems: 'center', justifyContent: 'center', gap: 10,
+                                    shadowColor: '#2563eb', shadowOpacity: selectedPaymentMode === 'CASH' ? 0.1 : 0, shadowRadius: 10, elevation: selectedPaymentMode === 'CASH' ? 4 : 0
                                 }}
                             >
-                                <Feather name="dollar-sign" size={24} color={selectedPaymentMode === 'CASH' ? '#fff' : '#64748b'} />
-                                <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'CASH' ? '#fff' : '#64748b' }}>CASH</Text>
+                                <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: selectedPaymentMode === 'CASH' ? '#2563eb' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                                    <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: selectedPaymentMode === 'CASH' ? 'rgba(255,255,255,0.2)' : '#eff6ff', position: 'absolute', top: -10, right: -10 }} />
+                                    <Feather name="dollar-sign" size={24} color={selectedPaymentMode === 'CASH' ? '#fff' : '#64748b'} />
+                                </View>
+                                <View style={{ alignItems: 'center' }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'CASH' ? '#1e3a8a' : '#64748b' }}>PHYSICAL CASH</Text>
+                                    <Text style={{ fontSize: 9, fontWeight: '700', color: selectedPaymentMode === 'CASH' ? '#2563eb' : '#94a3b8', marginTop: 2 }}>Direct Settle</Text>
+                                </View>
+                                {selectedPaymentMode === 'CASH' && (
+                                    <View style={{ position: 'absolute', top: 12, right: 12, padding: 4, backgroundColor: '#2563eb', borderRadius: 8 }}>
+                                        <Feather name="check" size={10} color="#fff" />
+                                    </View>
+                                )}
                             </TouchableOpacity>
 
                             <TouchableOpacity 
                                 onPress={() => setSelectedPaymentMode('UPI')}
+                                activeOpacity={0.8}
                                 style={{ 
-                                    flex: 1, height: 100, borderRadius: 24, backgroundColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#f8fafc',
-                                    borderWidth: 2, borderColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#e2e8f0',
-                                    alignItems: 'center', justifyContent: 'center', gap: 8
+                                    flex: 1, height: 130, borderRadius: 28, 
+                                    backgroundColor: selectedPaymentMode === 'UPI' ? '#eff6ff' : '#ffffff',
+                                    borderWidth: 2, borderColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#f1f5f9',
+                                    alignItems: 'center', justifyContent: 'center', gap: 10,
+                                    shadowColor: '#2563eb', shadowOpacity: selectedPaymentMode === 'UPI' ? 0.1 : 0, shadowRadius: 10, elevation: selectedPaymentMode === 'UPI' ? 4 : 0
                                 }}
                             >
-                                <Feather name="smartphone" size={24} color={selectedPaymentMode === 'UPI' ? '#fff' : '#64748b'} />
-                                <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'UPI' ? '#fff' : '#64748b' }}>UPI / QR</Text>
+                                <View style={{ width: 50, height: 50, borderRadius: 16, backgroundColor: selectedPaymentMode === 'UPI' ? '#2563eb' : '#f8fafc', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Feather name="smartphone" size={24} color={selectedPaymentMode === 'UPI' ? '#fff' : '#64748b'} />
+                                </View>
+                                <View style={{ alignItems: 'center' }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '900', color: selectedPaymentMode === 'UPI' ? '#1e3a8a' : '#64748b' }}>UPI / SCANNER</Text>
+                                    <Text style={{ fontSize: 9, fontWeight: '700', color: selectedPaymentMode === 'UPI' ? '#2563eb' : '#94a3b8', marginTop: 2 }}>Digital Receipt</Text>
+                                </View>
+                                {selectedPaymentMode === 'UPI' && (
+                                    <View style={{ position: 'absolute', top: 12, right: 12, padding: 4, backgroundColor: '#2563eb', borderRadius: 8 }}>
+                                        <Feather name="check" size={10} color="#fff" />
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         </View>
 
                         {selectedPaymentMode === 'UPI' && businessInfo?.upiId && (
-                            <View style={{ backgroundColor: '#eff6ff', padding: 15, borderRadius: 18, marginBottom: 20, alignItems: 'center' }}>
-                                <Text style={{ fontSize: 10, fontWeight: '800', color: '#1e3a8a', marginBottom: 5 }}>QR SELECTION ENABLED</Text>
-                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#2563eb' }}>UPI: {businessInfo.upiId}</Text>
+                            <View style={{ backgroundColor: '#f0fdf4', padding: 15, borderRadius: 24, marginBottom: 25, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#dcfce7' }}>
+                                <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#22c55e', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Feather name="pocket" size={16} color="#fff" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#14532d', textTransform: 'uppercase' }}>QR Generator Ready</Text>
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#166534' }}>{businessInfo.upiId}</Text>
+                                </View>
                             </View>
                         )}
 
                         <TouchableOpacity 
-                            style={[styles.finalizeBtn, { width: '100%' }]}
+                            style={[styles.finalizeBtn, { width: '100%', borderRadius: 24, paddingVertical: 20 }]}
                             onPress={() => processBill(selectedPaymentMode)}
                         >
-                            <Text style={styles.finalizeTxt}>CONFIRM & FINALIZE ₹{cartTotal.toFixed(2)}</Text>
+                            <Text style={[styles.finalizeTxt, { fontSize: 15 }]}>COMPLETE TRANSACTION</Text>
+                            <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -1538,6 +1575,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 25,
         paddingVertical: 15,
         borderRadius: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     finalizeTxt: { color: '#fff', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
