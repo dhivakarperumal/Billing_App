@@ -72,9 +72,19 @@ export type Customer = {
 };
 
 export type Product = {
-  id: string | number;
-  name: string;
-  price: number;
+  id?: string | number;
+  name?: string;
+  price?: number;
+  name_tamil?: string;
+  name_tanglish?: string;
+  variants?: any[];
+  offer_price?: number | string;
+  image?: string;
+  images?: string[];
+  product_code?: string | number;
+  category?: string;
+  total_stock?: number;
+  [key: string]: any;
 };
 
 export type BillItem = {
@@ -83,8 +93,10 @@ export type BillItem = {
 };
 
 export type BillPayload = {
-  customer_id: string | number;
+  customer_id?: string | number;
+  customer_name?: string;
   items: BillItem[];
+  [key: string]: any;
 };
 
 export async function login(payload: LoginPayload) {

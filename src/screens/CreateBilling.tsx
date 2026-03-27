@@ -434,7 +434,7 @@ const CreateBilling = () => {
         setShowVariantModal(true);
     };
 
-    const addToCart = (product, variant) => {
+    const addToCart = (product: Product, variant?: any) => {
         if (!product) return;
         const qty = Number(customQty) || 1;
         const itemId = variant ? `${product.id}-${variant.quantity}-${variant.unit}` : String(product.id);

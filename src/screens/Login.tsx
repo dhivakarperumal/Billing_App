@@ -14,7 +14,7 @@ import { ImageBackground } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from 'react-native-toast-message';
 
-const Login = ({ onSwitchToRegister }) => {
+const Login = ({ onSwitchToRegister }: { onSwitchToRegister: () => void }) => {
   const { signIn, loading } = useAuth();
 
   const [identifier, setIdentifier] = useState("");

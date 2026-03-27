@@ -14,7 +14,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from 'react-native-toast-message';
 
-const Register = ({ onSwitchToLogin }) => {
+const Register = ({ onSwitchToLogin }: { onSwitchToLogin: () => void }) => {
   const { signUp, loading } = useAuth();
 
   const [form, setForm] = useState({
@@ -27,7 +27,7 @@ const Register = ({ onSwitchToLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleChange = (name, value) => {
+  const handleChange = (name: string, value: string) => {
     setForm({ ...form, [name]: value });
   };
 
