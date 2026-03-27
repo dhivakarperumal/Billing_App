@@ -132,7 +132,7 @@ export async function createProduct(
 }
 
 export async function createBill(payload: BillPayload, token?: string | null) {
-  return request<{ id: string | number }>(`/bills`, {
+  return request<{ id: string | number }>(`/orders`, {
     method: 'POST',
     body: JSON.stringify(payload),
   },

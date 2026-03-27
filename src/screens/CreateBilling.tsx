@@ -596,7 +596,26 @@ const CreateBilling = () => {
                 contentContainerStyle={{
                     padding: 12,
                     paddingBottom: insets.bottom + 120, // 🔥 FIX
+                    flexGrow: 1, // Ensure content can center if empty
                 }}
+                ListEmptyComponent={() => (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 }}>
+                        <Feather name="search" size={48} color="#cbd5e1" />
+                        <Text style={{ marginTop: 20, fontSize: 16, fontWeight: '700', color: '#64748b', textAlign: 'center' }}>
+                            {productSearchTerm ? `No results for "${productSearchTerm}"` : "Product not found"}
+                        </Text>
+                        <Text style={{ marginTop: 8, fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 24 }}>
+                            Would you like to add this product to the inventory?
+                        </Text>
+                        <TouchableOpacity 
+                            style={{ backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', elevation: 2, shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 8 }}
+                            onPress={() => navigation.navigate('AddProduct', { initialName: productSearchTerm })}
+                        >
+                            <Feather name="plus" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 1 }}>ADD PRODUCT</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => handleProductPress(item)} style={styles.card}>

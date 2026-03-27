@@ -35,7 +35,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const AddProduct = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const { id } = (route.params as any) || {};
+  const { id, initialName } = (route.params as any) || {};
   const isEdit = !!id;
   const { token } = useAuth();
 
@@ -50,8 +50,8 @@ const AddProduct = () => {
 
   const [formData, setFormData] = useState<any>({
     product_code: '',
-    name: '',
-    name_tamil: '',
+    name: initialName || '',
+    name_tamil: initialName ? (getTamilProductName(initialName) || transliterateToTamil(initialName)) : '',
     name_tanglish: '',
     description: '',
     rating: '',
