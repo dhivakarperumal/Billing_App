@@ -428,6 +428,12 @@ const CreateBilling = () => {
         setShowVariantModal(true);
     };
 
+    const closeVariantModal = () => {
+        setShowVariantModal(false);
+        setCustomQty('1');
+        setProductSearchTerm("");
+    };
+
     const addToCart = (product: Product, variant?: any) => {
         if (!product) return;
         const qty = Number(customQty) || 1;
@@ -447,9 +453,7 @@ const CreateBilling = () => {
                 image: product.image || product.images?.[0] || null
             }];
         });
-        setShowVariantModal(false);
-        setCustomQty('1');
-        setProductSearchTerm("");
+        closeVariantModal();
     };
 
     const handleFinalizeBill = async () => {
@@ -721,9 +725,9 @@ const CreateBilling = () => {
 
             <Modal visible={showVariantModal} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowVariantModal(false)} />
+                    <TouchableOpacity style={{ flex: 1 }} onPress={closeVariantModal} />
                     <View style={styles.variantSheet}>
-                        <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowVariantModal(false)}>
+                        <TouchableOpacity style={styles.modalCloseBtn} onPress={closeVariantModal}>
                             <Feather name="x" size={20} color="#94a3b8" />
                         </TouchableOpacity>
 
