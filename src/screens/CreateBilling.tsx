@@ -250,19 +250,12 @@ const CreateBilling = () => {
         const matched = matchVoiceToProduct(text, products);
 
         if (matched) {
-            setProductSearchTerm(matched.name); // Filter the list to show current products
+            setProductSearchTerm(matched.name || ""); // Filter the list to show current products
 
             setTimeout(() => {
                 const foundMsg = voiceLang === 'ta' ? `${matched.name} கண்டறியப்பட்டது!` : `Found: ${matched.name}`;
                 setVoiceStatus(foundMsg);
-
-                // If product has variants, show variety picker (current products details)
-                if (matched.variants && matched.variants.length > 0) {
-                    handleProductPress(matched);
-                } else {
-                    addToCartDirectly(matched);
-                }
-
+                handleProductPress(matched);
                 setTimeout(() => setVoiceStatus(''), 3000);
             }, 600);
         } else {
@@ -293,6 +286,7 @@ const CreateBilling = () => {
                 image: product.image || product.images?.[0] || null
             }];
         });
+        setProductSearchTerm("");
     };
 
     // ─── Barcode & Helpers ─────────────────────────────────────
@@ -405,7 +399,7 @@ const CreateBilling = () => {
             const pName = (p.name || "").toLowerCase();
             const pTamil = (p.name_tamil || "").toLowerCase();
             const pTanglish = (p.name_tanglish || "").toLowerCase();
-            const pCode = (p.product_code || String(p.id || "")).toLowerCase();
+            const pCode = String(p.product_code || p.id || "").toLowerCase();
             // Also auto-transliterate Tamil script to handle Tanglish search
             const tamilAsRoman = tanglishMatchesTamil(term, p.name_tamil || '');
             return matchCat && (
@@ -455,6 +449,7 @@ const CreateBilling = () => {
         });
         setShowVariantModal(false);
         setCustomQty('1');
+        setProductSearchTerm("");
     };
 
     const handleFinalizeBill = async () => {
@@ -785,7 +780,7 @@ const CreateBilling = () => {
 
                         <TouchableOpacity
                             style={styles.confirmAddBtn}
-                            onPress={() => addToCart(selectedProduct, selectedVariant)}
+                            onPress={() => selectedProduct && addToCart(selectedProduct, selectedVariant)}
                         >
                             <Text style={styles.confirmAddTxt}>ADD TO CART</Text>
                         </TouchableOpacity>
