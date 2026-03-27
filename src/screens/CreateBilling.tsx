@@ -414,11 +414,44 @@ const CreateBilling = () => {
 
     const [customQty, setCustomQty] = useState('1');
     const [customUnit, setCustomUnit] = useState('pcs');
-    const UNITS = ["kg", "g", "mg", "L", "ml", "pcs", "box", "pack"];
+    
+    const WEIGHT_UNITS = ["kg", "g", "mg"];
+    const VOLUME_UNITS = ["L", "ml"];
+    const QTY_UNITS = ["pcs", "box", "pack"];
+    const ALL_UNITS = [...WEIGHT_UNITS, ...VOLUME_UNITS, ...QTY_UNITS];
+
+    const availableUnits = useMemo(() => {
+        if (!selectedProduct) return ALL_UNITS;
+
+        const unitsUsed = new Set<string>();
+        if (selectedProduct.unit) unitsUsed.add(selectedProduct.unit.toLowerCase());
+        selectedProduct.variants?.forEach((v: any) => {
+            if (v.unit) unitsUsed.add(v.unit.toLowerCase());
+        });
+
+        // Special case: if no units defined, show all
+        if (unitsUsed.size === 0) return ALL_UNITS;
+
+        const needsWeight = WEIGHT_UNITS.some(u => unitsUsed.has(u.toLowerCase()));
+        const needsVolume = VOLUME_UNITS.some(u => unitsUsed.has(u.toLowerCase()));
+        // If it uses weight or volume, don't show QTY units unless specifically used
+        const needsQty = QTY_UNITS.some(u => unitsUsed.has(u.toLowerCase())) || (!needsWeight && !needsVolume);
+
+        let filtered: string[] = [];
+        if (needsWeight) filtered = [...filtered, ...WEIGHT_UNITS];
+        if (needsVolume) filtered = [...filtered, ...VOLUME_UNITS];
+        if (needsQty) filtered = [...filtered, ...QTY_UNITS];
+
+        return filtered.length > 0 ? filtered : ALL_UNITS;
+    }, [selectedProduct]);
 
     const handleProductPress = (product: Product) => {
         setCustomQty('1');
-        setCustomUnit(product.unit || 'pcs');
+        
+        // Default unit from product or first variant
+        const defaultUnit = product.unit || (product.variants?.[0]?.unit) || 'pcs';
+        setCustomUnit(defaultUnit);
+        
         setSelectedProduct(product);
 
         // ✅ default select first variant
@@ -770,10 +803,13 @@ const CreateBilling = () => {
                             </View>
 
                             <View style={styles.unitGrid}>
-                                {UNITS.map(u => (
+                                {availableUnits.map(u => (
                                     <TouchableOpacity
                                         key={u}
-                                        onPress={() => setCustomUnit(u)}
+                                        onPress={() => {
+                                            setCustomUnit(u);
+                                            setSelectedVariant(null); // Clear variant when custom unit is selected
+                                        }}
                                         style={[styles.unitBtn, customUnit === u && styles.unitBtnSelected]}
                                     >
                                         <Text style={[styles.unitBtnText, customUnit === u && styles.unitBtnTextSelected]}>{u}</Text>
